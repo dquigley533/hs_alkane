@@ -1,0 +1,189 @@
+! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
+!=============================================================================!
+!                              I   O                                          !
+!=============================================================================!
+!                                                                             !
+! $Id: io.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+!                                                                             !
+!-----------------------------------------------------------------------------!
+! Holds routines to read the main input file, the xmol file containing        !
+! initial coordinates, and variables relating to IO choices.                  !
+!-----------------------------------------------------------------------------!
+!                                                                             !
+! $Log: io.f90,v $
+! Revision 1.1  2011/02/02 11:48:36  phseal
+! Initial revision
+!
+!
+!=============================================================================!
+module io
+
+  use constants, only : dp,ep
+  implicit none
+
+  private                ! Everything private
+
+
+  !---------------------------------------------------------------------------!
+  !                       P u b l i c   R o u t i n e s                       !
+  !---------------------------------------------------------------------------!
+                                                      !... unless exposed here.
+
+  public :: io_read_input                             ! Read input file
+  public :: io_read_xmol                              ! Read initial coords
+
+  !---------------------------------------------------------------------------!
+  !                        P u b l i c   V a r i a b l e s                    !
+  !---------------------------------------------------------------------------!
+  public :: read_xmol                                 ! Flag to read xmol
+  public :: file_output_int                           ! Sample interval
+  public :: traj_output_int                           ! Trajectory interval
+
+  logical :: read_xmol = .false.   ! are we reading an xmol
+
+  ! Sampling and snapshot intervals
+  integer       :: file_output_int = 25
+  integer       :: traj_output_int = 250
+
+  !---------------------------------------------------------------------------!
+  !                      P r i v a t e   V a r i a b l e s                    !
+  !---------------------------------------------------------------------------!
+
+
+  !---------------------------------------------------------------------------!
+  !                      P r i v a t e   R o u t i n e s                      !
+  !---------------------------------------------------------------------------!
+
+contains
+
+  subroutine io_read_input()
+    !-------------------------------------------------------------------------!
+    ! Reads the input file specified as the first command line argument. Uses !
+    ! Fortran nameslists, and populates user specified variables in box,      !
+    ! alkane and timer.                                                       !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley January 2011                                                  !
+    !-------------------------------------------------------------------------!
+    use alkane, only : nchains,nbeads,sigma,L,model_type,torsion_type,rigid,max_regrow
+    use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix,box_update_recipmatrix
+    use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
+    use timer,  only : timer_closetime,timer_qtime
+    implicit none
+
+
+    namelist/system/nchains,nbeads,CellA,CellB,CellC,sigma,L,model_type, &
+                    torsion_type,pbc,read_xmol,rigid,isotropic
+    namelist/thermal/pressure
+    namelist/bookkeeping/file_output_int,traj_output_int,timer_qtime, &
+                        timer_closetime,max_mc_cycles,eq_adjust_mc,mc_target_ratio
+
+    ! Temporary cell vectors to populate hmatrix
+    real(kind=dp),dimension(3) :: CellA,CellB,CellC
+
+    ! command line data
+    integer                       :: iarg,idata
+    integer                       :: num_args
+    character(30), dimension(0:10):: command_line
+    character(30)                 :: file_name,seedname
+    integer                       :: last_dot
+    !    integer,  external ::  iargc
+    !    external  getarg
+
+    integer :: ierr ! error flag
+
+    ! check that there is only one argument.
+    num_args = iargc()
+
+    if (num_args<1) then
+       write(*,*) 
+       write(*,*) '                 H S _ A L K A N E          '
+       write(*,*)
+       write(*,*) '            Usage: hs_alkane <input file>   '
+       write(*,*)
+       write(*,*) '        D. Quigley - University of Warwick  '
+       write(*,*)
+       stop
+    end if
+
+    do iarg = 1, num_args
+       call getarg(iarg,command_line(iarg))
+    end do
+
+    ! find the last dot in the filename.
+    do idata = 1, len(seedname)
+       if(command_line(1)(idata:idata)=='.') last_dot = idata
+    end do
+
+    ! set the seedname.
+    seedname = command_line(1)(1:last_dot-1)  
+
+    ! set the file name
+    file_name = trim(command_line(1))
+
+    ! open it
+    open (25,file=file_name,status='old',iostat=ierr)
+    if(ierr/=0) stop 'Unable to open input file.'
+
+    read(25,nml=system,iostat=ierr)
+    if(ierr/=0) stop 'Error reading system namelist'
+
+    hmatrix(:,1) = CellA(:)
+    hmatrix(:,2) = CellB(:)
+    hmatrix(:,3) = CellC(:)
+
+    max_regrow = nbeads - 1
+
+    if (pbc) then
+       call box_update_recipmatrix()
+    else
+       recip_matrix = 0.0_dp
+    end if
+
+    read(25,nml=thermal,iostat=ierr)
+    if (ierr/=0) stop 'Error reading thermal namelist'
+    pressure = pressure/sigma**3
+
+    read(25,nml=bookkeeping,iostat=ierr)
+    if (ierr/=0) stop 'Error reading bookkeeping namelist'
+
+    close(25)
+
+  end subroutine io_read_input
+
+  subroutine io_read_xmol()
+    !-------------------------------------------------------------------------!
+    ! Reads nchains of nbeads each into the array Rchain in alkane module.    !
+    ! Expects file chain.xol to exist in present working directory.           !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley January 2011                                                  !
+    !-------------------------------------------------------------------------!
+    use alkane, only : Rchain,nchains,nbeads
+    use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix
+    implicit none
+
+    integer :: ierr,ichain,ibead,dumint
+    character(2)  :: dumchar
+
+    open(unit=25,file='chain.xmol',status='old',iostat=ierr)
+    if (ierr/=0) stop 'Error opening chain.xmol for input'
+    read(25,*)dumint
+    if (dumint/=nchains*nbeads) stop 'Wrong number of beads in chain.xmol'
+
+    read(25,*)hmatrix
+    if (pbc) then
+       call box_update_recipmatrix()
+    else
+       recip_matrix = 0.0_dp
+    end if
+
+    do ichain = 1,nchains
+       do ibead = 1,nbeads
+          read(25,*)dumchar,Rchain(:,ibead,ichain)
+       end do
+    end do
+
+    close(25)
+
+  end subroutine io_read_xmol
+
+end module io

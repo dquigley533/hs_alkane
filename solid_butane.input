@@ -1,0 +1,42 @@
+!----------------------------------------------------------------!
+!          Example input file Hard-Sphere alkane code            !
+!                 Crystalline butane with PBCs                   !
+!----------------------------------------------------------------!
+! D.Quigley - University of Warwick                              !
+!----------------------------------------------------------------!
+
+!------------------------!
+!  System definition     !
+!------------------------!
+&system 
+nchains       = 256         ! Number of alkane molecules
+nbeads        = 4           ! Number of beads per molecule
+CellA         = 5.0,0.0,0.0 ! Box dimension in x
+CellB         = 0.0,5.0,0.0 ! Box dimension in y
+CellC         = 0.0,0.0,5.0 ! Box dimension in z
+sigma         = 1.0         ! Beads radius
+L             = 0.4         ! Bond length
+model_type    = 4           ! Model number
+torsion_type  = 1           ! Torsion potential (if relevent)
+pbc           = .true.      ! Use periodic boundary conditions
+read_xmol     = .true.      ! Read initial config from xmol
+rigid         = .false.     ! Use rigid chains
+isotropic     = .false.     ! Isotropic volume moves
+/
+!-------------------------!
+!   Thermal Parameters    !
+!-------------------------!
+&thermal
+pressure    = 50           ! Pressure in units of kT/sigma^3
+/
+!-------------------------!
+!  Book-keeping           !
+!-------------------------!
+&bookkeeping
+max_mc_cycles   = 2500000  ! Num MC cycles to run for
+file_output_int = 25       ! File output interval
+traj_output_int = 5000     ! Trajectory output interval
+timer_qtime     = 432000   ! Length of queue to run in 
+timer_closetime = 3600     ! Stop this long before end of queue
+/
+

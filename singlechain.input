@@ -1,0 +1,37 @@
+!----------------------------------------------------------------!
+!      Example input file for Hard-Sphere alkane code            !
+!            Single isolated chain of 120 beads.                 !
+!----------------------------------------------------------------!
+! D.Quigley - University of Warwick                              !
+!----------------------------------------------------------------!
+
+!------------------------!
+!  System definition     !
+!------------------------!
+&system 
+nchains       = 1           ! Number of alkane molecules
+nbeads        = 120         ! Numner of beads per molecule
+CellA         = 5.0,0.0,0.0 ! First cell vector
+CellB         = 0.0,5.0,0.0 ! Second cell vector
+CellC         = 0.0,0.0,5.0 ! Third cell vector
+sigma         = 1.0         ! Beads radius
+L             = 0.4         ! Bond length
+model_type    = 4           ! Model number
+torsion_type  = 1           ! Torsion potential (if relevent)
+pbc           = .false.     ! Periodic boundaries
+/
+!-------------------------!
+!   Thermal Parameters    !
+!-------------------------!
+&thermal
+pressure    = 6.0           ! Pressure in units of kT/sigma^3
+/
+!-------------------------!
+!  Book-keeping           !
+!-------------------------!
+&bookkeeping
+max_mc_cycles   = 50000     ! Max number of sweeps
+file_output_int = 10000     ! Interal between output
+traj_output_int = 50        ! Trajectory interval
+/
+
