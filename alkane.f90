@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: alkane.f90,v 1.2 2011/03/11 13:47:19 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,8 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/03/11 13:47:19  phseal
+! Moved from single to double linked-lists
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
@@ -1683,7 +1686,7 @@ contains
                           recip_matrix
     implicit none
     integer :: ichain,ibead,icell,ix,iy,iz,ierr
-    integer :: t1,t2,rate
+    integer :: t1,t2,rate,jbead,jchain
     real(kind=dp) :: rlcellx,rlcelly,rlcellz 
     real(kind=dp),dimension(3) :: rbead,sbead
 
@@ -1700,7 +1703,7 @@ contains
        if (ierr/=0) stop 'Error allocating head_of_cell'
     end if
     if ( .not.allocated(linked_list) ) then
-       allocate(linked_list(1:2,1:nbeads,1:nchains),stat=ierr)
+       allocate(linked_list(1:4,0:nbeads,0:nchains),stat=ierr)
        if (ierr/=0) stop 'Error allocating linked_lists'
     end if
 
@@ -1741,11 +1744,25 @@ contains
 
           icell = (iz-1)*ncellx*ncelly + (iy-1)*ncellx + ix
 
-          linked_list(1,ibead,ichain) = head_of_cell(1,icell)
-          linked_list(2,ibead,ichain) = head_of_cell(2,icell)
+          ! Bead and chain index for old head of cell
+          ! (both zero if this is first atom to be added)
+          jbead  = head_of_cell(1,icell)
+          jchain = head_of_cell(2,icell)
 
+          ! This bead points forward to the old head of cell,
+          ! or to zero if it's the first bead to be added
+          linked_list(1,ibead,ichain) = jbead
+          linked_list(2,ibead,ichain) = jchain
+
+          ! ..and becomes the new head of cell
           head_of_cell(1,icell) = ibead 
           head_of_cell(2,icell) = ichain 
+          
+          ! jbead, jchain points backward to ibead,ichain
+          ! zero'th elements will be populated here for
+          ! first bead added, and ignored.
+          linked_list(3,jbead,jchain) = ibead
+          linked_list(4,jbead,jchain) = ichain
 
 
        end do
@@ -1775,7 +1792,7 @@ contains
     real(kind=dp),dimension(3),intent(in) :: old_pos,new_pos
     real(kind=dp),dimension(3) :: sbead
     integer :: ix,iy,iz,ncell,ocell,jchain,jbead
-    integer :: t1,t2,rate,tmpint
+    integer :: t1,t2,rate,tmpint,kbead,kchain
 
     if (.not.use_link_cells) return
 
@@ -1846,45 +1863,99 @@ contains
 
 !!$    write(0,'("Moving bead ",2I5," from link cell ",I5," to ",I5)')ibead,ichain,ocell,ncell
 
-    ! remove from old cell
+    !-----------------------------------!
+    ! Remove from old cell linked lists !
+    !-----------------------------------!
     jbead   = head_of_cell(1,ocell)
     jchain  = head_of_cell(2,ocell)
     if ( (jbead==ibead).and.(jchain==ichain) ) then
 
-       ! ibead,ichain was the old head of cell - make
-       ! what it pointed to the head of cell instead
-       head_of_cell(1,ocell) = linked_list(1,jbead,jchain)
-       head_of_cell(2,ocell) = linked_list(2,jbead,jchain)
+       ! ibead,ichain was the old head of cell
+
+       !----------------------------------!
+       !   Before             After       !
+       !   ------             -----       !
+       !  hoc->i->k->..      hoc->k->..   !
+       !----------------------------------!
+       
+       ! k used to be pointed to by i
+       kbead  = linked_list(1,ibead,ichain)
+       kchain = linked_list(2,ibead,ichain)
+
+       ! k is new head of cell
+       head_of_cell(1,ocell) = kbead
+       head_of_cell(2,ocell) = kchain
+
+       ! k points backward to nothing
+       linked_list(3,kbead,kchain) = 0
+       linked_list(4,kbead,kchain) = 0
 
     else
+       
+       !-------------------------------!
+       !    Before          After      !
+       !    ------          -----      !
+       ! ..j->i->k->...   ..j->k->..   !
+       !-------------------------------!
+       kbead  = linked_list(1,ibead,ichain)
+       kchain = linked_list(2,ibead,ichain)
 
-       do 
+       jbead  = linked_list(3,ibead,ichain)
+       jchain = linked_list(4,ibead,ichain)
 
-          if ( (linked_list(1,jbead,jchain)==ibead).and.(linked_list(2,jbead,jchain)==ichain) ) then
+       linked_list(1,jbead,jchain) = kbead
+       linked_list(2,jbead,jchain) = kchain
 
-             ! This entry used to point to ibead,ichain. Make
-             ! it point to where ibead,ichains entry pointed to
-             linked_list(:,jbead,jchain)=linked_list(:,ibead,ichain)
-             exit
+       linked_list(3,kbead,kchain) = jbead
+       linked_list(4,kbead,kchain) = jchain
 
-          end if
 
-          tmpint  = linked_list(1,jbead,jchain)
-          jchain  = linked_list(2,jbead,jchain)
-          jbead   = tmpint    
+!!$       do 
+!!$
+!!$          if ( (linked_list(1,jbead,jchain)==ibead).and.(linked_list(2,jbead,jchain)==ichain) ) then
+!!$
+!!$             ! This entry used to point to ibead,ichain. Make
+!!$             ! it point to where ibead,ichains entry pointed to
+!!$             linked_list(:,jbead,jchain)=linked_list(:,ibead,ichain)
+!!$             exit
+!!$
+!!$          end if
+!!$
+!!$          tmpint  = linked_list(1,jbead,jchain)
+!!$          jchain  = linked_list(2,jbead,jchain)
+!!$          jbead   = tmpint    
+!!$
+!!$          if (jchain==0) then
+!!$             write(0,'("Warning : Rebuild of link cell lists forced")')
+!!$             call alkane_construct_linked_lists()
+!!$             return
+!!$          end if
+!!$
+!!$       end do
 
-          if (jchain==0) then
-             write(0,'("Warning : Rebuild of link cell lists forced")')
-             call alkane_construct_linked_lists()
-             return
-          end if
-
-       end do
     end if
 
-    ! add to new cell
-    linked_list(:,ibead,ichain) = head_of_cell(:,ncell)
+    !----------------------------------!
+    ! Add into new cell's linked lists !
+    !----------------------------------!
+    !   Before             After       !
+    !   ------             -----       !
+    !  hoc->j->...     hoc->i->j->.... !
+    !----------------------------------!
+
+    ! Bead and chain index for old head of cell
+    jbead  = head_of_cell(1,ncell)
+    jchain = head_of_cell(2,ncell)
+
+    ! add ibead,icheain to new cell as head of cell
+    linked_list(1:2,ibead,ichain) = head_of_cell(:,ncell)
+    linked_list(3:4,ibead,ichain) = 0
     head_of_cell(:,ncell) = (/ibead,ichain/)
+
+    ! jbead, jchain points backward to ibead,ichain
+    linked_list(3,jbead,jchain) = ibead
+    linked_list(4,jbead,jchain) = ichain 
+
 
     !call system_clock(count=t2,count_rate=rate)
     !write(*,'("Linked lists updated in : ",F15.6," seconds")')real(t2-t1,kind=ep)/real(rate,kind=ep)
