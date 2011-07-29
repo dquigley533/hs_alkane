@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.3 2011/07/29 15:58:29 phseal Exp $
+! $Id: alkane.f90,v 1.4 2011/07/29 19:28:30 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.4  2011/07/29 19:28:30  phseal
+! Added experimental routines to count and store the number of intra-chain
+! and inter-chain bead-bead overlaps. For use on inactive lattices with
+! lattice-switching calculations.
+!
 ! Revision 1.3  2011/07/29 15:58:29  phseal
 ! Added multiple simulation box support.
 !
@@ -1988,6 +1993,266 @@ contains
 
   end subroutine alkane_update_linked_lists
 
+  subroutine alkane_get_internal_overlaps(ichain,ibox,mxoverlap,noverlap,poverlap)
+    !-------------------------------------------------------------------------!
+    ! Counts the number of internal intramolecular overlaps on a single chain !
+    ! in a (presumably) inactive box/lattice. Useful for LSMC calculations.   !
+    ! Note that a violation of a hard torsion potential (model IV) counts as  !
+    ! a single overlap.                                                       !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley July 2011                                                     !
+    !-------------------------------------------------------------------------!
+    use constants, only : Pi
+    use box
+    implicit none
+    integer,intent(in) :: ichain    ! Chain no. to check for internal overlaps
+    integer,intent(in) :: ibox      ! Box in which this chain resides
+    integer,intent(in) :: mxoverlap ! Max. no. of overlaps
+
+    integer,intent(out) :: noverlap ! number of intra-chain overlaps
+    integer,dimension(2,mxoverlap) :: poverlap ! list of overlapping pairs
+
+    real(kind=dp),dimension(3) :: rsep,r12,r23,r34
+    integer :: ibead,jbead,iovlp
+    real(kind=dp) :: boltzf
+
+    noverlap = 0
+
+    !==================================================================!
+    ! Check torsions, and count a out-of-bounds torsion as an overlap. !
+    !==================================================================!
+    do ibead = 1,nbeads-3
+
+       ! compute Boltzmann factor for acceptance
+       r12(:) = box_minimum_image(Rchain(:,ibead,  ichain,ibox),Rchain(:,ibead+1,ichain,ibox),ibox)
+       r23(:) = box_minimum_image(Rchain(:,ibead+1,ichain,ibox),Rchain(:,ibead+2,ichain,ibox),ibox)
+       r34(:) = box_minimum_image(Rchain(:,ibead+2,ichain,ibox),Rchain(:,ibead+3,ichain,ibox),ibox)
+       boltzf = alkane_dihedral_boltz(r12,r23,r34)
+
+       if (boltzf<tiny(1.0_dp)) then
+          noverlap = noverlap + 1  ! count this as an overlap
+          poverlap(1,noverlap) = ibead    ! Store the outer atoms of this torsion angle 
+          poverlap(2,noverlap) = ibead+3  ! ..as being those which overlap.
+       end if
+
+    end do
+
+    !=======================================================!
+    ! Check for other overlaps, discounting excluded pairs. ! 
+    !=======================================================!
+    do ibead = 1,nbeads-nexclude
+       do jbead = ibead+nexclude,nbeads
+          !write(0,'("Checking overlap between beads ",I5," and ",I5," on chain ",I5)')ibead,jbead,ichain
+          r12(:) = box_minimum_image(Rchain(:,ibead, ichain, ibox),Rchain(:,jbead,ichain, ibox), ibox)
+          !print*,sqrt(dot_product(r12,r12))
+          if ( dot_product(r12,r12) < sigma*sigma ) then
+             noverlap = noverlap + 1  ! count this as an overlap
+             poverlap(1,noverlap) = ibead  ! Store the two beads which overlap
+             poverlap(2,noverlap) = jbead  
+          end if
+       end do
+    end do
+
+    if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_internal_overlaps'
+
+    ! Debug - plz comment out when happy
+    write(0,*)
+    write(0,'("Found ",I5," overlaps between beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
+    write(0,*)
+    do iovlp = 1,noverlap
+       write(0,'("Bead ",I5," overlaps with bead ",I5)')poverlap(1,iovlp),poverlap(2,iovlp)
+    end do
+
+    return
+
+  end subroutine alkane_get_internal_overlaps
+
+  subroutine alkane_get_external_overlaps(ichain,ibox,mxoverlap,noverlap,loverlap)
+    !-------------------------------------------------------------------------!
+    ! Counts the number of overlaps between ichain and all other chains, and  !
+    ! returns a list of the chains which overlap with ichain. Note that       !
+    ! noverlap is the number of intermolecular bead-bead overlaps, not the    !
+    ! number of chain-chain overlaps.                                         !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley July 2011                                                     !
+    !-------------------------------------------------------------------------!
+    use constants, only : invPi
+    use box,       only :  box_minimum_image,use_link_cells,ncellx,ncelly,ncellz, &
+                           lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix
+    implicit none
+    integer,intent(in) :: ichain    ! Chain no. to check for internal overlaps
+    integer,intent(in) :: ibox      ! Box in which this chain resides
+    integer,intent(in) :: mxoverlap ! Max. no. of overlaps
+
+    integer,intent(out) :: noverlap ! number of inter-chain overlaps
+    integer,dimension(2,mxoverlap) :: loverlap ! list of overlapping beads,chains
+
+
+    real(kind=dp),dimension(3) :: rbead
+    real(kind=dp),dimension(3) :: rsep,sbead
+
+    integer :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,iovlp
+    real(kind=dp) :: sigma_sq
+    real(kind=dp) :: rx,ry,rz
+    real(kind=dp) :: sx,sy,sz
+
+    real(kind=dp) :: alkane_chain_inter_boltz
+  
+
+    sigma_sq = sigma*sigma
+
+    noverlap = 0 ! initialise
+
+
+    ! Run over beads in other chains....
+    if (nchains>1) then
+
+       if ( use_link_cells ) then
+
+          do ibead = 1,nbeads
+
+             rbead(:) = Rchain(:,ibead,ichain,ibox)
+
+             ! compute fractional coordinates sbead from rbead
+             sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
+                        recip_matrix(2,1,ibox)*rbead(2) + &
+                        recip_matrix(3,1,ibox)*rbead(3)
+             sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
+                        recip_matrix(2,2,ibox)*rbead(2) + &
+                        recip_matrix(3,2,ibox)*rbead(3)  
+             sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
+                        recip_matrix(2,3,ibox)*rbead(2) + &
+                        recip_matrix(3,3,ibox)*rbead(3) 
+
+             sbead = sbead*0.5_dp*invPi 
+
+             ! link cell containing rbead
+             ix = floor(sbead(1)/lcellx(ibox))
+             iy = floor(sbead(2)/lcelly(ibox))
+             iz = floor(sbead(3)/lcellz(ibox))
+
+             ix = modulo(ix,ncellx(ibox)) + 1
+             iy = modulo(iy,ncelly(ibox)) + 1
+             iz = modulo(iz,ncellz(ibox)) + 1
+
+             icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
+
+             ! loop over link cells
+             do ni = 1,27
+                jcell   = lcneigh(ni,icell,ibox)
+                jbead   = head_of_cell(1,jcell,ibox)
+                jchain  = head_of_cell(2,jcell,ibox)
+                do while ( jchain.ne.0 )
+
+                   !rsep(:) = box_minimum_image(Rchain(:,jbead,jchain),rbead(:))
+                   rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
+                   ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
+                   rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
+
+                   sx = recip_matrix(1,1,ibox)*rx + &
+                        recip_matrix(2,1,ibox)*ry + &
+                        recip_matrix(3,1,ibox)*rz
+                   sy = recip_matrix(1,2,ibox)*rx + &
+                        recip_matrix(2,2,ibox)*ry + &
+                        recip_matrix(3,2,ibox)*rz  
+                   sz = recip_matrix(1,3,ibox)*rx + &
+                        recip_matrix(2,3,ibox)*ry + &
+                        recip_matrix(3,3,ibox)*rz 
+
+                   sx = sx*0.5_dp*invPi 
+                   sy = sy*0.5_dp*invPi
+                   sz = sz*0.5_dp*invPi 
+
+                   ! apply boundary conditions
+                   sx = sx - floor(sx+0.5_dp,kind=dp)
+                   sy = sy - floor(sy+0.5_dp,kind=dp)
+                   sz = sz - floor(sz+0.5_dp,kind=dp)
+
+                   ! scale back up
+                   rx = hmatrix(1,1,ibox)*sx + &
+                        hmatrix(1,2,ibox)*sy + &
+                        hmatrix(1,3,ibox)*sz
+                                   
+                   ry = hmatrix(2,1,ibox)*sx + &
+                        hmatrix(2,2,ibox)*sy + &
+                        hmatrix(2,3,ibox)*sz
+                                   
+                   rz = hmatrix(3,1,ibox)*sx + &
+                        hmatrix(3,2,ibox)*sy + &
+                        hmatrix(3,3,ibox)*sz
+
+                   if ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) ) then
+                      ! ibead on ichain overlaps with jbead on jchain
+                      noverlap = noverlap + 1
+                      loverlap(1,noverlap) = jbead   ! Store bead number
+                      loverlap(2,noverlap) = jchain  ! ..and chain number
+                   end if
+
+                   tmpint  = linked_list(1,jbead,jchain,ibox)
+                   jchain  = linked_list(2,jbead,jchain,ibox)
+                   jbead   = tmpint              
+
+                end do
+
+             end do
+
+          end do
+
+       else
+
+          if ( ichain > 1 ) then
+             do ibead = 1,nbeads
+                rbead(:) = Rchain(:,ibead,ichain,ibox)
+                do jchain = 1,ichain-1
+                   do j = 1,nbeads
+                      ! The compiler needs to inline this, use -ipo on Intel
+                      rsep(:) = box_minimum_image( Rchain(:,j,jchain,ibox),rbead(:), ibox )
+                      if (dot_product(rsep,rsep) < sigma_sq) then
+                         ! ibead on ichain overlaps with jbead on jchain
+                         noverlap = noverlap + 1
+                         loverlap(1,noverlap) = jbead   ! Store bead number
+                         loverlap(2,noverlap) = jchain  ! ..and chain number
+                      end if
+                   end do
+                end do
+             end do
+          end if
+
+          if ( ichain < nchains ) then
+             do ibead = 1,nbeads
+                rbead(:) = Rchain(:,ibead,ichain,ibox)
+                do jchain = ichain + 1,nchains
+                   do j = 1,nbeads
+                      ! The compiler needs to inline this, use -ipo on Intel
+                      rsep(:) = box_minimum_image( Rchain(:,j,jchain,ibox),rbead(:),ibox )
+                      if (dot_product(rsep,rsep) < sigma_sq) then
+                         ! ibead on ichain overlaps with jbead on jchain
+                         noverlap = noverlap + 1
+                         loverlap(1,noverlap) = jbead   ! Store bead number
+                         loverlap(2,noverlap) = jchain  ! ..and chain number
+                      end if
+                   end do
+                end do
+             end do
+          end if
+
+       end if
+
+    end if
+
+    if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_external_overlaps'
+
+    ! Debug - plz comment out when happy
+    write(0,*)
+    write(0,'("Found ",I5," overlaps involving beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
+    write(0,*)
+    do iovlp = 1,noverlap
+       write(0,'("Bead ",I5," overlaps with bead ",I5," on chain ",I5)')ibead,loverlap(1,iovlp),loverlap(2,iovlp)
+    end do
+
+    return
+
+  end subroutine alkane_get_external_overlaps
 
 
 end module alkane
