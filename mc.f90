@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: mc.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,8 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/07/29 15:58:29  phseal
+! Added multiple simulation box support.
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
@@ -30,7 +33,7 @@ module mc
   !---------------------------------------------------------------------------!
   !... unless exposed here.
   public :: mc_cycle                            ! Performs an MC sweep
-  public :: mc_initialise_chains                ! Initialise this module
+  public :: mc_initialise                       ! Initialise this module
 
   !---------------------------------------------------------------------------!
   !                        P u b l i c   V a r i a b l e s                    !
@@ -83,7 +86,7 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : dp,ep,Pi
     use random,    only : random_uniform_random
-    use box      , only : pbc,pressure,box_construct_link_cells
+    use box      , only : pbc,pressure,box_construct_link_cells,nboxes
     use alkane   , only : Rchain,ktrial,mc_dh_max,mc_dr_max,mc_dt_max,mc_dv_max,&
                           nbeads,nchains,rigid,alkane_box_resize,alkane_grow_chain,&
                           alkane_bond_rotate,alkane_translate_chain,&
@@ -102,19 +105,24 @@ contains
     logical :: overlap,violated            ! Checks on overlaps and geometry
 
     ! Loop counters
-    integer :: ipass,ichain,ibead,k
+    integer :: ipass,ichain,ibead,k,ibox
 
     !-------------------------------------!
     ! nchains trial moves per cycle       !
     !-------------------------------------!
-    do ipass = 1,nchains*nbeads
+    do ipass = 1,nchains*nbeads*nboxes
+
+       ! Generatate a random number to choose which box to operate on
+       xi = random_uniform_random()
+       ibox = int(xi*real(nboxes,kind=dp)) + 1
+       ibox = min(nboxes,ibox)
 
        ! Generate a random number to choose a chain to operate on
        xi = random_uniform_random()
-       ichain = int(random_uniform_random()*real(nchains,kind=dp))+1
+       ichain = int(xi*real(nchains,kind=dp))+1
        ichain = min(nchains,ichain)
 
-       ! Generate a second random number to select a move type
+       ! Generate a third random number to select a move type
        xi = random_uniform_random()
        if (nchains<2) xi = 0.5_dp*xi ! don't attempt upper half of moveset for single chains
        if (rigid)     xi = 0.5_dp+0.5_dp*xi ! ..or lower half for rigid chains
@@ -129,7 +137,7 @@ contains
        if ( (xi < 1.0_dp/real(nchains*nbeads,kind=dp) ).and.pbc ) then
 
           ! Resize the box, and return the new acceptance ratio
-          call alkane_box_resize(pressure,acc_prob)
+          call alkane_box_resize(pressure,ibox,acc_prob)
           mc_attempted_box = mc_attempted_box + 1
 
           ! Generate a random number
@@ -141,7 +149,7 @@ contains
              last_move = 1
           else
              ! Reset, call the routine with the reset flag.
-             call alkane_box_resize(pressure,acc_prob,reset=.true.)
+             call alkane_box_resize(pressure,ibox,acc_prob,reset=.true.)
           end if
 
           !----------------------------------------------------------!
@@ -160,30 +168,30 @@ contains
 
              ! Reverse the chain and regrow from the other end
              k = 1
-             backup_chain(:,:) = Rchain(:,:,ichain)   
+             backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
              do ibead = nbeads,1,-1
-                Rchain(:,k,ichain) = backup_chain(:,ibead)
+                Rchain(:,k,ichain,ibox) = backup_chain(:,ibead)
                 k = k + 1
              end do
 
              ! Update linked lists to reflect the renumbering
              do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain))
+                call alkane_update_linked_lists(ibead,ichain,ibox, &
+                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
              end do
 
           end if
 
           ! Store the backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain)   
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
 
           ! Compute the Rosenbluth factor of the old chain
           ! i.e. call grow_chain with regrow = .false.
-          call alkane_grow_chain(ichain,old_rb_factor,.false.)
+          call alkane_grow_chain(ichain,ibox,old_rb_factor,.false.)
 
           ! Compute the Rosenbluth factor of the new chain
           ! i.e. call grow_chain with regrow = .true.
-          call alkane_grow_chain(ichain,new_rb_factor,.true.)
+          call alkane_grow_chain(ichain,ibox,new_rb_factor,.true.)
 
           ! Generate a random number and accept of reject the move
           xi = random_uniform_random()
@@ -195,14 +203,14 @@ contains
 
              ! Update the linked lists
              do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain))
+                call alkane_update_linked_lists(ibead,ichain,ibox, &
+                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
              end do
 
           else
 
              ! Reject and put the old chain back
-             Rchain(:,:,ichain) = backup_chain(:,:)
+             Rchain(:,:,ichain,ibox) = backup_chain(:,:)
 
           end if
 
@@ -223,27 +231,27 @@ contains
              ! reverse the chain and regrow from the other end
              k = 1
 
-             backup_chain(:,:) = Rchain(:,:,ichain)   
+             backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
              do ibead = nbeads,1,-1
-                Rchain(:,k,ichain) = backup_chain(:,ibead)
+                Rchain(:,k,ichain,ibox) = backup_chain(:,ibead)
                 k = k + 1
              end do
 
              ! Update linked lists to reflect the renumbering
              do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain))
+                call alkane_update_linked_lists(ibead,ichain,ibox, &
+                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
              end do
 
           end if
 
           ! Store the backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain)  
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)  
 
           ! Rotate a randomly selected torsion angle along the chain
           ! TODO - this will fail for model III with continuous
           ! torsion potentials.
-          call alkane_bond_rotate(ichain,new_boltz)
+          call alkane_bond_rotate(ichain,ibox,new_boltz)
 
           ! Accept or reject move.
           xi = random_uniform_random()
@@ -255,14 +263,14 @@ contains
 
              ! Update the linked lists for the new config
              do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain))
+                call alkane_update_linked_lists(ibead,ichain,ibox, &
+                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
              end do
 
           else
 
              ! reject and put the old position back
-             Rchain(:,:,ichain) = backup_chain(:,:)
+             Rchain(:,:,ichain,ibox) = backup_chain(:,:)
 
           end if
 
@@ -274,11 +282,11 @@ contains
           mc_attempted_trans = mc_attempted_trans + 1
 
           ! Store backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain)  
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)  
 
           ! Translate entire chain by a random vector. 
           ! new_boltz is the new Boltzmann factor
-          call alkane_translate_chain(ichain,new_boltz)
+          call alkane_translate_chain(ichain,ibox,new_boltz)
 
           ! Accept or reject this trial move
           xi = random_uniform_random()
@@ -290,14 +298,14 @@ contains
 
              ! Update linked lists for the new chain position
              do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain))
+                call alkane_update_linked_lists(ibead,ichain,ibox, &
+                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
              end do
 
           else
 
              ! Reject and put the old position back
-             Rchain(:,:,ichain) = backup_chain(:,:)
+             Rchain(:,:,ichain,ibox) = backup_chain(:,:)
 
           end if
 
@@ -309,11 +317,11 @@ contains
           mc_attempted_rot = mc_attempted_rot + 1
 
           ! Store backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain)  
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)  
 
           ! Rotate by a random angle about a random axis
           ! new_boltz holds the new Boltzmann factor
-          call alkane_rotate_chain(ichain,new_boltz)
+          call alkane_rotate_chain(ichain,ibox,new_boltz)
 
           ! Accept or reject.
           xi = random_uniform_random()
@@ -325,21 +333,21 @@ contains
 
              ! Update linked-lists for the new chain 
              do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain))
+                call alkane_update_linked_lists(ibead,ichain,ibox, &
+                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
              end do
 
           else
 
              ! Reject and put the old position back
-             Rchain(:,:,ichain) = backup_chain(:,:)
+             Rchain(:,:,ichain,ibox) = backup_chain(:,:)
 
           end if
 
        end if
 
        ! Check the chain geometry
-       call alkane_check_chain_geometry(ichain,violated)
+       call alkane_check_chain_geometry(ichain,ibox,violated)
        if (violated) then
           write(0,'("Last move was of type : ",A11)')name(last_move)
           stop
@@ -350,7 +358,7 @@ contains
     ! Check for chain overlap periodically
     if (mod(mc_cycle_num,1000)==0) then
        overlap = .false.
-       if (nchains>1) call alkane_check_chain_overlap(overlap)
+       if (nchains>1) call alkane_check_chain_overlap(ibox,overlap)
        if (overlap) then
           write(0,'("Last move was of type : ",A11)')name(last_move)
           stop
@@ -371,7 +379,7 @@ contains
        ! Enforce sensible minima here
        acrat  = real(mc_accepted_cbmc)/real(mc_attempted_cbmc)
        ktrial = max(5,int(real(ktrial,kind=dp)*mc_target_ratio/acrat))
-       ktrial = min(100,ktrial)
+       ktrial = min(10,ktrial)
 
        write(*,'("! Configurational bias moves   : ",I2" %   ")')nint(acrat*100.0_dp)
 
@@ -435,7 +443,7 @@ contains
   end subroutine mc_cycle
 
 
-  subroutine mc_initialise_chains(grow_new_chains)
+  subroutine mc_initialise(grow_new_chains)
     !-------------------------------------------------------------------------!
     ! Populates the chain arrays in alkane.f90 with new chains grown by CBMC  !
     ! checks initial chain configurations and allocated memory for a backup   !
@@ -443,7 +451,7 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
-    use box,       only : box_construct_link_cells
+    use box,       only : box_construct_link_cells,nboxes
     use constants, only : ep,dp
     use alkane,    only : alkane_grow_chain,nchains,nbeads,&
                           alkane_check_chain_overlap,alkane_check_chain_geometry,&
@@ -452,45 +460,50 @@ contains
     logical,optional,intent(in) :: grow_new_chains
 
     logical :: overlap,violated           ! Checks on overlaps and geometry
-    integer :: ichain,nccopy              ! Loop counters etc
+    integer :: ichain,nccopy,ibox         ! Loop counters etc
     real(kind=dp) :: rb_factor            ! Rosenbluth factor for chain growth
 
-    ! Grow new chains by CBMC
-    if (present(grow_new_chains).and.grow_new_chains) then
+    ! Loop over simulation boxes
+    do ibox = 1,nboxes
 
-       !------------------------------------!
-       ! Grow initial chain configurations  !
-       !------------------------------------!
-       write(*,'("!=======================================!")')
-       write(*,'("! Growing initial chain configurations  !")')
-       nccopy = nchains
-       do ichain = 1,nccopy
-          nchains = ichain ! only check overlap for j < i
-          do
-             call alkane_grow_chain(ichain,rb_factor,.true.)
-             if (rb_factor>tiny(1.0_ep)) exit
+       ! Grow new chains by CBMC
+       if (present(grow_new_chains).and.grow_new_chains) then
+
+          !------------------------------------!
+          ! Grow initial chain configurations  !
+          !------------------------------------!
+          write(*,'("!=======================================!")')
+          write(*,'("! Growing initial chain configurations  !")')
+          nccopy = nchains
+          do ichain = 1,nccopy
+             nchains = ichain ! only check overlap for j < i
+             do
+                call alkane_grow_chain(ichain,ibox,rb_factor,.true.)
+                if (rb_factor>tiny(1.0_ep)) exit
+             end do
+             write(*,'("! ...",I5)')ichain
           end do
-          write(*,'("! ...",I5)')ichain
+          nchains = nccopy
+          write(*,'("! ....done                              !")')
+          write(*,'("!=======================================!")')
+          write(*,*)
+
+       end if
+
+       ! Construct link cells and build linked-lists
+       call box_construct_link_cells(ibox,1.001_dp)
+       call alkane_construct_linked_lists(ibox)
+
+       ! Check initial configuration is sane
+       overlap = .false.
+       if (nchains>1) call alkane_check_chain_overlap(ibox,overlap)
+       if (overlap) stop
+       do ichain = 1,nchains
+          call alkane_check_chain_geometry(ichain,ibox,violated)
        end do
-       nchains = nccopy
-       write(*,'("! ....done                              !")')
-       write(*,'("!=======================================!")')
-       write(*,*)
+       if (violated) stop
 
-    end if
-
-    ! Construct link cells and build linked-lists
-    call box_construct_link_cells(1.001_dp)
-    call alkane_construct_linked_lists()
-
-    ! Check initial configuration is sane
-    overlap = .false.
-    if (nchains>1) call alkane_check_chain_overlap(overlap)
-    if (overlap) stop
-    do ichain = 1,nchains
-       call alkane_check_chain_geometry(ichain,violated)
     end do
-    if (violated) stop
 
     ! Allocate backup chain
     allocate(backup_chain(1:3,1:nbeads))
@@ -504,7 +517,7 @@ contains
 
     return
 
-  end subroutine mc_initialise_chains
+  end subroutine mc_initialise
 
 
 end module mc

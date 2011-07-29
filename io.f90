@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: io.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,8 +11,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/07/29 15:58:29  phseal
+! Added multiple simulation box support.
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
@@ -45,7 +48,7 @@ module io
   integer       :: file_output_int = 25
   integer       :: traj_output_int = 250
 
-  !---------------------------------------------------------------------------!
+  !---------------------------------------------------------------------------
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
 
@@ -65,20 +68,20 @@ contains
     ! D.Quigley January 2011                                                  !
     !-------------------------------------------------------------------------!
     use alkane, only : nchains,nbeads,sigma,L,model_type,torsion_type,rigid,max_regrow
-    use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix,box_update_recipmatrix
+    use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix, &
+                       box_update_recipmatrix,nboxes,CellA,CellB,CellC
     use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
     use timer,  only : timer_closetime,timer_qtime
     implicit none
 
 
-    namelist/system/nchains,nbeads,CellA,CellB,CellC,sigma,L,model_type, &
+    namelist/system/nboxes,nchains,nbeads,CellA,CellB,CellC,sigma,L,model_type, &
                     torsion_type,pbc,read_xmol,rigid,isotropic
     namelist/thermal/pressure
     namelist/bookkeeping/file_output_int,traj_output_int,timer_qtime, &
                         timer_closetime,max_mc_cycles,eq_adjust_mc,mc_target_ratio
 
-    ! Temporary cell vectors to populate hmatrix
-    real(kind=dp),dimension(3) :: CellA,CellB,CellC
+
 
     ! command line data
     integer                       :: iarg,idata
@@ -89,7 +92,7 @@ contains
     !    integer,  external ::  iargc
     !    external  getarg
 
-    integer :: ierr ! error flag
+    integer :: ierr,ibox ! error flag
 
     ! check that there is only one argument.
     num_args = iargc()
@@ -127,17 +130,9 @@ contains
     read(25,nml=system,iostat=ierr)
     if(ierr/=0) stop 'Error reading system namelist'
 
-    hmatrix(:,1) = CellA(:)
-    hmatrix(:,2) = CellB(:)
-    hmatrix(:,3) = CellC(:)
+
 
     max_regrow = nbeads - 1
-
-    if (pbc) then
-       call box_update_recipmatrix()
-    else
-       recip_matrix = 0.0_dp
-    end if
 
     read(25,nml=thermal,iostat=ierr)
     if (ierr/=0) stop 'Error reading thermal namelist'
@@ -153,36 +148,53 @@ contains
   subroutine io_read_xmol()
     !-------------------------------------------------------------------------!
     ! Reads nchains of nbeads each into the array Rchain in alkane module.    !
-    ! Expects file chain.xol to exist in present working directory.           !
+    ! Expects file chain.xmol to exist in present working directory. If this  !
+    ! calculation uses more than one box, then files chain.xmol.xx will be    !
+    ! read, where xx = 01,02,03.......nboxes.                                 !
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2011                                                  !
     !-------------------------------------------------------------------------!
     use alkane, only : Rchain,nchains,nbeads
-    use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix
+    use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes
     implicit none
 
-    integer :: ierr,ichain,ibead,dumint
+    integer :: ierr,ichain,ibead,dumint,ibox
     character(2)  :: dumchar
+    character(3)  :: boxstring
+    character(30) :: filename
 
-    open(unit=25,file='chain.xmol',status='old',iostat=ierr)
-    if (ierr/=0) stop 'Error opening chain.xmol for input'
-    read(25,*)dumint
-    if (dumint/=nchains*nbeads) stop 'Wrong number of beads in chain.xmol'
+    do ibox = 1,nboxes
 
-    read(25,*)hmatrix
-    if (pbc) then
-       call box_update_recipmatrix()
-    else
-       recip_matrix = 0.0_dp
-    end if
+       filename = 'chain.xmol'
+       write(boxstring,'(".",I2.2)')ibox
+       
+       if ( nboxes > 1 ) filename = trim(filename)//boxstring
+ 
+       open(unit=25,file=trim(filename),status='old',iostat=ierr)
+       if (ierr/=0) then
+          write(0,'("Could not open local input file : ",A30)')filename
+          stop 'Error setting initial coords from xmol'
+       end if
 
-    do ichain = 1,nchains
-       do ibead = 1,nbeads
-          read(25,*)dumchar,Rchain(:,ibead,ichain)
+       read(25,*)dumint
+       if (dumint/=nchains*nbeads) stop 'Wrong number of beads in chain.xmol'
+       
+       read(25,*)hmatrix(:,:,ibox)
+       if (pbc) then
+          call box_update_recipmatrix(ibox)
+       else
+          recip_matrix = 0.0_dp
+       end if
+       
+       do ichain = 1,nchains
+          do ibead = 1,nbeads
+             read(25,*)dumchar,Rchain(:,ibead,ichain,ibox)
+          end do
        end do
-    end do
-
-    close(25)
+       
+       close(25)
+       
+    end do ! end loop over boxes
 
   end subroutine io_read_xmol
 

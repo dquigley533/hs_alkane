@@ -3,14 +3,17 @@
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
 #                                                                             #
-# $Id: Makefile,v 1.1 2011/02/02 11:48:36 phseal Exp $
+# $Id: Makefile,v 1.2 2011/07/29 15:58:29 phseal Exp $
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
 #
 # $Log: Makefile,v $
-# Revision 1.1  2011/02/02 11:48:36  phseal
-# Initial revision
+# Revision 1.2  2011/07/29 15:58:29  phseal
+# Added multiple simulation box support.
+#
+# Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+# Initial import from prototype code.
 #
 #
 #
@@ -24,9 +27,9 @@ prefix     = $(HOME)
 bindir     = $(prefix)/bin
 
 # Compiler and flags
-F90       = ifort
-LD        = ifort
-FFLAGS    = -O2 
+F90       = gfortran-mp-4.5
+LD        = gfortran-mp-4.5
+FFLAGS    = -O3
 INCLUDE   = 
 LIBS      = 
 

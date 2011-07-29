@@ -3,15 +3,18 @@
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
 !                                                                             !
-! $Id: main.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: main.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: main.f90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/07/29 15:58:29  phseal
+! Added multiple simulation box support.
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
@@ -38,7 +41,11 @@ program hs_alkane
   logical :: safe 
 
   ! Loop counters / error flags
-  integer :: ibead,ichain,ierr
+  integer :: ibead,ichain,ierr,ibox
+
+  ! Strings
+  character(30) :: denfile
+  character(3)  :: boxstring
 
   !--------------------------!
   ! Set timer module going   !
@@ -51,6 +58,11 @@ program hs_alkane
   call io_read_input()
 
   !------------------------------!
+  ! Initialise the box module    !
+  !------------------------------!
+  call box_initialise()
+
+  !------------------------------!
   ! Initialise the alkane module !
   !------------------------------!
   call alkane_init()
@@ -61,9 +73,9 @@ program hs_alkane
   !------------------------------------!
   if (read_xmol) then
      call io_read_xmol()
-     call mc_initialise_chains()
+     call mc_initialise()
   else
-     call mc_initialise_chains(grow_new_chains=.true.)
+     call mc_initialise(grow_new_chains=.true.)
   end if
 
   !------------------------------------!
@@ -72,8 +84,18 @@ program hs_alkane
   call write_psf(nbeads,nchains)
   call write_dcd_header(Nchains,Nbeads)
 
-  open(unit=25,file='density.dat',status='replace',iostat=ierr)
-  if (ierr/=0) stop 'Error opening density.dat'
+  if (nboxes==1) then
+     open(unit=25,file='density.dat',status='replace',iostat=ierr)
+     if (ierr/=0) stop 'Error opening density.dat'
+  else
+     do ibox = 1,nboxes
+        write(boxstring,'(".",I2.2)')ibox
+        denfile = 'density.dat'//boxstring
+        open (unit=25+ibox-1,file=trim(denfile),status='replace',iostat=ierr)
+        if (ierr/=0) stop 'Error opening density output files'
+     end do
+  end if
+
 
   !------------------------------------!
   ! Time measurement for cycle rate    !
@@ -89,12 +111,14 @@ program hs_alkane
      call mc_cycle()
 
      ! Write snapshot of system to DCD file every traj_output_int
-     if (mod(mc_cycle_num,traj_output_int)==0) call write_dcd_snapshot(Nchains,nbeads,Rchain)
+     if (mod(mc_cycle_num,traj_output_int)==0) call write_dcd_snapshot(nboxes,Nchains,nbeads,Rchain)
 
      ! Write density to density.dat every file_output_int
-     if ((mod(mc_cycle_num,file_output_int)==0).and.pbc) then
-        write(25,'(I10,F15.6)')mc_cycle_num,real(nchains,kind=dp)*(sigma**3)/box_compute_volume()
-     end if
+     do ibox = 1,nboxes
+        if ((mod(mc_cycle_num,file_output_int)==0).and.pbc) then
+           write(25+ibox-1,'(I10,F15.6)')mc_cycle_num,real(nchains,kind=dp)*(sigma**3)/box_compute_volume(ibox)
+        end if
+     end do
 
      ! Every 1000 cycles write the current cycle rate to stdout
      if (mod(mc_cycle_num,1000)==0) then
@@ -132,29 +156,45 @@ program hs_alkane
 
   end do
 
-  close(25) ! close density.dat
+  do ibox = 1,nboxes
+     close(25+ibox-1) ! close density.dat
+  end do
 
   !-------------------------------------!
   ! Write final snapshot in xmol format !
   !-------------------------------------!
-  open(unit=25,file='final.xmol',status='replace',iostat=ierr)
-  if (ierr/=0) stop 'Error opening final.xmol for writing'
+  if (nboxes==1) then
+     open(unit=25,file='final.xmol',status='replace',iostat=ierr)
+     if (ierr/=0) stop 'Error opening final.xmol'
+  else
+     do ibox = 1,nboxes
+        write(boxstring,'(".",I2.2)')ibox
+        denfile = 'final.xmol'//boxstring
+        open (unit=25+ibox-1,file=trim(denfile),status='replace',iostat=ierr)
+        if (ierr/=0) stop 'Error opening xmol files for final coordinates'
+     end do
+  end if
 
-  write(25,*)nbeads*nchains
-  write(25,'("* ",9F15.6)')hmatrix
-  do ichain = 1,nchains
-     do ibead = 1,nbeads
-        write(25,'("C ",3F15.6)')Rchain(:,ibead,ichain)
+  do ibox = 1,nboxes
+     write(25+ibox-1,*)nbeads*nchains
+     write(25+ibox-1,'("* ",9F15.6)')hmatrix(:,:,ibox)
+     do ichain = 1,nchains
+        do ibead = 1,nbeads
+           write(25+ibox-1,'("C ",3F15.6)')Rchain(:,ibead,ichain,ibox)
+        end do
      end do
   end do
 
-  close(25)
+  do ibox = 1,nboxes
+     close(25+ibox-1) ! close final.xmol
+  end do
+
 
   !-------------------------------------!
   ! Release memory                      !
   !-------------------------------------!
   call alkane_destroy()
   call box_destroy_link_cells()
-
+  call box_destroy()
 
 end program hs_alkane

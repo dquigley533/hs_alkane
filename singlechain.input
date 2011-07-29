@@ -9,6 +9,7 @@
 !  System definition     !
 !------------------------!
 &system 
+nboxes        = 1           ! Number of simulation boxes
 nchains       = 1           ! Number of alkane molecules
 nbeads        = 120         ! Numner of beads per molecule
 CellA         = 5.0,0.0,0.0 ! First cell vector

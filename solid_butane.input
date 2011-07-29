@@ -9,6 +9,7 @@
 !  System definition     !
 !------------------------!
 &system 
+nboxes        = 1           ! Number of simulation boxes
 nchains       = 256         ! Number of alkane molecules
 nbeads        = 4           ! Number of beads per molecule
 CellA         = 5.0,0.0,0.0 ! Box dimension in x
@@ -33,9 +34,9 @@ pressure    = 50           ! Pressure in units of kT/sigma^3
 !  Book-keeping           !
 !-------------------------!
 &bookkeeping
-max_mc_cycles   = 2500000  ! Num MC cycles to run for
-file_output_int = 25       ! File output interval
-traj_output_int = 5000     ! Trajectory output interval
+max_mc_cycles   = 5000  ! Num MC cycles to run for
+file_output_int = 5       ! File output interval
+traj_output_int = 100     ! Trajectory output interval
 timer_qtime     = 432000   ! Length of queue to run in 
 timer_closetime = 3600     ! Stop this long before end of queue
 /
