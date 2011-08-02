@@ -3,12 +3,15 @@
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
 #                                                                             #
-# $Id: Makefile,v 1.2 2011/07/29 15:58:29 phseal Exp $
+# $Id: Makefile,v 1.3 2011/08/02 10:55:11 phseal Exp $
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
 #
 # $Log: Makefile,v $
+# Revision 1.3  2011/08/02 10:55:11  phseal
+# Initial version for compilation as a library
+#
 # Revision 1.2  2011/07/29 15:58:29  phseal
 # Added multiple simulation box support.
 #
@@ -29,20 +32,29 @@ bindir     = $(prefix)/bin
 # Compiler and flags
 F90       = gfortran-mp-4.5
 LD        = gfortran-mp-4.5
-FFLAGS    = -O3
+FFLAGS    = -O3 -fPIC
 INCLUDE   = 
 LIBS      = 
 
 # Nothing should need to be changed below here.
 #=====================================================================
-# Define objects in dependency order
-OBJECTS   = constants.o timer.o random.o quaternion.o box.o vis_module.o alkane.o mc.o io.o main.o
+# Define objects in dependency order for stand-alone fortran90 code
+OBJECTS   = constants.o timer.o random.o quaternion.o box.o alkane.o vis_module.o mc.o io.o main.o
 
+# Define objects in dependency order for library backend to other codes
+LIBOBJ = constants.o timer.o random.o quaternion.o box.o alkane.o vis_module.o mc_dummy.o io.o 
 
 # Main build target - builds the main executable
 hs_alkane : $(OBJECTS)
 
 	$(LD) -o $(bindir)/hs_alkane $(OBJECTS) $(FFLAGS) $(LIBS) 
+
+# Library - should make clean && make if building this after the stand-along f90 code
+library: $(LIBOBJ)
+
+	ar rc libalkane.a $(LIBOBJ)
+	$(F90) $(LIBOBJ) -shared -o libalkane.so $(FFLAGS) $(LIBS) 
+	ranlib libalkane.a
 
 
 .PRECIOUS: %.o
