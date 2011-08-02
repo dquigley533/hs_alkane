@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.4 2011/08/02 12:27:18 phseal Exp $
+! $Id: box.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.5  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.4  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -110,7 +114,7 @@ module box
 
 contains
   
-  subroutine box_initialise()
+  subroutine box_initialise() bind(c)
     !------------------------------------------------------------------------------!
     ! Allocated memory for the basic properties of each simulation box.            !
     !------------------------------------------------------------------------------!
@@ -157,7 +161,7 @@ contains
 
   end subroutine box_initialise
 
-  subroutine box_destroy
+  subroutine box_destroy() bind(c)
     !------------------------------------------------------------------------------!
     ! Allocated memory for the basic properties of each simulation box.            !
     !------------------------------------------------------------------------------!
@@ -174,7 +178,7 @@ contains
   end subroutine box_destroy
 
 
-  real(kind=dp) function box_compute_volume(ibox)
+  real(kind=dp) function box_compute_volume(ibox) bind(c)
     !------------------------------------------------------------------------------!
     ! Computes the determinant of a 3x3 matrix.                                    !
     !------------------------------------------------------------------------------!
@@ -197,7 +201,7 @@ contains
 
   end function box_compute_volume
 
-  subroutine box_update_recipmatrix(ibox)
+  subroutine box_update_recipmatrix(ibox) bind(c)
     !------------------------------------------------------------------------------!
     ! Calculates the matrix of reciprocal lattive vectors from the hmatrix         !
     !------------------------------------------------------------------------------!
@@ -300,7 +304,7 @@ contains
 
   end function box_minimum_image
 
-  subroutine box_destroy_link_cells()
+  subroutine box_destroy_link_cells() bind(c)
     !-------------------------------------------------------------------------!
     ! Released memory used by the link-cell algorithm                         !
     !-------------------------------------------------------------------------!
@@ -315,7 +319,7 @@ contains
 
   end subroutine box_destroy_link_cells
 
-  subroutine box_construct_link_cells(ibox,drcut)
+  subroutine box_construct_link_cells(ibox,drcut) bind(c)
     !-------------------------------------------------------------------------!
     ! Analyses the dimensions of the simulation cell and determines if use of !
     ! a link-cell algorithm is possible. The module level flag use_link_cells !
@@ -415,7 +419,7 @@ contains
 
   end subroutine box_construct_link_cells
 
-  subroutine box_get_cell(ibox,dumhmatrix)
+  subroutine box_get_cell(ibox,dumhmatrix) bind(c)
     !-------------------------------------------------------------------------!
     ! Queries the current matrix of cell vectors for box ibox, and returns    !
     ! via the dummy 3x3 matrix dumhmatrix.                                    !
@@ -434,7 +438,7 @@ contains
 
   end subroutine box_get_cell
 
-  subroutine box_set_cell(ibox,dumhmatrix)
+  subroutine box_set_cell(ibox,dumhmatrix) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets the current matrix of cell vectors for box ibox. WARNING, this     !
     ! routine does not update the matrix of reciprocal lattice vectors, or    !
@@ -456,7 +460,7 @@ contains
 
   end subroutine box_set_cell
 
-  subroutine box_cart_to_frac(ibox,in_vector,out_vector)
+  subroutine box_cart_to_frac(ibox,in_vector,out_vector) bind(c)
     !-------------------------------------------------------------------------!
     ! Fox the specified box (ibox) convert in_vector in absolute cartesian    !
     ! coords into internal box-scaled coords.                                 !
@@ -490,7 +494,7 @@ contains
 
   end subroutine box_cart_to_frac
 
-  subroutine box_frac_to_cart(ibox,in_vector,out_vector)
+  subroutine box_frac_to_cart(ibox,in_vector,out_vector) bind(c)
     !-------------------------------------------------------------------------!
     ! Fox the specified box (ibox) convert in_vector in box-scaled coords     !
     ! into out_vector in absolute cartesian coords.                           !

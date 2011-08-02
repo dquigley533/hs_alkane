@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.3 2011/08/02 12:27:18 phseal Exp $
+! $Id: io.f90,v 1.4 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.4  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.3  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -26,6 +30,7 @@
 !=============================================================================!
 module io
 
+  use iso_c_binding
   use constants, only : dp,ep,it
   implicit none
 
@@ -64,7 +69,7 @@ module io
 
 contains
 
-  subroutine io_read_input()
+  subroutine io_read_input() bind(c)
     !-------------------------------------------------------------------------!
     ! Reads the input file specified as the first command line argument. Uses !
     ! Fortran nameslists, and populates user specified variables in box,      !
@@ -150,7 +155,7 @@ contains
 
   end subroutine io_read_input
 
-  subroutine io_read_xmol()
+  subroutine io_read_xmol() bind(c)
     !-------------------------------------------------------------------------!
     ! Reads nchains of nbeads each into the array Rchain in alkane module.    !
     ! Expects file chain.xmol to exist in present working directory. If this  !

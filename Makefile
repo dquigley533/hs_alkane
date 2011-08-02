@@ -3,12 +3,16 @@
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
 #                                                                             #
-# $Id: Makefile,v 1.3 2011/08/02 10:55:11 phseal Exp $
+# $Id: Makefile,v 1.4 2011/08/02 12:56:47 phseal Exp $
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
 #
 # $Log: Makefile,v $
+# Revision 1.4  2011/08/02 12:56:47  phseal
+# Added C bindings to all procedures which should be callable externally
+# when compiled as a library.
+#
 # Revision 1.3  2011/08/02 10:55:11  phseal
 # Initial version for compilation as a library
 #
@@ -51,10 +55,11 @@ hs_alkane : $(OBJECTS)
 
 # Library - should make clean && make if building this after the stand-along f90 code
 library: $(LIBOBJ)
-
-	ar rc libalkane.a $(LIBOBJ)
 	$(F90) $(LIBOBJ) -shared -o libalkane.so $(FFLAGS) $(LIBS) 
-	ranlib libalkane.a
+
+# Lists the procedues in libalkane.so accessible by C binding without mangling
+library-query:
+	nm libalkane.so | grep -v '__' | grep T
 
 
 .PRECIOUS: %.o

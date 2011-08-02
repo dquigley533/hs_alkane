@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.7 2011/08/02 12:30:53 phseal Exp $
+! $Id: alkane.f90,v 1.8 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.8  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.7  2011/08/02 12:30:53  phseal
 ! mc.f90
 !
@@ -46,6 +50,7 @@
 
 module alkane
 
+  use iso_c_binding
   use constants, only : dp,ep,it
   implicit none
 
@@ -169,7 +174,7 @@ module alkane
 
 contains
 
-  subroutine alkane_init()
+  subroutine alkane_init() bind(c)
     !-------------------------------------------------------------------------!
     ! Initialises the alkane module                                           !
     !-------------------------------------------------------------------------!
@@ -206,7 +211,7 @@ contains
 
   end subroutine alkane_init
 
-  subroutine alkane_destroy()
+  subroutine alkane_destroy() bind(c)
     !-------------------------------------------------------------------------!
     ! Performs a clean shutdown of the alkane module                          !
     !-------------------------------------------------------------------------!
@@ -223,7 +228,7 @@ contains
 
   end subroutine alkane_destroy
 
-  subroutine alkane_translate_chain(ichain,ibox,new_boltz)
+  subroutine alkane_translate_chain(ichain,ibox,new_boltz) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is translated  !
     ! by a random vector. The new Boltzmann factor after the trial move is    !
@@ -259,7 +264,7 @@ contains
 
   end subroutine alkane_translate_chain
 
-  subroutine alkane_rotate_chain(ichain,ibox,new_boltz)
+  subroutine alkane_rotate_chain(ichain,ibox,new_boltz) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is rotated     !
     ! about its centre of mass. The new Boltzmann factor after the trial move !
@@ -309,7 +314,7 @@ contains
 
   end subroutine alkane_rotate_chain
 
-  subroutine alkane_box_resize(pressure,ibox,acc_prob,reset)
+  subroutine alkane_box_resize(pressure,ibox,acc_prob,reset) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the size (and possibly shape) of   !
     ! the simulation box is altered by a random amount. The ratio  of new/old !
@@ -336,7 +341,7 @@ contains
 
     integer(kind=it) :: ichain,ibead,jdim,idim
 
-    if ( present(reset).and.reset ) then
+    if ( reset==1 ) then
 
        do ichain = 1,nchains
 
@@ -482,7 +487,7 @@ contains
 
     call alkane_construct_linked_lists(ibox)
 
-    if ( present(reset).and.reset ) then
+    if ( reset == 1 ) then
        ! Restoring the old configuration, acc_prob irrelevant
        acc_prob = 1.0_dp
        return
@@ -508,7 +513,7 @@ contains
 
   end subroutine alkane_box_resize
 
-  subroutine alkane_box_scale(ibox,scaleA,scaleB,scaleC)
+  subroutine alkane_box_scale(ibox,scaleA,scaleB,scaleC)  bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the size (and possibly shape) of   !
     ! the simulation box is altered by a random amount. The ratio  of new/old !
@@ -598,7 +603,7 @@ contains
   end subroutine alkane_box_scale
 
 
-  subroutine alkane_bond_rotate(ichain,ibox,new_boltz)
+  subroutine alkane_bond_rotate(ichain,ibox,new_boltz) bind(c)
     !-------------------------------------------------------------------------!
     ! Selects a random dihedral angle on the selected chain and alters it by  !
     ! a random angle. The Boltzmann factor after the move is returned as      !
@@ -671,7 +676,7 @@ contains
 
   end subroutine alkane_bond_rotate
 
-  function alkane_dihedral_boltz(b1,b2,b3)
+  function alkane_dihedral_boltz(b1,b2,b3) bind(c)
     !-------------------------------------------------------------------------!
     ! Return  the multiplicative contribution to the Boltzmann factor arising !
     ! from the torsional potential acting on the dihedral potentail defined   !
@@ -760,7 +765,7 @@ contains
 
   end function alkane_dihedral_boltz
 
-  subroutine alkane_grow_chain(ichain,ibox,rb_factor,new_conf)
+  subroutine alkane_grow_chain(ichain,ibox,rb_factor,new_conf) bind(c)
     !-------------------------------------------------------------------------!
     ! (Re)grows chain ichain. Call with ichain,rb_factor,.true. for each      !
     ! chain after calling alkane_init. Subsequently is used in CBMC moves.    !
@@ -781,7 +786,7 @@ contains
 
     integer(kind=it),intent(in) :: ichain,ibox   ! chain number to grow/regrow
     real(kind=ep),intent(out)   :: rb_factor     ! Rosenbluth factor for chain 
-    logical,intent(in)          :: new_conf      ! old or new configuration?
+    integer(kind=it),intent(in) :: new_conf      ! old or new configuration?
 
     ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
@@ -812,7 +817,7 @@ contains
     ! Set bead from which to (re)grow
     if ( .not.chain_created(ichain,ibox) ) then
        first_bead = 1  ! grow whole chain from scratch
-    elseif (.not.new_conf) then
+    elseif (new_conf==0) then
        first_bead = int(random_uniform_random()*real(nbeads-max_regrow,kind=dp)) + 1 + max_regrow
     end if
 
@@ -820,7 +825,7 @@ contains
     if (ierr/=0) stop 'Error allocating wset'
 
     ! Set loop counters and accumulators
-    if (new_conf) then
+    if (new_conf==1) then
        ! All trial segments/weights are new
        jl   = 1
        wset = 0.0_dp
@@ -841,7 +846,7 @@ contains
        !======================================================!
        if ( ib==1 ) then
 
-          if (new_conf) then
+          if (new_conf==1) then
              Rchain(1,1,ichain,ibox) = random_uniform_random()
              Rchain(2,1,ichain,ibox) = random_uniform_random()
              Rchain(3,1,ichain,ibox) = random_uniform_random()
@@ -870,7 +875,7 @@ contains
           rb_factor = rb_factor*real(wsum,kind=ep)
           call select_next_segment(n,ifail)         
           if (ifail/=0) return ! Rosenbluth factor is zero
-          if (new_conf) Rchain(:,2,ichain,ibox) = rtrial(:,n)
+          if (new_conf==1) Rchain(:,2,ichain,ibox) = rtrial(:,n)
 
           !write(0,'(I5,3F15.6)')ib,Rchain(:,ib,ichain)
 
@@ -908,7 +913,7 @@ contains
           rb_factor = rb_factor*real(wsum,kind=ep)
           call select_next_segment(n,ifail)         
           if (ifail/=0) return ! Rosenbluth factor is zero
-          if (new_conf) Rchain(:,3,ichain,ibox) = rtrial(:,n)
+          if (new_conf==1) Rchain(:,3,ichain,ibox) = rtrial(:,n)
 
        else
 
@@ -961,7 +966,7 @@ contains
           rb_factor = rb_factor*real(wsum,kind=ep)
           call select_next_segment(n,ifail)         
           if (ifail/=0) return ! Rosenbluth factor is zero
-          if (new_conf) Rchain(:,ib,ichain,ibox) = rtrial(:,n)
+          if (new_conf==1) Rchain(:,ib,ichain,ibox) = rtrial(:,n)
 
        end if
 
@@ -1016,7 +1021,7 @@ contains
 
   end subroutine alkane_grow_chain
 
-  function alkane_nonbonded_boltz(i,ichain,ibox,rbead)
+  function alkane_nonbonded_boltz(i,ichain,ibox,rbead) bind(c)
     !-------------------------------------------------------------------------!
     ! Computes the Boltzmann factor exp[-beta*U_ext(rbead)] which is either   !
     ! zero (hard-sphere overlap) or one (no hard-sphere overlap)              !
@@ -1201,7 +1206,7 @@ contains
 
   end function alkane_nonbonded_boltz
 
-  function alkane_chain_inter_boltz(ichain,ibox)
+  function alkane_chain_inter_boltz(ichain,ibox) bind(c)
     !-------------------------------------------------------------------------!
     ! Computes the Boltzmann factor arising from all non-bonded intermolecular!
     ! interactions with the currently selected chain. Used in whole-chain     !
@@ -1367,7 +1372,7 @@ contains
 
   end function alkane_chain_inter_boltz
 
-  function alkane_random_dihedral()
+  function alkane_random_dihedral() bind(c)
     !-------------------------------------------------------------------------!
     ! Generates a random dihedral potential to the Boltzmann distribution     !
     ! arising from a purely torsional
@@ -1422,7 +1427,7 @@ contains
 
   end function alkane_random_dihedral
     
-  subroutine alkane_check_dihedral(b1,b2,b3)
+  subroutine alkane_check_dihedral(b1,b2,b3) bind(c)
     !-------------------------------------------------------------------------!
     ! Computes the dihedral angle formed as that between the two planes       !
     ! formed by b1xb2 and b2xb3 and shifts to be consistent with the          !
@@ -1507,7 +1512,7 @@ contains
 
   end subroutine alkane_check_chain_overlap
 
-  subroutine alkane_check_chain_geometry(ichain,ibox,violated)
+  subroutine alkane_check_chain_geometry(ichain,ibox,violated) 
     !-------------------------------------------------------------------------!
     ! Sanity test for debugging. Checks bond lengths within a chain           !
     !-------------------------------------------------------------------------!
@@ -1623,7 +1628,7 @@ contains
 
   end subroutine alkane_check_chain_geometry
 
-  subroutine alkane_construct_neighbour_list(ibox)
+  subroutine alkane_construct_neighbour_list(ibox) bind(c)
     !-------------------------------------------------------------------------!
     ! Constructs a Verlet neighbour list. All intra-chain interactions are    !
     ! excluded from this list and must therefore be included in a seperate    !
@@ -1715,7 +1720,7 @@ contains
 
   end subroutine alkane_construct_neighbour_list
 
-  subroutine alkane_construct_linked_lists(ibox)
+  subroutine alkane_construct_linked_lists(ibox) bind(c)
     !-------------------------------------------------------------------------!
     ! Assigns particles to link cells and constructs linked lists for use in  !
     ! searching over particle pairs. Closely follows procedure in appendix F  !
@@ -1832,7 +1837,7 @@ contains
 
   end subroutine alkane_construct_linked_lists
 
-  subroutine alkane_update_linked_lists(ibead,ichain,ibox,old_pos,new_pos)
+  subroutine alkane_update_linked_lists(ibead,ichain,ibox,old_pos,new_pos) bind(c)
     !-------------------------------------------------------------------------!
     ! Attempts to correct the linked lists after a bead has moved from old    !
     ! pos to new pos (possibly crossing a link-cell boundary). As we will     !
@@ -2022,7 +2027,7 @@ contains
   end subroutine alkane_update_linked_lists
 
   !subroutine alkane_get_internal_overlaps(ichain,ibox,mxoverlap,noverlap,poverlap)
-  subroutine alkane_get_internal_overlaps(ichain,ibox,noverlap)
+  subroutine alkane_get_internal_overlaps(ichain,ibox,noverlap) bind(c)
     !-------------------------------------------------------------------------!
     ! Counts the number of internal intramolecular overlaps on a single chain !
     ! in a (presumably) inactive box/lattice. Useful for LSMC calculations.   !
@@ -2097,7 +2102,7 @@ contains
   end subroutine alkane_get_internal_overlaps
 
   !subroutine alkane_get_external_overlaps(ichain,ibox,mxoverlap,noverlap,loverlap)
-  subroutine alkane_get_external_overlaps(ichain,ibox,noverlap)
+  subroutine alkane_get_external_overlaps(ichain,ibox,noverlap) bind(c)
     !-------------------------------------------------------------------------!
     ! Counts the number of overlaps between ichain and all other chains, and  !
     ! returns a list of the chains which overlap with ichain. Note that       !
@@ -2284,7 +2289,7 @@ contains
 
   end subroutine alkane_get_external_overlaps
 
-  subroutine alkane_get_dr_max(dum_dr)
+  subroutine alkane_get_dr_max(dum_dr) bind(c)
     !-------------------------------------------------------------------------!
     ! Gets module level internal variable controlling the maximum molecule    !
     ! displacement during a translation move.                                 !
@@ -2300,7 +2305,7 @@ contains
 
   end subroutine alkane_get_dr_max
 
-  subroutine alkane_set_dr_max(dum_dr)
+  subroutine alkane_set_dr_max(dum_dr) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets module level internal variable controlling the maximum molecule    !
     ! displacement during a translation move.                                 !
@@ -2316,7 +2321,7 @@ contains
 
   end subroutine alkane_set_dr_max
 
-  subroutine alkane_get_dt_max(dum_dt)
+  subroutine alkane_get_dt_max(dum_dt) bind(c)
     !-------------------------------------------------------------------------!
     ! Gets module level internal variable controlling the maximum molecule    !
     ! rotation during a chain rotation move.                                  !
@@ -2332,7 +2337,7 @@ contains
 
   end subroutine alkane_get_dt_max
 
-  subroutine alkane_set_dt_max(dum_dt)
+  subroutine alkane_set_dt_max(dum_dt) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets module level internal variable controlling the maximum molecule    !
     ! rotation during a chain rotation move.                                  !
@@ -2348,7 +2353,7 @@ contains
 
   end subroutine alkane_set_dt_max
 
-  subroutine alkane_get_dv_max(dum_dv)
+  subroutine alkane_get_dv_max(dum_dv) bind(c)
     !-------------------------------------------------------------------------!
     ! Gets module level internal variable controlling the maximum volume      !
     ! change or cell vector displacement during a box resize/reshape move.    !
@@ -2364,7 +2369,7 @@ contains
 
   end subroutine alkane_get_dv_max
 
-  subroutine alkane_set_dv_max(dum_dv)
+  subroutine alkane_set_dv_max(dum_dv) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets module level internal variable controlling the maximum volume      !
     ! change or cell vector displacement during a box resize/reshape move.    !
@@ -2380,7 +2385,7 @@ contains
 
   end subroutine alkane_set_dv_max
 
-  subroutine alkane_get_dh_max(dum_dh)
+  subroutine alkane_get_dh_max(dum_dh) bind(c)
     !-------------------------------------------------------------------------!
     ! Gets module level internal variable controlling the maximum change in   !
     ! dihedral angle during a torsion move.                                   !
@@ -2396,7 +2401,7 @@ contains
 
   end subroutine alkane_get_dh_max
 
-  subroutine alkane_set_dh_max(dum_dh)
+  subroutine alkane_set_dh_max(dum_dh) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets module level internal variable controlling the maximum change in   !
     ! dihedral angle during a torsion move.                                   !
@@ -2412,7 +2417,7 @@ contains
 
   end subroutine alkane_set_dh_max
 
-   subroutine alkane_get_ktrial(dum_kt)
+   subroutine alkane_get_ktrial(dum_kt) bind(c)
     !-------------------------------------------------------------------------!
     ! Gets module level internal variable controlling the number of segment   !
     ! re-growths during a configurational bias MC move.                       !
@@ -2428,7 +2433,7 @@ contains
 
   end subroutine alkane_get_ktrial
 
-  subroutine alkane_set_ktrial(dum_kt)
+  subroutine alkane_set_ktrial(dum_kt) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets module level internal variable controlling the number of segment   !
     ! re-growths during a configurational bias MC move.                       !
@@ -2444,7 +2449,7 @@ contains
 
   end subroutine alkane_set_ktrial
  
-  subroutine alkane_get_nchains(dumchains)
+  subroutine alkane_get_nchains(dumchains) bind(c)
     !-------------------------------------------------------------------------!
     ! Queries the number of chains per box in use by this module.             !
     !-------------------------------------------------------------------------!
@@ -2459,7 +2464,7 @@ contains
     
   end subroutine alkane_get_nchains
 
-  subroutine alkane_get_nbeads(dumbeads)
+  subroutine alkane_get_nbeads(dumbeads) bind(c)
     !-------------------------------------------------------------------------!
     ! Queries the number of beads per chain in use by this module.            !
     !-------------------------------------------------------------------------!
@@ -2474,7 +2479,7 @@ contains
     
   end subroutine alkane_get_nbeads
 
-  subroutine alkane_set_chain(ichain,ibox,r)
+  subroutine alkane_set_chain(ichain,ibox,r) bind(c)
     !-------------------------------------------------------------------------!
     ! Overwrites the coordinates of a single chain in box ibox.               !
     !-------------------------------------------------------------------------!
@@ -2490,7 +2495,7 @@ contains
 
   end subroutine alkane_set_chain
 
-  subroutine alkane_get_chain(ichain,ibox,r)
+  subroutine alkane_get_chain(ichain,ibox,r) bind(c)
     !-------------------------------------------------------------------------!
     ! Returns the coordinates of a single chain in box ibox.                  !
     !-------------------------------------------------------------------------!
@@ -2506,7 +2511,7 @@ contains
 
   end subroutine alkane_get_chain
 
-  subroutine alkane_change_box(ibox,delta_H)
+  subroutine alkane_change_box(ibox,delta_H) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements a change in the matrix of cell vectors for box ibox, by      !
     ! the matrix delta_H. The box is changed, the chain C.O.M. positions are  !

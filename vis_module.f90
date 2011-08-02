@@ -3,13 +3,17 @@
 !                               V  I  S                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: vis_module.f90,v 1.4 2011/08/02 12:27:18 phseal Exp $
+! $Id: vis_module.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: vis_module.f90,v $
+! Revision 1.5  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.4  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -51,7 +55,7 @@ module vis
 
   contains
 
-    subroutine write_psf(nbeads,nchains)
+    subroutine write_psf(nbeads,nchains) bind(c)
       !------------------------------------------------------!
       ! Writes a VMD compatible psf file for a linear chain  !
       ! of bonded beads. The symbol for carbon is used for   !
@@ -140,7 +144,7 @@ module vis
 
     end subroutine write_psf
 
-  subroutine write_dcd_header(Nchains,Nbeads)
+  subroutine write_dcd_header(Nchains,Nbeads) bind(c)
     !------------------------------------------------------!
     ! Writes the header of a VMD compatible dcd file for a !
     ! linear chain of bonded beads.                        !
@@ -198,7 +202,7 @@ module vis
        
   end subroutine write_dcd_header
      
-  subroutine write_dcd_snapshot()
+  subroutine write_dcd_snapshot() bind(c)
     !------------------------------------------------------!
     ! Writes a snapshot of the current positions to a the  !
     ! dcd file. Expects a 2D array r(1:3,1:nchain) in      !

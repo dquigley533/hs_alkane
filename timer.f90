@@ -3,7 +3,7 @@
 !                            T I M E R                                        !
 !=============================================================================!
 !                                                                             !
-! $Id: timer.f90,v 1.3 2011/08/02 12:27:18 phseal Exp $
+! $Id: timer.f90,v 1.4 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to check time relative to a queue slot length. For        !
@@ -13,6 +13,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: timer.f90,v $
+! Revision 1.4  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.3  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -29,6 +33,7 @@
 !=============================================================================!
 module timer 
 
+  use iso_c_binding
   use constants, only : dp,it
   implicit none
 
@@ -59,7 +64,7 @@ module timer
 
 contains
   
-  subroutine timer_init()
+  subroutine timer_init() bind(c)
     !-------------------------------------------------------------------------!
     ! Initialises the timer                                                   !
     !-------------------------------------------------------------------------!
@@ -90,7 +95,7 @@ contains
 
   end subroutine timer_init
 
-  real(kind=dp) function timer_elapsed_time()
+  real(kind=dp) function timer_elapsed_time() bind(c)
     !-------------------------------------------------------------------------!
     ! Returns time since timer was initialised                                !
     !-------------------------------------------------------------------------!
@@ -125,7 +130,7 @@ contains
 
   end function timer_elapsed_time
 
-  subroutine timer_check_runtime(safe)
+  subroutine timer_check_runtime(safe) bind(c)
     !-------------------------------------------------------------------------!
     ! Checks if we are within time_closetime of timer_qtime being reached.    !
     ! Returns safe=.false. if the code should now exit cleanly.               !

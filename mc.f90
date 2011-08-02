@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.4 2011/08/02 12:31:54 phseal Exp $
+! $Id: mc.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.5  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.4  2011/08/02 12:31:54  phseal
 ! Removed use of optional arguments in routines which need to be called
 ! by C when compiled as a library.
@@ -32,6 +36,7 @@
 !=============================================================================!
 module mc
 
+  use iso_c_binding
   use constants, only : dp,it
   implicit none
 
@@ -197,11 +202,11 @@ contains
 
           ! Compute the Rosenbluth factor of the old chain
           ! i.e. call grow_chain with regrow = .false.
-          call alkane_grow_chain(ichain,ibox,old_rb_factor,.false.)
+          call alkane_grow_chain(ichain,ibox,old_rb_factor,0)
 
           ! Compute the Rosenbluth factor of the new chain
           ! i.e. call grow_chain with regrow = .true.
-          call alkane_grow_chain(ichain,ibox,new_rb_factor,.true.)
+          call alkane_grow_chain(ichain,ibox,new_rb_factor,1)
 
           ! Generate a random number and accept of reject the move
           xi = random_uniform_random()
@@ -488,7 +493,7 @@ contains
           do ichain = 1,nccopy
              nchains = ichain ! only check overlap for j < i
              do
-                call alkane_grow_chain(ichain,ibox,rb_factor,.true.)
+                call alkane_grow_chain(ichain,ibox,rb_factor,1)
                 if (rb_factor>tiny(1.0_ep)) exit
              end do
              write(*,'("! ...",I5)')ichain

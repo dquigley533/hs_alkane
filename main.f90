@@ -3,13 +3,17 @@
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
 !                                                                             !
-! $Id: main.f90,v 1.4 2011/08/02 12:27:18 phseal Exp $
+! $Id: main.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: main.f90,v $
+! Revision 1.5  2011/08/02 12:56:47  phseal
+! Added C bindings to all procedures which should be callable externally
+! when compiled as a library.
+!
 ! Revision 1.4  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -32,6 +36,7 @@
 program hs_alkane
 
   !TODO - replace with minimal usage
+  use iso_c_binding
   use constants, only : dp,ep,it,Pi
   use timer
   use alkane
