@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.3 2011/08/02 12:27:18 phseal Exp $
+! $Id: mc.f90,v 1.4 2011/08/02 12:31:54 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.4  2011/08/02 12:31:54  phseal
+! Removed use of optional arguments in routines which need to be called
+! by C when compiled as a library.
+!
 ! Revision 1.3  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -142,7 +146,8 @@ contains
        if ( (xi < 1.0_dp/real(nchains*nbeads,kind=dp) ).and.pbc ) then
 
           ! Resize the box, and return the new acceptance ratio
-          call alkane_box_resize(pressure,ibox,acc_prob)
+          ! Setting reset flag to zero
+          call alkane_box_resize(pressure,ibox,acc_prob,0)
           mc_attempted_box = mc_attempted_box + 1
 
           ! Generate a random number
@@ -154,7 +159,7 @@ contains
              last_move = 1
           else
              ! Reset, call the routine with the reset flag.
-             call alkane_box_resize(pressure,ibox,acc_prob,reset=.true.)
+             call alkane_box_resize(pressure,ibox,acc_prob,1)
           end if
 
           !----------------------------------------------------------!
