@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.4 2011/08/02 12:56:47 phseal Exp $
+! $Id: io.f90,v 1.5 2011/08/02 13:16:32 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.5  2011/08/02 13:16:32  phseal
+! Added default input file name for operating in library mode
+!
 ! Revision 1.4  2011/08/02 12:56:47  phseal
 ! Added C bindings to all procedures which should be callable externally
 ! when compiled as a library.
@@ -103,35 +106,50 @@ contains
     !    external  getarg
 
     integer(kind=it) :: ierr,ibox ! error flag
+    logical :: lexist
 
     ! check that there is only one argument.
     num_args = iargc()
 
     if (num_args<1) then
-       write(*,*) 
-       write(*,*) '                 H S _ A L K A N E          '
-       write(*,*)
-       write(*,*) '            Usage: hs_alkane <input file>   '
-       write(*,*)
-       write(*,*) '        D. Quigley - University of Warwick  '
-       write(*,*)
-       stop
+       
+       ! No arguments, which might mean we are operating in library mode,
+       ! or we want to use the default input file hs_alkane.input
+       inquire(file='hs_alkane.input',exist=lexist)
+       if (lexist) then
+          write(*,'("Using default input filename - hs_alkane.input")')
+          file_name = 'hs_alkane.input'
+       else          
+          write(*,*) 
+          write(*,*) '                 H S _ A L K A N E          '
+          write(*,*)
+          write(*,*) '            Usage: hs_alkane <input file>   '
+          write(*,*)
+          write(*,*) '        D. Quigley - University of Warwick  '
+          write(*,*)
+          write(*,*) '   Alternatively (or if operating in library) mode '
+          write(*,*) 'ensure hs_alkane.input exists in the current directory'
+          write(*,*)
+          stop
+       end if
+    else
+
+       do iarg = 1, num_args
+          call getarg(iarg,command_line(iarg))
+       end do
+       
+       ! find the last dot in the filename.
+       do idata = 1, len(seedname)
+          if(command_line(1)(idata:idata)=='.') last_dot = idata
+       end do
+       
+       ! set the seedname.
+       seedname = command_line(1)(1:last_dot-1)  
+       
+       ! set the file name
+       file_name = trim(command_line(1))
+       
     end if
-
-    do iarg = 1, num_args
-       call getarg(iarg,command_line(iarg))
-    end do
-
-    ! find the last dot in the filename.
-    do idata = 1, len(seedname)
-       if(command_line(1)(idata:idata)=='.') last_dot = idata
-    end do
-
-    ! set the seedname.
-    seedname = command_line(1)(1:last_dot-1)  
-
-    ! set the file name
-    file_name = trim(command_line(1))
 
     ! open it
     open (25,file=file_name,status='old',iostat=ierr)
