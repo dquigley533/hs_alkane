@@ -3,13 +3,17 @@
 !                               V  I  S                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: vis_module.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
+! $Id: vis_module.f90,v 1.3 2011/08/02 10:02:32 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: vis_module.f90,v $
+! Revision 1.3  2011/08/02 10:02:32  phseal
+! Modified write_dcd_snapshot to read coordinates directly from the alkane
+! module, rather than as subroutine arguments.
+!
 ! Revision 1.2  2011/07/29 15:58:29  phseal
 ! Added multiple simulation box support.
 !
@@ -189,7 +193,7 @@ module vis
        
   end subroutine write_dcd_header
      
-  subroutine write_dcd_snapshot(nboxes,Nchains,nbeads,r)
+  subroutine write_dcd_snapshot()
     !------------------------------------------------------!
     ! Writes a snapshot of the current positions to a the  !
     ! dcd file. Expects a 2D array r(1:3,1:nchain) in      !
@@ -198,11 +202,10 @@ module vis
     ! D.Quigley January 2010                               !
     !------------------------------------------------------! 
     use constants, only : invPi
-    use box,       only : hmatrix,pbc,recip_matrix
+    use box,       only : hmatrix,pbc,recip_matrix,nboxes
+    use alkane,    only : nbeads,nchains,Rchain
     implicit none
 
-    integer,intent(in) :: Nchains,nbeads,nboxes
-    real(kind=dp),dimension(1:3,1:Nbeads,1:Nchains,1:nboxes),intent(in) :: r
     real(kind=dp),allocatable,dimension(:,:,:) :: rcopy
     real(kind=dp),dimension(3) :: rcom,oldcom,tmpcom,comchain
     real(kind=dp),dimension(3) :: unita,unitb,unitc
@@ -236,7 +239,7 @@ module vis
           ! it back inside the unit cell.
           comchain(:) = 0.0_dp
           do ibead = 1,nbeads
-             comchain(:) = comchain(:) + r(:,ibead,ichain,ibox)
+             comchain(:) = comchain(:) + rchain(:,ibead,ichain,ibox)
           end do
           comchain(:) = comchain(:)/real(nbeads,kind=dp)
           oldcom(:)   = comchain(:)
@@ -271,7 +274,7 @@ module vis
 
           ! Apply to all beads in a chain
           do ibead = 1,nbeads
-             rcopy(:,ibead,ichain) = r(:,ibead,ichain,ibox) !+ tmpcom(:)
+             rcopy(:,ibead,ichain) = rchain(:,ibead,ichain,ibox) !+ tmpcom(:)
           end do
 
        end do
@@ -281,11 +284,11 @@ module vis
        if ( (nchains==1).and.(.not.pbc) ) then
           rcom = 0.0_dp
           do i = 1,nbeads
-             rcom(:) = rcom(:) + r(:,i,1,ibox)
+             rcom(:) = rcom(:) + rchain(:,i,1,ibox)
           end do
           rcom(:) = rcom(:)/real(nbeads,kind=dp)
           do i = 1,nbeads
-             rcopy(:,i,1) = r(:,i,1,ibox) - rcom(:)
+             rcopy(:,i,1) = rchain(:,i,1,ibox) - rcom(:)
           end do
        end if
 
