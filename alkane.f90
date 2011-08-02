@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.6 2011/08/02 12:27:18 phseal Exp $
+! $Id: alkane.f90,v 1.7 2011/08/02 12:30:53 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.7  2011/08/02 12:30:53  phseal
+! mc.f90
+!
 ! Revision 1.6  2011/08/02 12:27:18  phseal
 ! Updated all integers to use the integer type in constants.f90 where
 ! applicable. This allows the integer type it to be set to a C compatible
@@ -325,7 +328,7 @@ contains
 
     real(kind=dp),intent(in)     :: pressure
     integer(kind=it),intent(in)  :: ibox
-    logical,optional,intent(in)  :: reset
+    integer(kind=it),intent(in)  :: reset
     real(kind=dp),intent(out)    :: acc_prob
     real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3,3),save :: old_hmatrix,new_hmatrix,delta_hmatrix
