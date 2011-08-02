@@ -3,7 +3,7 @@
 !                            T I M E R                                        !
 !=============================================================================!
 !                                                                             !
-! $Id: timer.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: timer.f90,v 1.2 2011/08/02 10:03:16 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to check time relative to a queue slot length. For        !
@@ -13,8 +13,12 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: timer.f90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/08/02 10:03:16  phseal
+! Modified timer routines to return an integer rather than a logical for
+! C compatibility purposes in later versions of this code.
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
@@ -124,16 +128,16 @@ contains
     ! D.Quigley March 2010                                                    !
     !-------------------------------------------------------------------------!
     implicit none
-    logical,intent(out) :: safe
+    integer,intent(out) :: safe
     real(kind=dp)       :: tmptime
     logical,save        :: lwarn = .false.
 
-    safe = .false.
+    safe = 0
 
     tmptime = timer_elapsed_time()
 
     if (timer_qtime - tmptime>timer_closetime) then
-       safe = .true.
+       safe = 1
     elseif (.not.lwarn) then
        write(*,'("! ====================================================================== ! ")')
        write(*,'("! WARNING less than timer_closetime remaining before timer_qtime reached ! ")')

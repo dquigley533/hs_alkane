@@ -3,13 +3,17 @@
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
 !                                                                             !
-! $Id: main.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
+! $Id: main.f90,v 1.3 2011/08/02 10:03:16 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: main.f90,v $
+! Revision 1.3  2011/08/02 10:03:16  phseal
+! Modified timer routines to return an integer rather than a logical for
+! C compatibility purposes in later versions of this code.
+!
 ! Revision 1.2  2011/07/29 15:58:29  phseal
 ! Added multiple simulation box support.
 !
@@ -38,7 +42,7 @@ program hs_alkane
   !========================================================!
   ! Timing
   integer :: t1,t2,rate
-  logical :: safe 
+  integer :: safe 
 
   ! Loop counters / error flags
   integer :: ibead,ichain,ierr,ibox
@@ -111,7 +115,7 @@ program hs_alkane
      call mc_cycle()
 
      ! Write snapshot of system to DCD file every traj_output_int
-     if (mod(mc_cycle_num,traj_output_int)==0) call write_dcd_snapshot(nboxes,Nchains,nbeads,Rchain)
+     if (mod(mc_cycle_num,traj_output_int)==0) call write_dcd_snapshot()
 
      ! Write density to density.dat every file_output_int
      do ibox = 1,nboxes
@@ -139,7 +143,7 @@ program hs_alkane
      ! Check if we should exit the program, i.e. are we within 
      ! time_closetime of reaching timer_qtime.
      call timer_check_runtime(safe)
-     if (.not.safe) then
+     if (.not.(safe==1)) then
         write(*,*)
         write(*,'("!============================================!")')
         write(*,'("! Approaching end of queue time - stopping   !")')
