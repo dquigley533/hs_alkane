@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.3 2011/08/02 10:04:18 phseal Exp $
+! $Id: box.f90,v 1.4 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.4  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.3  2011/08/02 10:04:18  phseal
 ! Added routines to manipulate inactive boxes from outside of the box and
 ! alkane module. Updates overlap counting routines to return only the
@@ -27,7 +32,7 @@
 !=============================================================================!
 module box
 
-  use constants, only : dp
+  use constants, only : dp,it
   implicit none
 
   private                ! Everything private
@@ -74,11 +79,11 @@ module box
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
 
-  integer,save       :: nboxes            = 1        ! Number of boxes
+  integer(kind=it),save       :: nboxes            = 1        ! Number of boxes
 
-  logical,save       :: pbc               = .true.   ! Use periodic bcs
-  logical,save       :: use_link_cells    = .false.  ! Use link cells
-  logical,save       :: bypass_link_cells = .false.  ! Force bypass of above
+  logical,save  :: pbc               = .true.   ! Use periodic bcs
+  logical,save  :: use_link_cells    = .false.  ! Use link cells
+  logical,save  :: bypass_link_cells = .false.  ! Force bypass of above
 
   real(kind=dp),allocatable,dimension(:,:,:),save :: hmatrix       ! Matrix of cell vectors
   real(kind=dp),allocatable,dimension(:,:,:),save :: recip_matrix  ! Reciprocal lattice 
@@ -89,11 +94,11 @@ module box
   real(kind=dp),save :: pressure  = 6.0     ! external pressure
 
   ! Linked list accounting
-  integer,allocatable,dimension(:),save          :: ncellx,ncelly,ncellz   ! Number of link cells in each dir.
-  real(kind=dp),allocatable,dimension(:),save    :: lcellx,lcelly,lcellz   ! Size of link cells in each dir.
+  integer(kind=it),allocatable,dimension(:),save  :: ncellx,ncelly,ncellz   ! Number of link cells in each dir.
+  real(kind=dp),allocatable,dimension(:),save     :: lcellx,lcelly,lcellz   ! Size of link cells in each dir.
 
   ! Array containing for each link cell, a list of the neighbouring link cells.
-  integer,allocatable,dimension(:,:,:),save :: lcneigh
+  integer(kind=it),allocatable,dimension(:,:,:),save :: lcneigh
 
   ! Temporary cell vectors to populate hmatrix
   real(kind=dp),dimension(3) :: CellA,CellB,CellC
@@ -112,8 +117,8 @@ contains
     ! D.Quigley July 2011                                                          !
     !------------------------------------------------------------------------------!   
     implicit none
-    integer,dimension(2) :: ierr
-    integer :: ibox
+    integer(kind=it),dimension(2) :: ierr
+    integer(kind=it) :: ibox
 
     ! Allocate cell vectors and reciprocal lattice
     allocate(hmatrix(1:3,1:3,1:nboxes),stat=ierr(1))
@@ -176,7 +181,7 @@ contains
     ! D.Quigley September 2006                                                     !
     !------------------------------------------------------------------------------!     
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: det
 
     Det =       hmatrix(1,1,ibox)*(hmatrix(2,2,ibox)*hmatrix(3,3,ibox) - &
@@ -200,7 +205,7 @@ contains
     !------------------------------------------------------------------------------! 
     use constants, only : Pi
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: vol
 
     ! invert hmatrix to get recip_matrix
@@ -239,9 +244,9 @@ contains
     use constants, only : invPi
     implicit none
     real(kind=dp),dimension(3),intent(in) :: r1,r2
-    integer,intent(in)         :: ibox
-    real(kind=dp),dimension(3) :: box_minimum_image
-    real(kind=dp),dimension(3) :: dr
+    integer(kind=it),intent(in) :: ibox
+    real(kind=dp),dimension(3)  :: box_minimum_image
+    real(kind=dp),dimension(3)  :: dr
     real(kind=dp) :: sx,sy,sz
 
     dr(1) = r2(1) - r1(1)
@@ -302,7 +307,7 @@ contains
     ! D.Quigley February 2010                                                 !
     !-------------------------------------------------------------------------!
     implicit none
-    integer :: ierr
+    integer(kind=it) :: ierr
 
     if (use_link_cells) then
        deallocate(lcneigh,stat=ierr)
@@ -321,13 +326,13 @@ contains
     ! D.Quigley February 2010                                                 !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in)       :: ibox
-    real(kind=dp),intent(in) :: drcut
+    integer(kind=it),intent(in) :: ibox
+    real(kind=dp),intent(in)    :: drcut
     real(kind=dp) :: Lx,Ly,Lz
 
-    integer :: ix,iy,iz,jx,jy,jz,icell,jcell
-    integer :: kx,ky,kz,jn
-    integer :: ierr
+    integer(kind=it) :: ix,iy,iz,jx,jy,jz,icell,jcell
+    integer(kind=it) :: kx,ky,kz,jn
+    integer(kind=it) :: ierr
 
     ! Sanity check
     if (.not.box_initialised) then
@@ -345,8 +350,6 @@ contains
        use_link_cells = .false.
        return
     end if
-
-
 
     ! Lengths of the three cell vectors
     Lx = sqrt(dot_product(hmatrix(:,1,ibox),hmatrix(:,1,ibox)))
@@ -420,7 +423,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(out) :: dumhmatrix
 
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
@@ -442,7 +445,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(in) :: dumhmatrix
 
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
@@ -465,7 +468,7 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3),intent(in)  :: in_vector
     real(kind=dp),dimension(3),intent(out) :: out_vector
 
@@ -498,7 +501,7 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3),intent(in)  :: in_vector
     real(kind=dp),dimension(3),intent(out) :: out_vector
 

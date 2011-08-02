@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
+! $Id: io.f90,v 1.3 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.3  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.2  2011/07/29 15:58:29  phseal
 ! Added multiple simulation box support.
 !
@@ -21,7 +26,7 @@
 !=============================================================================!
 module io
 
-  use constants, only : dp,ep
+  use constants, only : dp,ep,it
   implicit none
 
   private                ! Everything private
@@ -45,8 +50,8 @@ module io
   logical :: read_xmol = .false.   ! are we reading an xmol
 
   ! Sampling and snapshot intervals
-  integer       :: file_output_int = 25
-  integer       :: traj_output_int = 250
+  integer(kind=it) :: file_output_int = 25
+  integer(kind=it) :: traj_output_int = 250
 
   !---------------------------------------------------------------------------
   !                      P r i v a t e   V a r i a b l e s                    !
@@ -84,15 +89,15 @@ contains
 
 
     ! command line data
-    integer                       :: iarg,idata
-    integer                       :: num_args
+    integer(kind=it)              :: iarg,idata
+    integer(kind=it)              :: num_args
     character(30), dimension(0:10):: command_line
     character(30)                 :: file_name,seedname
-    integer                       :: last_dot
-    !    integer,  external ::  iargc
+    integer(kind=it)              :: last_dot
+    !    integer(kind=it),  external ::  iargc
     !    external  getarg
 
-    integer :: ierr,ibox ! error flag
+    integer(kind=it) :: ierr,ibox ! error flag
 
     ! check that there is only one argument.
     num_args = iargc()
@@ -158,10 +163,10 @@ contains
     use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes
     implicit none
 
-    integer :: ierr,ichain,ibead,dumint,ibox
-    character(2)  :: dumchar
-    character(3)  :: boxstring
-    character(30) :: filename
+    integer(kind=it) :: ierr,ichain,ibead,dumint,ibox
+    character(2)     :: dumchar
+    character(3)     :: boxstring
+    character(30)    :: filename
 
     do ibox = 1,nboxes
 

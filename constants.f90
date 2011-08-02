@@ -3,29 +3,40 @@
 !                            C O N S T A N T S                                !
 !=============================================================================!
 !                                                                             !
-! $Id: constants.f90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: constants.f90,v 1.2 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Various compile-time constants used in other modules.                       !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: constants.f90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
 module constants
 
+  use iso_c_binding
   implicit none
 
   !-------------------------------------------------------------------------!
   ! Type parameters                                                         !
   !-------------------------------------------------------------------------!
+  ! Fortran style
+  !integer,parameter   :: dp = 8  ! default precision - might try using single
+  !integer,parameter   :: ep = 8  ! extra precision  - for accumulators
+  !integer,parameter   :: it = 4  ! default integer kind
 
-  integer,parameter   :: int32 = selected_int_kind(9)
-  integer,parameter   :: dp = 8  ! default precision )_ Might try using single
-  integer,parameter   :: ep = 8  ! extra   precision )  precision for dp
+  ! For C interopability - use types in iso_c_binding intrinsic module
+  integer,parameter    :: dp = c_double
+  integer,parameter    :: ep = c_double
+  integer,parameter    :: it = c_int
 
   !-------------------------------------------------------------------------!
   ! Fundamental constants                                                   !

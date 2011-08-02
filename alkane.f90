@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.5 2011/08/02 10:04:18 phseal Exp $
+! $Id: alkane.f90,v 1.6 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.6  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.5  2011/08/02 10:04:18  phseal
 ! Added routines to manipulate inactive boxes from outside of the box and
 ! alkane module. Updates overlap counting routines to return only the
@@ -38,7 +43,7 @@
 
 module alkane
 
-  use constants, only : dp,ep
+  use constants, only : dp,ep,it
   implicit none
 
   private                ! Everything private
@@ -104,8 +109,8 @@ module alkane
   !---------------------------------------------------------------------------!
 
   ! Model parameters
-  integer,save           :: nchains = 35        ! Number of chains per box
-  integer,save           :: nbeads  = 4         ! length of alkane chains
+  integer(kind=it),save  :: nchains = 35        ! Number of chains per box
+  integer(kind=it),save  :: nbeads  = 4         ! length of alkane chains
   real(kind=dp),save     :: sigma   = 1.0_dp    ! hard sphere bead diameter
   real(kind=dp),save     :: L       = 0.4_dp    ! bond length
 
@@ -128,25 +133,25 @@ module alkane
   ! matches the convention used in defining the three torsion     !
   ! potentials but differs from most other sources by 180 degrees !
   !---------------------------------------------------------------!
-  integer,save           :: model_type    = 4    ! default model type
-  integer,save           :: torsion_type  = 1    ! default torsion type
-  integer,save           :: nexclude             ! exclusion length
+  integer(kind=it),save   :: model_type    = 4    ! default model type
+  integer(kind=it),save   :: torsion_type  = 1    ! default torsion type
+  integer(kind=it),save   :: nexclude             ! exclusion length
   
   ! Chain coordinates and flag for initial configuration
   real(kind=dp),allocatable,dimension(:,:,:,:),save :: Rchain
   logical,allocatable,dimension(:,:),save           :: chain_created
 
   ! Intermolecular neighbour list (if applicable)
-  integer,allocatable,dimension(:,:),save :: list,startinlist,endinlist
+  integer(kind=it),allocatable,dimension(:,:),save :: list,startinlist,endinlist
 
   ! Linked list arrays (if applicable) See F&S for details
-  integer,allocatable,dimension(:,:,:) ,save  :: head_of_cell
-  integer,allocatable,dimension(:,:,:,:),save :: linked_list
+  integer(kind=it),allocatable,dimension(:,:,:) ,save  :: head_of_cell
+  integer(kind=it),allocatable,dimension(:,:,:,:),save :: linked_list
   logical,save       :: rigid     = .false.      ! Chains are inflexible
 
   ! CBMC parameters
-  integer,save :: ktrial = 5                     ! Number of trial segments
-  integer,save :: max_regrow = 3                 ! Maximum segments to regrow
+  integer(kind=it),save :: ktrial = 5                     ! Number of trial segments
+  integer(kind=it),save :: max_regrow = 3                 ! Maximum segments to regrow
 
   ! Other MC move parameters
   real(kind=dp),save :: mc_dr_max = 0.0421_dp    ! Maximum translation move
@@ -170,7 +175,7 @@ contains
     use box, only : nboxes
     implicit none
 
-    integer,dimension(3) :: ierr = 0
+    integer(kind=it),dimension(3) :: ierr = 0
 
     ! Allocate chain position array
     allocate(Rchain(1:3,1:nbeads,1:nchains,1:nboxes),stat=ierr(1))
@@ -207,7 +212,7 @@ contains
     use box, only : use_link_cells
     implicit none
     
-    integer,dimension(2) :: ierr
+    integer(kind=it),dimension(2) :: ierr
 
     deallocate(Rchain,chain_created,list,startinlist,endinlist,stat=ierr(1))
     if (use_link_cells) deallocate(head_of_cell,linked_list,stat=ierr(2))
@@ -225,11 +230,11 @@ contains
     !-------------------------------------------------------------------------!
     use random, only : random_uniform_random
     implicit none
-    integer,intent(in)         :: ichain,ibox
-    real(kind=dp),intent(out)  :: new_boltz
-    real(kind=dp),dimension(3) :: dr
-    real(kind=dp)              :: tboltz
-    integer :: ibead
+    integer(kind=it),intent(in)  :: ichain,ibox
+    real(kind=dp),intent(out)    :: new_boltz
+    real(kind=dp),dimension(3)   :: dr
+    real(kind=dp)                :: tboltz
+    integer(kind=it) :: ibead
 
     ! generate random move
     dr(1) = 2.0_dp*random_uniform_random() - 1.0_dp
@@ -262,13 +267,13 @@ contains
     use random, only     : random_uniform_random
     use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
     implicit none
-    integer,intent(in)         :: ichain,ibox
-    real(kind=dp),intent(out)  :: new_boltz
-    real(kind=dp),dimension(3) :: axis,rcom
-    real(kind=dp),dimension(4) :: quat
-    real(kind=dp)              :: theta
+    integer(kind=it),intent(in) :: ichain,ibox
+    real(kind=dp),intent(out)   :: new_boltz
+    real(kind=dp),dimension(3)  :: axis,rcom
+    real(kind=dp),dimension(4)  :: quat
+    real(kind=dp)               :: theta
 
-    integer :: ibead
+    integer(kind=it) :: ibead
 
     ! generate random rotation axis
     axis(1) = 2.0_dp*random_uniform_random() - 1.0_dp
@@ -319,14 +324,14 @@ contains
     implicit none
 
     real(kind=dp),intent(in)     :: pressure
-    integer,intent(in)           :: ibox
+    integer(kind=it),intent(in)  :: ibox
     logical,optional,intent(in)  :: reset
     real(kind=dp),intent(out)    :: acc_prob
     real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3,3),save :: old_hmatrix,new_hmatrix,delta_hmatrix
     real(kind=dp) :: old_volume,new_volume,delta_vol,x
 
-    integer :: ichain,ibead,jdim,idim
+    integer(kind=it) :: ichain,ibead,jdim,idim
 
     if ( present(reset).and.reset ) then
 
@@ -517,14 +522,13 @@ contains
     use random,   only : random_uniform_random
     implicit none
 
-    integer,intent(in) :: ibox
-
+    integer(kind=it),intent(in)  :: ibox
     real(kind=dp),intent(in)     :: scaleA,scaleB,scaleC
     real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
     real(kind=dp) :: old_volume,new_volume,delta_vol
 
-    integer :: ichain,ibead,jdim,idim
+    integer(kind=it) :: ichain,ibead,jdim,idim
 
 
     ! Uniform scaling of box dimensions
@@ -604,15 +608,15 @@ contains
     use random,           only : random_uniform_random
     use quaternion,       only : quat_axis_angle_to_quat,quat_conjugate_q_with_v
     implicit none
-    integer,intent(in)        :: ichain,ibox
-    real(kind=dp),intent(out) :: new_boltz
+    integer(kind=it),intent(in) :: ichain,ibox
+    real(kind=dp),intent(out)   :: new_boltz
 
-    real(kind=dp),dimension(3) :: axis,r12,r23,r34
-    real(kind=dp),dimension(4) :: quat
+    real(kind=dp),dimension(3)  :: axis,r12,r23,r34
+    real(kind=dp),dimension(4)  :: quat
 
     real(kind=dp) :: angle,xi
 
-    integer :: ibead,ia
+    integer(kind=it) :: ibead,ia
 
     if (nbeads<4) stop 'Called alkane_bond_rotate with nbeads < 4'
 
@@ -772,9 +776,9 @@ contains
                            quat_axis_angle_to_quat
     implicit none
 
-    integer,intent(in)        :: ichain,ibox   ! chain number to grow/regrow
-    real(kind=ep),intent(out) :: rb_factor     ! Rosenbluth factor for chain 
-    logical,intent(in)        :: new_conf      ! old or new configuration?
+    integer(kind=it),intent(in) :: ichain,ibox   ! chain number to grow/regrow
+    real(kind=ep),intent(out)   :: rb_factor     ! Rosenbluth factor for chain 
+    logical,intent(in)          :: new_conf      ! old or new configuration?
 
     ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
@@ -787,13 +791,13 @@ contains
     real(kind=dp),allocatable,dimension(:)   :: wset
 
     ! Loop counters / error flags
-    integer :: ierr,n,j,ib,jl,ifail
+    integer(kind=it) :: ierr,n,j,ib,jl,ifail
 
     ! Rosenbluth variables
     real(kind=dp) :: wsum
 
     ! Bead from which to start growth
-    integer,save :: first_bead
+    integer(kind=it),save :: first_bead
 
     ! Allocate memory for trial segments
     allocate(rtrial(1:3,1:ktrial),stat=ierr)
@@ -980,7 +984,7 @@ contains
       ! D.Quigley January 2010                                                  !
       !-------------------------------------------------------------------------!
       implicit none
-      integer,intent(out) :: nout,ifail
+      integer(kind=it),intent(out) :: nout,ifail
       real(kind=dp) :: sump,zeta,rws
 
       sump = 0.0_dp
@@ -1022,11 +1026,11 @@ contains
 
     implicit none
 
-    integer,intent(in) :: i,ichain,ibox
+    integer(kind=it),intent(in) :: i,ichain,ibox
     real(kind=dp),dimension(3),intent(in) :: rbead
-    real(kind=dp),dimension(3) :: rsep,sbead
+    real(kind=dp),dimension(3)  :: rsep,sbead
 
-    integer :: jchain,ix,iy,iz,icell,ni,jcell,jbead,tmpint
+    integer(kind=it) :: jchain,ix,iy,iz,icell,ni,jcell,jbead,tmpint
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
@@ -1207,12 +1211,11 @@ contains
                            lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix
     implicit none
 
-    integer,intent(in) :: ichain,ibox
+    integer(kind=it),intent(in) :: ichain,ibox
+    real(kind=dp),dimension(3)  :: rbead
+    real(kind=dp),dimension(3)  :: rsep,sbead
 
-    real(kind=dp),dimension(3) :: rbead
-    real(kind=dp),dimension(3) :: rsep,sbead
-
-    integer :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint
+    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
@@ -1473,9 +1476,9 @@ contains
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: test,acc
-    integer :: ichain
+    integer(kind=it) :: ichain
     logical,intent(out) :: overlap
 
     if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
@@ -1510,12 +1513,12 @@ contains
     use constants, only : Pi
     use box
     implicit none
-    integer,intent(in)  :: ichain
-    integer,intent(in)  :: ibox
+    integer(kind=it),intent(in)  :: ichain
+    integer(kind=it),intent(in)  :: ibox
     logical,intent(out) :: violated 
     
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
-    integer :: ibead,jbead
+    integer(kind=it) :: ibead,jbead
     real(kind=dp) :: boltzf
 
     violated = .false. ! No problems found yet
@@ -1627,18 +1630,17 @@ contains
     !-------------------------------------------------------------------------!
     use box
     implicit none
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
 
-    integer :: myint,logint,ibead,jbead,ichain,jchain,k,ierr,m
-    integer :: t1,t2,rate
+    integer(kind=it) :: myint,logint,ibead,jbead,ichain,jchain,k,ierr,m
+    integer(kind=it) :: t1,t2,rate
     logical :: lrange
     real(kind=dp) :: nl_range_sq 
     real(kind=dp),dimension(3) :: rbead,rsep
 
-    integer,allocatable,dimension(:) :: advance
-
+    integer(kind=it),allocatable,dimension(:) :: advance
     logical,save  :: firstpass = .true.
-    integer,save  :: lcnv
+    integer(kind=it),save  :: lcnv
 
     nl_range_sq = (2.0_dp*sigma)**2
 
@@ -1722,14 +1724,14 @@ contains
     use box,       only : ncellx,ncelly,ncellz,lcellx,lcelly,lcellz,use_link_cells, &
                           recip_matrix,nboxes
     implicit none
-    integer,intent(in) :: ibox
-    integer :: ichain,ibead,icell,ix,iy,iz,ierr
-    integer :: t1,t2,rate,jbead,jchain
-    real(kind=dp) :: rlcellx,rlcelly,rlcellz 
+    integer(kind=it),intent(in) :: ibox
+    integer(kind=it) :: ichain,ibead,icell,ix,iy,iz,ierr
+    integer(kind=it) :: t1,t2,rate,jbead,jchain
+    real(kind=dp)    :: rlcellx,rlcelly,rlcellz 
     real(kind=dp),dimension(3) :: rbead,sbead
 
     logical :: lrebuild_all_boxes = .false.
-    integer :: ifirst,ilast,jbox
+    integer(kind=it) :: ifirst,ilast,jbox
 
     if (.not.use_link_cells) return
 
@@ -1840,11 +1842,11 @@ contains
     use box,       only : ncellx,ncelly,ncellz,lcellx,lcelly,lcellz, &
                           use_link_cells,recip_matrix
     implicit none
-    integer,intent(in) :: ibead,ichain,ibox
+    integer(kind=it),intent(in) :: ibead,ichain,ibox
     real(kind=dp),dimension(3),intent(in) :: old_pos,new_pos
     real(kind=dp),dimension(3) :: sbead
-    integer :: ix,iy,iz,ncell,ocell,jchain,jbead
-    integer :: t1,t2,rate,tmpint,kbead,kchain
+    integer(kind=it) :: ix,iy,iz,ncell,ocell,jchain,jbead
+    integer(kind=it) :: t1,t2,rate,tmpint,kbead,kchain
 
     if (.not.use_link_cells) return
 
@@ -2029,15 +2031,15 @@ contains
     use constants, only : Pi
     use box
     implicit none
-    integer,intent(in) :: ichain    ! Chain no. to check for internal overlaps
-    integer,intent(in) :: ibox      ! Box in which this chain resides
-    !integer,intent(in) :: mxoverlap ! Max. no. of overlaps
+    integer(kind=it),intent(in) :: ichain    ! Chain no. to check for internal overlaps
+    integer(kind=it),intent(in) :: ibox      ! Box in which this chain resides
+    !integer(kind=it),intent(in) :: mxoverlap ! Max. no. of overlaps
 
-    integer,intent(out) :: noverlap ! number of intra-chain overlaps
-    !integer,dimension(2,mxoverlap) :: poverlap ! list of overlapping pairs
+    integer(kind=it),intent(out) :: noverlap ! number of intra-chain overlaps
+    !integer(kind=it),dimension(2,mxoverlap) :: poverlap ! list of overlapping pairs
 
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
-    integer :: ibead,jbead,iovlp
+    integer(kind=it) :: ibead,jbead,iovlp
     real(kind=dp) :: boltzf
 
     noverlap = 0
@@ -2105,18 +2107,18 @@ contains
     use box,       only :  box_minimum_image,use_link_cells,ncellx,ncelly,ncellz, &
                            lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix
     implicit none
-    integer,intent(in) :: ichain    ! Chain no. to check for internal overlaps
-    integer,intent(in) :: ibox      ! Box in which this chain resides
-    !integer,intent(in) :: mxoverlap ! Max. no. of overlaps
+    integer(kind=it),intent(in) :: ichain    ! Chain no. to check for internal overlaps
+    integer(kind=it),intent(in) :: ibox      ! Box in which this chain resides
+    !integer(kind=it),intent(in) :: mxoverlap ! Max. no. of overlaps
 
-    integer,intent(out) :: noverlap ! number of inter-chain overlaps
-    !integer,dimension(2,mxoverlap) :: loverlap ! list of overlapping beads,chains
+    integer(kind=it),intent(out) :: noverlap ! number of inter-chain overlaps
+    !integer(kind=it),dimension(2,mxoverlap) :: loverlap ! list of overlapping beads,chains
 
 
     real(kind=dp),dimension(3) :: rbead
     real(kind=dp),dimension(3) :: rsep,sbead
 
-    integer :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,iovlp
+    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,iovlp
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
@@ -2415,7 +2417,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(out) :: dum_kt
+    integer(kind=it),intent(out) :: dum_kt
 
     dum_kt = ktrial
 
@@ -2431,7 +2433,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in) :: dum_kt
+    integer(kind=it),intent(in) :: dum_kt
 
     ktrial = dum_kt
 
@@ -2446,7 +2448,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(out) :: dumchains
+    integer(kind=it),intent(out) :: dumchains
 
     dumchains = nchains
 
@@ -2461,7 +2463,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(out) :: dumbeads
+    integer(kind=it),intent(out) :: dumbeads
 
     dumbeads = nbeads
 
@@ -2476,7 +2478,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in) :: ichain,ibox
+    integer(kind=it),intent(in) :: ichain,ibox
     real(kind=dp),dimension(1:3,1:nbeads),intent(in) :: r
 
     Rchain(:,:,ichain,ibox) = r(:,:)
@@ -2492,7 +2494,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(in) :: ichain,ibox
+    integer(kind=it),intent(in) :: ichain,ibox
     real(kind=dp),dimension(1:3,1:nbeads),intent(out) :: r
 
     r(:,:) = Rchain(:,:,ichain,ibox) 
@@ -2517,14 +2519,14 @@ contains
     use random,   only : random_uniform_random
     implicit none
 
-    integer,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(in)     :: delta_H
 
     real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
     real(kind=dp) :: old_volume,new_volume,delta_vol
 
-    integer :: ichain,ibead,jdim,idim
+    integer(kind=it) :: ichain,ibead,jdim,idim
 
 
     ! Change hmatrix by delta_H

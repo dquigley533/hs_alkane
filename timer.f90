@@ -3,7 +3,7 @@
 !                            T I M E R                                        !
 !=============================================================================!
 !                                                                             !
-! $Id: timer.f90,v 1.2 2011/08/02 10:03:16 phseal Exp $
+! $Id: timer.f90,v 1.3 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to check time relative to a queue slot length. For        !
@@ -13,6 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: timer.f90,v $
+! Revision 1.3  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.2  2011/08/02 10:03:16  phseal
 ! Modified timer routines to return an integer rather than a logical for
 ! C compatibility purposes in later versions of this code.
@@ -24,7 +29,7 @@
 !=============================================================================!
 module timer 
 
-  use constants, only : dp
+  use constants, only : dp,it
   implicit none
 
   private                ! Everything private
@@ -48,9 +53,9 @@ module timer
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
-  real(kind=dp),save :: last_time,current_time,elapsed_time
-  integer,save       :: start_day
-  logical,save       :: timer_initialised = .false.
+  real(kind=dp),save     :: last_time,current_time,elapsed_time
+  integer(kind=it),save  :: start_day
+  logical,save           :: timer_initialised = .false.
 
 contains
   
@@ -63,7 +68,7 @@ contains
     implicit none
 
     character(12) :: dat,tim,zon
-    integer,dimension(8) :: info
+    integer(kind=it),dimension(8) :: info
 
     call date_and_time(dat,tim,zon,info)
     
@@ -128,7 +133,7 @@ contains
     ! D.Quigley March 2010                                                    !
     !-------------------------------------------------------------------------!
     implicit none
-    integer,intent(out) :: safe
+    integer(kind=it),intent(out) :: safe
     real(kind=dp)       :: tmptime
     logical,save        :: lwarn = .false.
 

@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
+! $Id: mc.f90,v 1.3 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.3  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.2  2011/07/29 15:58:29  phseal
 ! Added multiple simulation box support.
 !
@@ -23,7 +28,7 @@
 !=============================================================================!
 module mc
 
-  use constants, only : dp
+  use constants, only : dp,it
   implicit none
 
   private                ! Everything private
@@ -49,20 +54,20 @@ module mc
   !---------------------------------------------------------------------------!
   real(kind=dp) :: mc_target_ratio = 0.5_dp     ! Target acceptance ratio
   logical       :: eq_adjust_mc    = .true.     ! Do we adjust MC to reach it
-  integer       :: max_mc_cycles   = 500000000  ! How many cycles to perform
+  integer(kind=it)      :: max_mc_cycles   = 500000000  ! How many cycles to perform
+         
+  integer(kind=it)      :: mc_cycle_num = 0             ! Current cycle number
+  integer(kind=it)      :: last_move    = 0             ! Most recent move type
 
-  integer       :: mc_cycle_num = 0             ! Current cycle number
-  integer       :: last_move    = 0             ! Most recent move type
-
-  integer,parameter :: nmove_types = 5          ! Number of move types
+  integer(kind=it),parameter :: nmove_types = 5 ! Number of move types
   character(11),dimension(nmove_types) :: name  ! Move names
 
   ! Move attempt/accept counters
-  integer :: mc_accepted_trans = 0, mc_attempted_trans = 0
-  integer :: mc_accepted_rot   = 0, mc_attempted_rot   = 0
-  integer :: mc_accepted_dih   = 0, mc_attempted_dih   = 0
-  integer :: mc_accepted_box   = 0, mc_attempted_box   = 0
-  integer :: mc_accepted_cbmc  = 0, mc_attempted_cbmc  = 0
+  integer(kind=it) :: mc_accepted_trans = 0, mc_attempted_trans = 0
+  integer(kind=it) :: mc_accepted_rot   = 0, mc_attempted_rot   = 0
+  integer(kind=it) :: mc_accepted_dih   = 0, mc_attempted_dih   = 0
+  integer(kind=it) :: mc_accepted_box   = 0, mc_attempted_box   = 0
+  integer(kind=it) :: mc_accepted_cbmc  = 0, mc_attempted_cbmc  = 0
 
   ! Backup chain used to restore configuration after failed MC moves
   real(kind=dp),allocatable,dimension(:,:) :: backup_chain
@@ -105,7 +110,7 @@ contains
     logical :: overlap,violated            ! Checks on overlaps and geometry
 
     ! Loop counters
-    integer :: ipass,ichain,ibead,k,ibox
+    integer(kind=it) :: ipass,ichain,ibead,k,ibox
 
     !-------------------------------------!
     ! nchains trial moves per cycle       !
@@ -460,7 +465,7 @@ contains
     logical,optional,intent(in) :: grow_new_chains
 
     logical :: overlap,violated           ! Checks on overlaps and geometry
-    integer :: ichain,nccopy,ibox         ! Loop counters etc
+    integer(kind=it) :: ichain,nccopy,ibox         ! Loop counters etc
     real(kind=dp) :: rb_factor            ! Rosenbluth factor for chain growth
 
     ! Loop over simulation boxes

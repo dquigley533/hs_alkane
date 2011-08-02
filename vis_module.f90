@@ -3,13 +3,18 @@
 !                               V  I  S                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: vis_module.f90,v 1.3 2011/08/02 10:02:32 phseal Exp $
+! $Id: vis_module.f90,v 1.4 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: vis_module.f90,v $
+! Revision 1.4  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.3  2011/08/02 10:02:32  phseal
 ! Modified write_dcd_snapshot to read coordinates directly from the alkane
 ! module, rather than as subroutine arguments.
@@ -24,7 +29,7 @@
 !=============================================================================!
 module vis
 
-  use constants, only : ep,dp
+  use constants, only : ep,dp,it
   implicit none
 
   private  ! Everything private
@@ -41,8 +46,8 @@ module vis
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------
-  integer,save :: psf = 201
-  integer,save :: dcd = 202
+  integer(kind=it),save :: psf = 201
+  integer(kind=it),save :: dcd = 202
 
   contains
 
@@ -57,13 +62,13 @@ module vis
       !------------------------------------------------------! 
       use box, only : nboxes
       implicit none
-      integer,intent(in) :: nchains,nbeads
+      integer(kind=it),intent(in) :: nchains,nbeads
 
       integer,allocatable,dimension(:) :: arrbonds
 
-      integer       :: i,ierr,j,k,ichain,ibox
-      character(3)  :: boxstring
-      character(30) :: filename
+      integer(kind=it) :: i,ierr,j,k,ichain,ibox
+      character(3)     :: boxstring
+      character(30)    :: filename
 
       do ibox = 1,nboxes ! loop over boxes
 
@@ -144,16 +149,16 @@ module vis
     !------------------------------------------------------! 
     use box, only : nboxes
     implicit none
-    integer,intent(in) :: Nchains,Nbeads
+    integer(kind=it),intent(in) :: Nchains,Nbeads
 
     ! arrays for header
     integer,dimension(20) :: icntrl
     character(4) :: hdr='CORD'
     character*80,dimension(32) :: dcdtitle
 
-    integer :: i,ierr,ibox
-    character(3)  :: boxstring
-    character(30) :: filename
+    integer(kind=it) :: i,ierr,ibox
+    character(3)     :: boxstring
+    character(30)    :: filename
 
     do ibox = 1,nboxes ! loop over boxes
        
@@ -213,7 +218,7 @@ module vis
     ! charmm style cell vector array
     real(kind=ep),dimension(6) :: xtlabc   
 
-    integer :: ierr,j,i,ichain,ibead,ibox
+    integer(kind=it) :: ierr,j,i,ichain,ibead,ibox
 
     character(3)  :: boxstring
     character(30) :: filename

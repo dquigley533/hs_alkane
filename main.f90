@@ -3,13 +3,18 @@
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
 !                                                                             !
-! $Id: main.f90,v 1.3 2011/08/02 10:03:16 phseal Exp $
+! $Id: main.f90,v 1.4 2011/08/02 12:27:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: main.f90,v $
+! Revision 1.4  2011/08/02 12:27:18  phseal
+! Updated all integers to use the integer type in constants.f90 where
+! applicable. This allows the integer type it to be set to a C compatible
+! type via the instrinsic iso_c_bindings module.
+!
 ! Revision 1.3  2011/08/02 10:03:16  phseal
 ! Modified timer routines to return an integer rather than a logical for
 ! C compatibility purposes in later versions of this code.
@@ -27,7 +32,7 @@
 program hs_alkane
 
   !TODO - replace with minimal usage
-  use constants, only : dp,ep,Pi
+  use constants, only : dp,ep,it,Pi
   use timer
   use alkane
   use random
@@ -41,11 +46,11 @@ program hs_alkane
   ! Local variables                                        !
   !========================================================!
   ! Timing
-  integer :: t1,t2,rate
-  integer :: safe 
+  integer(kind=it) :: t1,t2,rate
+  integer(kind=it) :: safe 
 
   ! Loop counters / error flags
-  integer :: ibead,ichain,ierr,ibox
+  integer(kind=it) :: ibead,ichain,ierr,ibox
 
   ! Strings
   character(30) :: denfile
