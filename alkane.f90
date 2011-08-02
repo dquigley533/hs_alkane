@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.4 2011/07/29 19:28:30 phseal Exp $
+! $Id: alkane.f90,v 1.5 2011/08/02 10:04:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.5  2011/08/02 10:04:18  phseal
+! Added routines to manipulate inactive boxes from outside of the box and
+! alkane module. Updates overlap counting routines to return only the
+! total number of overlaps found rather than lists of overlapping atoms.
+!
 ! Revision 1.4  2011/07/29 19:28:30  phseal
 ! Added experimental routines to count and store the number of intra-chain
 ! and inter-chain bead-bead overlaps. For use on inactive lattices with
@@ -56,6 +61,24 @@ module alkane
   public :: alkane_update_linked_lists        ! Update linked-lists
   public :: alkane_check_chain_geometry       ! Check chain constraints
   public :: alkane_box_scale                  ! Scale box anisotropically
+
+  public :: alkane_get_external_overlaps      ! Count overlaps involving chain i
+  public :: alkane_get_internal_overlaps      ! Count overlaps within chain i
+
+  public :: alkane_get_dr_max,alkane_set_dr_max  ! Manipulate dr_max externally
+  public :: alkane_get_dt_max,alkane_set_dt_max  ! Manipulate dt_max externally
+  public :: alkane_get_dv_max,alkane_set_dv_max  ! Manipulate dv_max externally
+  public :: alkane_get_dh_max,alkane_set_dh_max  ! Manipulate dh_max externally
+  public :: alkane_get_ktrial,alkane_set_ktrial  ! Manipulate ktrial externally
+
+  public :: alkane_get_nchains                   ! Query number of chain per box
+  public :: alkane_get_nbeads                    ! Query number of beads per chain
+
+  public :: alkane_get_chain                     ! Query coordinates of a single chain
+  public :: alkane_set_chain                     ! Update coordinates of a single chain
+
+  public :: alkane_change_box                    ! Updates the matrix of cell vectors
+                                                 ! and scales chain C.O.M.s with it.
 
   !---------------------------------------------------------------------------!
   !                        P u b l i c   V a r i a b l e s                    !
@@ -1993,7 +2016,8 @@ contains
 
   end subroutine alkane_update_linked_lists
 
-  subroutine alkane_get_internal_overlaps(ichain,ibox,mxoverlap,noverlap,poverlap)
+  !subroutine alkane_get_internal_overlaps(ichain,ibox,mxoverlap,noverlap,poverlap)
+  subroutine alkane_get_internal_overlaps(ichain,ibox,noverlap)
     !-------------------------------------------------------------------------!
     ! Counts the number of internal intramolecular overlaps on a single chain !
     ! in a (presumably) inactive box/lattice. Useful for LSMC calculations.   !
@@ -2007,10 +2031,10 @@ contains
     implicit none
     integer,intent(in) :: ichain    ! Chain no. to check for internal overlaps
     integer,intent(in) :: ibox      ! Box in which this chain resides
-    integer,intent(in) :: mxoverlap ! Max. no. of overlaps
+    !integer,intent(in) :: mxoverlap ! Max. no. of overlaps
 
     integer,intent(out) :: noverlap ! number of intra-chain overlaps
-    integer,dimension(2,mxoverlap) :: poverlap ! list of overlapping pairs
+    !integer,dimension(2,mxoverlap) :: poverlap ! list of overlapping pairs
 
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
     integer :: ibead,jbead,iovlp
@@ -2031,8 +2055,8 @@ contains
 
        if (boltzf<tiny(1.0_dp)) then
           noverlap = noverlap + 1  ! count this as an overlap
-          poverlap(1,noverlap) = ibead    ! Store the outer atoms of this torsion angle 
-          poverlap(2,noverlap) = ibead+3  ! ..as being those which overlap.
+          !poverlap(1,noverlap) = ibead    ! Store the outer atoms of this torsion angle 
+          !poverlap(2,noverlap) = ibead+3  ! ..as being those which overlap.
        end if
 
     end do
@@ -2047,27 +2071,28 @@ contains
           !print*,sqrt(dot_product(r12,r12))
           if ( dot_product(r12,r12) < sigma*sigma ) then
              noverlap = noverlap + 1  ! count this as an overlap
-             poverlap(1,noverlap) = ibead  ! Store the two beads which overlap
-             poverlap(2,noverlap) = jbead  
+             !poverlap(1,noverlap) = ibead  ! Store the two beads which overlap
+             !poverlap(2,noverlap) = jbead  
           end if
        end do
     end do
 
-    if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_internal_overlaps'
+    !if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_internal_overlaps'
 
     ! Debug - plz comment out when happy
     write(0,*)
     write(0,'("Found ",I5," overlaps between beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
     write(0,*)
-    do iovlp = 1,noverlap
-       write(0,'("Bead ",I5," overlaps with bead ",I5)')poverlap(1,iovlp),poverlap(2,iovlp)
-    end do
+!!$    do iovlp = 1,noverlap
+!!$       write(0,'("Bead ",I5," overlaps with bead ",I5)')poverlap(1,iovlp),poverlap(2,iovlp)
+!!$    end do
 
     return
 
   end subroutine alkane_get_internal_overlaps
 
-  subroutine alkane_get_external_overlaps(ichain,ibox,mxoverlap,noverlap,loverlap)
+  !subroutine alkane_get_external_overlaps(ichain,ibox,mxoverlap,noverlap,loverlap)
+  subroutine alkane_get_external_overlaps(ichain,ibox,noverlap)
     !-------------------------------------------------------------------------!
     ! Counts the number of overlaps between ichain and all other chains, and  !
     ! returns a list of the chains which overlap with ichain. Note that       !
@@ -2082,10 +2107,10 @@ contains
     implicit none
     integer,intent(in) :: ichain    ! Chain no. to check for internal overlaps
     integer,intent(in) :: ibox      ! Box in which this chain resides
-    integer,intent(in) :: mxoverlap ! Max. no. of overlaps
+    !integer,intent(in) :: mxoverlap ! Max. no. of overlaps
 
     integer,intent(out) :: noverlap ! number of inter-chain overlaps
-    integer,dimension(2,mxoverlap) :: loverlap ! list of overlapping beads,chains
+    !integer,dimension(2,mxoverlap) :: loverlap ! list of overlapping beads,chains
 
 
     real(kind=dp),dimension(3) :: rbead
@@ -2184,8 +2209,8 @@ contains
                    if ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) ) then
                       ! ibead on ichain overlaps with jbead on jchain
                       noverlap = noverlap + 1
-                      loverlap(1,noverlap) = jbead   ! Store bead number
-                      loverlap(2,noverlap) = jchain  ! ..and chain number
+                      !loverlap(1,noverlap) = jbead   ! Store bead number
+                      !loverlap(2,noverlap) = jchain  ! ..and chain number
                    end if
 
                    tmpint  = linked_list(1,jbead,jchain,ibox)
@@ -2210,8 +2235,8 @@ contains
                       if (dot_product(rsep,rsep) < sigma_sq) then
                          ! ibead on ichain overlaps with jbead on jchain
                          noverlap = noverlap + 1
-                         loverlap(1,noverlap) = jbead   ! Store bead number
-                         loverlap(2,noverlap) = jchain  ! ..and chain number
+                         !loverlap(1,noverlap) = jbead   ! Store bead number
+                         !loverlap(2,noverlap) = jchain  ! ..and chain number
                       end if
                    end do
                 end do
@@ -2228,8 +2253,8 @@ contains
                       if (dot_product(rsep,rsep) < sigma_sq) then
                          ! ibead on ichain overlaps with jbead on jchain
                          noverlap = noverlap + 1
-                         loverlap(1,noverlap) = jbead   ! Store bead number
-                         loverlap(2,noverlap) = jchain  ! ..and chain number
+                         !loverlap(1,noverlap) = jbead   ! Store bead number
+                         !loverlap(2,noverlap) = jchain  ! ..and chain number
                       end if
                    end do
                 end do
@@ -2240,19 +2265,327 @@ contains
 
     end if
 
-    if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_external_overlaps'
+!!$    if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_external_overlaps'
 
     ! Debug - plz comment out when happy
     write(0,*)
     write(0,'("Found ",I5," overlaps involving beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
     write(0,*)
-    do iovlp = 1,noverlap
-       write(0,'("Bead ",I5," overlaps with bead ",I5," on chain ",I5)')ibead,loverlap(1,iovlp),loverlap(2,iovlp)
-    end do
+!!$    do iovlp = 1,noverlap
+!!$       write(0,'("Bead ",I5," overlaps with bead ",I5," on chain ",I5)')ibead,loverlap(1,iovlp),loverlap(2,iovlp)
+!!$    end do
 
     return
 
   end subroutine alkane_get_external_overlaps
+
+  subroutine alkane_get_dr_max(dum_dr)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the maximum molecule    !
+    ! displacement during a translation move.                                 !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(out) :: dum_dr
+
+    dum_dr = mc_dr_max
+
+    return
+
+  end subroutine alkane_get_dr_max
+
+  subroutine alkane_set_dr_max(dum_dr)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the maximum molecule    !
+    ! displacement during a translation move.                                 !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(in) :: dum_dr
+
+    mc_dr_max = dum_dr
+
+    return
+
+  end subroutine alkane_set_dr_max
+
+  subroutine alkane_get_dt_max(dum_dt)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the maximum molecule    !
+    ! rotation during a chain rotation move.                                  !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(out) :: dum_dt
+
+    dum_dt = mc_dt_max
+
+    return
+
+  end subroutine alkane_get_dt_max
+
+  subroutine alkane_set_dt_max(dum_dt)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the maximum molecule    !
+    ! rotation during a chain rotation move.                                  !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(in) :: dum_dt
+
+    mc_dt_max = dum_dt
+
+    return
+
+  end subroutine alkane_set_dt_max
+
+  subroutine alkane_get_dv_max(dum_dv)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the maximum volume      !
+    ! change or cell vector displacement during a box resize/reshape move.    !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(out) :: dum_dv
+
+    dum_dv = mc_dv_max
+
+    return
+
+  end subroutine alkane_get_dv_max
+
+  subroutine alkane_set_dv_max(dum_dv)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the maximum volume      !
+    ! change or cell vector displacement during a box resize/reshape move.    !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(in) :: dum_dv
+
+    mc_dv_max = dum_dv
+
+    return
+
+  end subroutine alkane_set_dv_max
+
+  subroutine alkane_get_dh_max(dum_dh)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the maximum change in   !
+    ! dihedral angle during a torsion move.                                   !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(out) :: dum_dh
+
+    dum_dh = mc_dh_max
+
+    return
+
+  end subroutine alkane_get_dh_max
+
+  subroutine alkane_set_dh_max(dum_dh)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the maximum change in   !
+    ! dihedral angle during a torsion move.                                   !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(in) :: dum_dh
+
+    mc_dh_max = dum_dh
+
+    return
+
+  end subroutine alkane_set_dh_max
+
+   subroutine alkane_get_ktrial(dum_kt)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the number of segment   !
+    ! re-growths during a configurational bias MC move.                       !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(out) :: dum_kt
+
+    dum_kt = ktrial
+
+    return
+
+  end subroutine alkane_get_ktrial
+
+  subroutine alkane_set_ktrial(dum_kt)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the number of segment   !
+    ! re-growths during a configurational bias MC move.                       !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(in) :: dum_kt
+
+    ktrial = dum_kt
+
+    return
+
+  end subroutine alkane_set_ktrial
+ 
+  subroutine alkane_get_nchains(dumchains)
+    !-------------------------------------------------------------------------!
+    ! Queries the number of chains per box in use by this module.             !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(out) :: dumchains
+
+    dumchains = nchains
+
+    return
+    
+  end subroutine alkane_get_nchains
+
+  subroutine alkane_get_nbeads(dumbeads)
+    !-------------------------------------------------------------------------!
+    ! Queries the number of beads per chain in use by this module.            !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(out) :: dumbeads
+
+    dumbeads = nbeads
+
+    return
+    
+  end subroutine alkane_get_nbeads
+
+  subroutine alkane_set_chain(ichain,ibox,r)
+    !-------------------------------------------------------------------------!
+    ! Overwrites the coordinates of a single chain in box ibox.               !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(in) :: ichain,ibox
+    real(kind=dp),dimension(1:3,1:nbeads),intent(in) :: r
+
+    Rchain(:,:,ichain,ibox) = r(:,:)
+
+    return
+
+  end subroutine alkane_set_chain
+
+  subroutine alkane_get_chain(ichain,ibox,r)
+    !-------------------------------------------------------------------------!
+    ! Returns the coordinates of a single chain in box ibox.                  !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(in) :: ichain,ibox
+    real(kind=dp),dimension(1:3,1:nbeads),intent(out) :: r
+
+    r(:,:) = Rchain(:,:,ichain,ibox) 
+
+    return
+
+  end subroutine alkane_get_chain
+
+  subroutine alkane_change_box(ibox,delta_H)
+    !-------------------------------------------------------------------------!
+    ! Implements a change in the matrix of cell vectors for box ibox, by      !
+    ! the matrix delta_H. The box is changed, the chain C.O.M. positions are  !
+    ! scaled accordinly, and the matrix of reciprocal lattice vectors is      !
+    ! updated for that box. For use in applying moves to an inactive box      !
+    ! in lattice-switching calculations.                                      !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    use constants,only : invPi
+    use box,      only : hmatrix,recip_matrix,box_construct_link_cells, &
+                         box_update_recipmatrix,box_compute_volume
+    use random,   only : random_uniform_random
+    implicit none
+
+    integer,intent(in) :: ibox
+    real(kind=dp),dimension(3,3),intent(in)     :: delta_H
+
+    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+    real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
+    real(kind=dp) :: old_volume,new_volume,delta_vol
+
+    integer :: ichain,ibead,jdim,idim
+
+
+    ! Change hmatrix by delta_H
+    old_hmatrix = hmatrix(:,:,ibox)
+    old_volume  = box_compute_volume(ibox)
+
+    new_hmatrix(:,:)  = old_hmatrix(:,:) + delta_H(:,:)
+    hmatrix(:,:,ibox) = new_hmatrix(:,:)
+
+    do ichain = 1,nchains
+
+       comchain(:) = 0.0_dp
+       do ibead = 1,nbeads
+          comchain(:) = comchain(:) + Rchain(:,ibead,ichain,ibox)
+       end do
+       comchain(:) = comchain(:)/real(nbeads,kind=dp)
+       oldcom(:)   = comchain(:)
+
+       ! Compute fractional com position using the current recip_matrix          
+       tmpcom(1) = recip_matrix(1,1,ibox)*oldcom(1) + &
+                   recip_matrix(2,1,ibox)*oldcom(2) + &
+                   recip_matrix(3,1,ibox)*oldcom(3)
+       tmpcom(2) = recip_matrix(1,2,ibox)*oldcom(1) + &
+                   recip_matrix(2,2,ibox)*oldcom(2) + &
+                   recip_matrix(3,2,ibox)*oldcom(3)  
+       tmpcom(3) = recip_matrix(1,3,ibox)*oldcom(1) + &
+                   recip_matrix(2,3,ibox)*oldcom(2) + &
+                   recip_matrix(3,3,ibox)*oldcom(3) 
+
+       tmpcom = tmpcom*0.5_dp*invPi 
+
+       ! Scale to the new cell
+       comchain(1) = hmatrix(1,1,ibox)*tmpcom(1) + &
+                     hmatrix(1,2,ibox)*tmpcom(2) + &
+                     hmatrix(1,3,ibox)*tmpcom(3)
+                                
+       comchain(2) = hmatrix(2,1,ibox)*tmpcom(1) + &
+                     hmatrix(2,2,ibox)*tmpcom(2) + &
+                     hmatrix(2,3,ibox)*tmpcom(3)
+                                
+       comchain(3) = hmatrix(3,1,ibox)*tmpcom(1) + &
+                     hmatrix(3,2,ibox)*tmpcom(2) + &
+                     hmatrix(3,3,ibox)*tmpcom(3)
+
+       tmpcom(:) = comchain(:) - oldcom(:)
+
+       do ibead = 1,nbeads
+          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox ) + tmpcom(:)
+       end do
+
+    end do
+
+    ! Book keeping
+    call box_update_recipmatrix(ibox)
+    call box_construct_link_cells(ibox,1.001_dp)
+    call alkane_construct_linked_lists(ibox)
+
+    return
+
+  end subroutine alkane_change_box
+
 
 
 end module alkane

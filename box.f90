@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.2 2011/07/29 15:58:29 phseal Exp $
+! $Id: box.f90,v 1.3 2011/08/02 10:04:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.3  2011/08/02 10:04:18  phseal
+! Added routines to manipulate inactive boxes from outside of the box and
+! alkane module. Updates overlap counting routines to return only the
+! total number of overlaps found rather than lists of overlapping atoms.
+!
 ! Revision 1.2  2011/07/29 15:58:29  phseal
 ! Added multiple simulation box support.
 !
@@ -39,6 +44,11 @@ module box
   public :: box_destroy_link_cells      ! Destroy link cell structure
   public :: box_update_recipmatrix      ! Compute reciprocal lattice
   public :: box_compute_volume          ! Compute volume
+
+  public :: box_get_cell, box_set_cell  ! Manipulate hmatrix externally
+
+  public :: box_cart_to_frac            ! Convert absolute coords to fractional
+  public :: box_frac_to_cart            ! Convert fractional coords to absolute
 
 
   !---------------------------------------------------------------------------!
@@ -398,10 +408,115 @@ contains
        end do
     end do
 
-
-
     return
 
   end subroutine box_construct_link_cells
+
+  subroutine box_get_cell(ibox,dumhmatrix)
+    !-------------------------------------------------------------------------!
+    ! Queries the current matrix of cell vectors for box ibox, and returns    !
+    ! via the dummy 3x3 matrix dumhmatrix.                                    !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(in) :: ibox
+    real(kind=dp),dimension(3,3),intent(out) :: dumhmatrix
+
+    if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
+
+    dumhmatrix = hmatrix(:,:,ibox)
+
+    return
+
+  end subroutine box_get_cell
+
+  subroutine box_set_cell(ibox,dumhmatrix)
+    !-------------------------------------------------------------------------!
+    ! Sets the current matrix of cell vectors for box ibox. WARNING, this     !
+    ! routine does not update the matrix of reciprocal lattice vectors, or    !
+    ! rescale the coordinates of any atoms/molecules within the box.          !
+    !                                                                         !
+    ! Please consider as primarily for debugging purposes.                    !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer,intent(in) :: ibox
+    real(kind=dp),dimension(3,3),intent(in) :: dumhmatrix
+
+    if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
+
+    hmatrix(:,:,ibox) = dumhmatrix
+
+    return
+
+  end subroutine box_set_cell
+
+  subroutine box_cart_to_frac(ibox,in_vector,out_vector)
+    !-------------------------------------------------------------------------!
+    ! Fox the specified box (ibox) convert in_vector in absolute cartesian    !
+    ! coords into internal box-scaled coords.                                 !
+    !                                                                         !
+    ! Requirements : recip_matrix must be valid and current for ibox          !
+    !                use box_update_recip_matrix(ibox) if not.                !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    use constants, only : invPi
+    implicit none
+    integer,intent(in) :: ibox
+    real(kind=dp),dimension(3),intent(in)  :: in_vector
+    real(kind=dp),dimension(3),intent(out) :: out_vector
+
+    out_vector(1) = recip_matrix(1,1,ibox)*in_vector(1) + &
+                    recip_matrix(2,1,ibox)*in_vector(2) + &
+                    recip_matrix(3,1,ibox)*in_vector(3)
+    out_vector(2) = recip_matrix(1,2,ibox)*in_vector(1) + &
+                    recip_matrix(2,2,ibox)*in_vector(2) + &
+                    recip_matrix(3,2,ibox)*in_vector(3)  
+    out_vector(3) = recip_matrix(1,3,ibox)*in_vector(1) + &
+                    recip_matrix(2,3,ibox)*in_vector(2) + &
+                    recip_matrix(3,3,ibox)*in_vector(3) 
+
+    out_vector(1) = out_vector(1)*0.5_dp*invPi 
+    out_vector(2) = out_vector(2)*0.5_dp*invPi
+    out_vector(3) = out_vector(3)*0.5_dp*invPi 
+
+    return
+
+  end subroutine box_cart_to_frac
+
+  subroutine box_frac_to_cart(ibox,in_vector,out_vector)
+    !-------------------------------------------------------------------------!
+    ! Fox the specified box (ibox) convert in_vector in box-scaled coords     !
+    ! into out_vector in absolute cartesian coords.                           !
+    !                                                                         !
+    ! Requirements : hmatrix must be valid and current for ibox               !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    use constants, only : invPi
+    implicit none
+    integer,intent(in) :: ibox
+    real(kind=dp),dimension(3),intent(in)  :: in_vector
+    real(kind=dp),dimension(3),intent(out) :: out_vector
+
+    out_vector(1) = hmatrix(1,1,ibox)*in_vector(1) + &
+                    hmatrix(1,2,ibox)*in_vector(2) + &
+                    hmatrix(1,3,ibox)*in_vector(3)
+                       
+    out_vector(2) = hmatrix(2,1,ibox)*in_vector(1) + &
+                    hmatrix(2,2,ibox)*in_vector(2) + &
+                    hmatrix(2,3,ibox)*in_vector(3)
+                       
+    out_vector(3) = hmatrix(3,1,ibox)*in_vector(1) + &
+                    hmatrix(3,2,ibox)*in_vector(2) + &
+                    hmatrix(3,3,ibox)*in_vector(3)
+
+    return
+
+  end subroutine box_frac_to_cart
+
 
 end module box
