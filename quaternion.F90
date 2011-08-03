@@ -3,21 +3,25 @@
 !                          Q U A T E R N I O N                                !
 !=============================================================================!
 !                                                                             !
-! $Id: quaternion.F90,v 1.1 2011/02/02 11:48:36 phseal Exp $
+! $Id: quaternion.F90,v 1.2 2011/08/03 20:00:06 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to compute, manipulate and apply quaternion rotations.             !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: quaternion.F90,v $
-! Revision 1.1  2011/02/02 11:48:36  phseal
-! Initial revision
+! Revision 1.2  2011/08/03 20:00:06  phseal
+! Added C wrappers for functions
+!
+! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
+! Initial import from prototype code.
 !
 !
 !=============================================================================!
 module quaternion
 
-  use constants, only : dp
+  use iso_c_binding
+  use constants, only : dp,it
   implicit none
 
   private                                       ! Everything is private ...
@@ -31,10 +35,14 @@ module quaternion
   public :: quat_inverse
   public :: quat_conjugate_q_with_v
 
+  public :: c_wrap_quat_product
+  public :: c_wrap_quat_inverse
+  public :: c_wrap_quat_conjugate_q_with_v
+
 
   contains
 
-    subroutine quat_get_minimum_arc_q(v1,v2,quat)
+    subroutine quat_get_minimum_arc_q(v1,v2,quat) bind(c,name='quat_get_minimum_arc')
       !-------------------------------------------------------------------------!
       ! Returns the normalised quaternion required to rotate v1 onto v2         !
       !-------------------------------------------------------------------------!
@@ -58,7 +66,7 @@ module quaternion
 
     end subroutine quat_get_minimum_arc_q
 
-    subroutine quat_axis_angle_to_quat(axis,angle,quat)
+    subroutine quat_axis_angle_to_quat(axis,angle,quat) bind(c,name='quat_axis_angle_to_quat')
       !-------------------------------------------------------------------------!
       ! Returns the normalised quaternion which represents rotation by angle    !
       ! about UNIT vector axis. Angle must be in radians.                       !
@@ -88,7 +96,35 @@ module quaternion
 
     end subroutine quat_axis_angle_to_quat
 
-    function quat_product(a,b,normalise)
+    subroutine c_wrap_quat_product(a,b,c,normalise) bind(c,name='quat_product')
+      !-------------------------------------------------------------------------!
+      ! Subroutine wrapper to quat_product, for use from C when compiled as a   !
+      ! library. Normalise must be 1 or zero.                                   !
+      !-------------------------------------------------------------------------!
+      ! D.Quigley August 2011                                                   !
+      !-------------------------------------------------------------------------!
+      implicit none
+      real(kind=dp),dimension(4),intent(in)  :: a,b
+      real(kind=dp),dimension(4),intent(out) :: c
+      integer(kind=it),intent(in) :: normalise
+      logical :: dumnorm
+
+      if (normalise==1) then 
+         dumnorm = .true.
+      elseif (normalise==0) then
+         dumnorm = .false.
+      else
+         stop 'Error in c_wrap_quat_product, normalise must be 1 or 0'
+      end if
+      
+      c = quat_product(a,b,dumnorm)
+      
+      return
+
+    end subroutine c_wrap_quat_product
+
+
+    function quat_product(a,b,normalise) 
       !-------------------------------------------------------------------------!
       ! Returns the quaternion product ab i.e. the quaternion representation of !
       ! the rotation b followed by a.                                           !
@@ -116,7 +152,25 @@ module quaternion
       
     end function quat_product
 
-    function quat_inverse(a)
+
+   subroutine c_wrap_quat_inverse(a,b) bind(c,name='quat_inverse')
+      !-------------------------------------------------------------------------!
+      ! Subroutine wrapper to quat_inverse, for use from C when compiled as a   !
+      ! library.                                                                !
+      !-------------------------------------------------------------------------!
+      ! D.Quigley August 2011                                                   !
+      !-------------------------------------------------------------------------!
+      implicit none
+      real(kind=dp),dimension(4),intent(in)  :: a
+      real(kind=dp),dimension(4),intent(out) :: b
+      
+      b = quat_inverse(a)
+      
+      return
+
+    end subroutine c_wrap_quat_inverse
+
+    function quat_inverse(a) 
       !-------------------------------------------------------------------------!
       ! Returns the inverse quaternion to a. Assumes a is normalised            !
       !-------------------------------------------------------------------------!
@@ -139,7 +193,25 @@ module quaternion
       
     end function quat_inverse
 
-    function quat_conjugate_q_with_v(a,v)
+   subroutine c_wrap_quat_conjugate_q_with_v(a,v,b) bind(c,name='quat_conjugate_q_with_v')
+      !-------------------------------------------------------------------------!
+      ! Subroutine wrapper to quat_inverse, for use from C when compiled as a   !
+      ! library.                                                                !
+      !-------------------------------------------------------------------------!
+      ! D.Quigley August 2011                                                   !
+      !-------------------------------------------------------------------------!
+      implicit none
+      real(kind=dp),dimension(4),intent(in)  :: a
+      real(kind=dp),dimension(3),intent(in)  :: v
+      real(kind=dp),dimension(3),intent(out) :: b
+      
+      b = quat_conjugate_q_with_v(a,v) 
+      
+      return
+
+    end subroutine c_wrap_quat_conjugate_q_with_v
+
+    function quat_conjugate_q_with_v(a,v) 
       !-------------------------------------------------------------------------!
       ! Conjugates the quaternion a with the vector v, i.e. performs the        !
       ! rotation represented by the quaternion, which is assumed to be          !
@@ -170,7 +242,7 @@ module quaternion
                    
     end function quat_conjugate_q_with_v
 
-    function cross_product(a,b)
+    function cross_product(a,b) 
       !-------------------------------------------------------------------------!
       ! Does exactly what is says on the tin.                                   !
       !-------------------------------------------------------------------------!
