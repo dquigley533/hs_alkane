@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.6 2011/08/18 17:20:26 phrkao Exp $
+! $Id: mc.f90,v 1.7 2011/08/18 17:27:00 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.7  2011/08/18 17:27:00  phrkao
+! randomly had to add in i's back onto ichain and ibox
+!
 ! Revision 1.6  2011/08/18 17:20:26  phrkao
 ! alkane.f90 has been updated to return quaternion and bond,angle information
 ! for use with lattice_switching code, bond_rotate and rotate_chain were changed.
@@ -274,7 +277,7 @@ contains
           ! Rotate a randomly selected torsion angle along the chain
           ! TODO - this will fail for model III with continuous
           ! torsion potentials.
-          call alkane_bond_rotate(chain,box,new_boltz,dummy_int,dummy_dp)
+          call alkane_bond_rotate(ichain,ibox,new_boltz,dummy_int,dummy_dp)
 
           ! Accept or reject move.
           xi = random_uniform_random()
@@ -344,7 +347,7 @@ contains
 
           ! Rotate by a random angle about a random axis
           ! new_boltz holds the new Boltzmann factor
-          call alkane_rotate_chain(chain,box,new_boltz,dummy_quat)
+          call alkane_rotate_chain(ichain,ibox,new_boltz,dummy_quat)
 
           ! Accept or reject.
           xi = random_uniform_random()

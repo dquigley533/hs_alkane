@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.9 2011/08/18 17:20:26 phrkao Exp $
+! $Id: alkane.f90,v 1.10 2011/08/18 17:27:00 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.10  2011/08/18 17:27:00  phrkao
+! randomly had to add in i's back onto ichain and ibox
+!
 ! Revision 1.9  2011/08/18 17:20:26  phrkao
 ! alkane.f90 has been updated to return quaternion and bond,angle information
 ! for use with lattice_switching code, bond_rotate and rotate_chain were changed.
@@ -608,7 +611,7 @@ contains
   end subroutine alkane_box_scale
 
 
-  subroutine alkane_bond_rotate(chain,box,new_boltz,ia,angle) bind(c)
+  subroutine alkane_bond_rotate(ichain,ibox,new_boltz,ia,angle) bind(c)
     !-------------------------------------------------------------------------!
     ! Selects a random dihedral angle on the selected chain and alters it by  !
     ! a random angle. The Boltzmann factor after the move is returned as      !
