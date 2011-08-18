@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.8 2011/08/02 12:56:47 phseal Exp $
+! $Id: alkane.f90,v 1.9 2011/08/18 17:20:26 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.9  2011/08/18 17:20:26  phrkao
+! alkane.f90 has been updated to return quaternion and bond,angle information
+! for use with lattice_switching code, bond_rotate and rotate_chain were changed.
+! Dummy variables added to mc.f90 to account for this
+!
 ! Revision 1.8  2011/08/02 12:56:47  phseal
 ! Added C bindings to all procedures which should be callable externally
 ! when compiled as a library.
@@ -264,7 +269,7 @@ contains
 
   end subroutine alkane_translate_chain
 
-  subroutine alkane_rotate_chain(ichain,ibox,new_boltz) bind(c)
+  subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is rotated     !
     ! about its centre of mass. The new Boltzmann factor after the trial move !
@@ -275,11 +280,11 @@ contains
     use random, only     : random_uniform_random
     use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
     implicit none
-    integer(kind=it),intent(in) :: ichain,ibox
-    real(kind=dp),intent(out)   :: new_boltz
-    real(kind=dp),dimension(3)  :: axis,rcom
-    real(kind=dp),dimension(4)  :: quat
-    real(kind=dp)               :: theta
+    integer(kind=it),intent(in) 	    :: ichain,ibox
+    real(kind=dp),intent(out)  		    :: new_boltz
+    real(kind=dp),dimension(3)  	    :: axis,rcom
+    real(kind=dp),dimension(4),intent(out)  :: quat
+    real(kind=dp)               	    :: theta
 
     integer(kind=it) :: ibead
 
@@ -603,7 +608,7 @@ contains
   end subroutine alkane_box_scale
 
 
-  subroutine alkane_bond_rotate(ichain,ibox,new_boltz) bind(c)
+  subroutine alkane_bond_rotate(chain,box,new_boltz,ia,angle) bind(c)
     !-------------------------------------------------------------------------!
     ! Selects a random dihedral angle on the selected chain and alters it by  !
     ! a random angle. The Boltzmann factor after the move is returned as      !
@@ -622,9 +627,11 @@ contains
     real(kind=dp),dimension(3)  :: axis,r12,r23,r34
     real(kind=dp),dimension(4)  :: quat
 
-    real(kind=dp) :: angle,xi
+    real(kind=dp),intent(out) :: angle
+    real(kind=dp) 	      :: xi
 
-    integer(kind=it) :: ibead,ia
+    integer(kind=it) 		 :: ibead
+    integer(kind=it),intent(out) ::ia
 
     if (nbeads<4) stop 'Called alkane_bond_rotate with nbeads < 4'
 
@@ -2090,9 +2097,9 @@ contains
     !if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_internal_overlaps'
 
     ! Debug - plz comment out when happy
-    write(0,*)
-    write(0,'("Found ",I5," overlaps between beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
-    write(0,*)
+   ! write(0,*)
+    !write(0,'("Found ",I5," overlaps between beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
+    !write(0,*)
 !!$    do iovlp = 1,noverlap
 !!$       write(0,'("Bead ",I5," overlaps with bead ",I5)')poverlap(1,iovlp),poverlap(2,iovlp)
 !!$    end do
@@ -2278,9 +2285,9 @@ contains
 !!$    if (noverlap> mxoverlap) stop 'Error mxoverlap exceeded in alkane_get_external_overlaps'
 
     ! Debug - plz comment out when happy
-    write(0,*)
-    write(0,'("Found ",I5," overlaps involving beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
-    write(0,*)
+  !  write(0,*)
+   ! write(0,'("Found ",I5," overlaps involving beads on chain ",I5," in box ",I5)')noverlap,ichain,ibox
+    !write(0,*)
 !!$    do iovlp = 1,noverlap
 !!$       write(0,'("Bead ",I5," overlaps with bead ",I5," on chain ",I5)')ibead,loverlap(1,iovlp),loverlap(2,iovlp)
 !!$    end do

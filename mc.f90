@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
+! $Id: mc.f90,v 1.6 2011/08/18 17:20:26 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.6  2011/08/18 17:20:26  phrkao
+! alkane.f90 has been updated to return quaternion and bond,angle information
+! for use with lattice_switching code, bond_rotate and rotate_chain were changed.
+! Dummy variables added to mc.f90 to account for this
+!
 ! Revision 1.5  2011/08/02 12:56:47  phseal
 ! Added C bindings to all procedures which should be callable externally
 ! when compiled as a library.
@@ -109,17 +114,20 @@ contains
     
     implicit none
 
-    real(kind=dp) :: xi                    ! Random number on 0-1.
-    real(kind=dp) :: acc_prob              ! Acceptance probability
-    real(kind=dp) :: old_rb_factor         ! Old Rosenbluth factor
-    real(kind=dp) :: new_rb_factor         ! New Rosenbluth factor
-    real(kind=dp) :: new_boltz             ! New Boltmann factor
-    real(kind=dp) :: acrat                 ! Acceptance ratio
+    real(kind=dp) :: xi                  	   ! Random number on 0-1.
+    real(kind=dp) :: acc_prob            	   ! Acceptance probability
+    real(kind=dp) :: old_rb_factor       	   ! Old Rosenbluth factor
+    real(kind=dp) :: new_rb_factor       	   ! New Rosenbluth factor
+    real(kind=dp) :: new_boltz          	   ! New Boltmann factor
+    real(kind=dp) :: acrat              	   ! Acceptance ratio
+    real(kind=dp) :: dummy_dp			   ! Dummy variable
+    
+    real(kind=dp),dimension(4) :: dummy_quat  	   ! Dummy quarternion 
 
-    logical :: overlap,violated            ! Checks on overlaps and geometry
+    logical :: overlap,violated           	   ! Checks on overlaps and geometry
 
     ! Loop counters
-    integer(kind=it) :: ipass,ichain,ibead,k,ibox
+    integer(kind=it) :: ipass,ichain,ibead,k,ibox,dummy_int
 
     !-------------------------------------!
     ! nchains trial moves per cycle       !
@@ -266,7 +274,7 @@ contains
           ! Rotate a randomly selected torsion angle along the chain
           ! TODO - this will fail for model III with continuous
           ! torsion potentials.
-          call alkane_bond_rotate(ichain,ibox,new_boltz)
+          call alkane_bond_rotate(chain,box,new_boltz,dummy_int,dummy_dp)
 
           ! Accept or reject move.
           xi = random_uniform_random()
@@ -336,7 +344,7 @@ contains
 
           ! Rotate by a random angle about a random axis
           ! new_boltz holds the new Boltzmann factor
-          call alkane_rotate_chain(ichain,ibox,new_boltz)
+          call alkane_rotate_chain(chain,box,new_boltz,dummy_quat)
 
           ! Accept or reject.
           xi = random_uniform_random()
