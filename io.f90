@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.5 2011/08/02 13:16:32 phseal Exp $
+! $Id: io.f90,v 1.6 2011/08/26 15:03:30 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.6  2011/08/26 15:03:30  phrkao
+! Corrected omission of chain_created = true after xmol read
+!
 ! Revision 1.5  2011/08/02 13:16:32  phseal
 ! Added default input file name for operating in library mode
 !
@@ -182,7 +185,7 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2011                                                  !
     !-------------------------------------------------------------------------!
-    use alkane, only : Rchain,nchains,nbeads
+    use alkane, only : Rchain,nchains,nbeads,chain_created
     use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes
     implicit none
 
@@ -218,6 +221,7 @@ contains
           do ibead = 1,nbeads
              read(25,*)dumchar,Rchain(:,ibead,ichain,ibox)
           end do
+          chain_created(ichain,ibox) = .true.
        end do
        
        close(25)
