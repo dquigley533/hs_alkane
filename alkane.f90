@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.12 2011/08/30 10:49:24 phseal Exp $
+! $Id: alkane.f90,v 1.13 2011/08/30 12:39:03 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.13  2011/08/30 12:39:03  phseal
+! Caught case where RNG returned 1.00000 in alkane_grow_chain
+!
 ! Revision 1.12  2011/08/30 10:49:24  phseal
 ! Added routines to manipulate max_regrow from C
 !
@@ -836,6 +839,7 @@ contains
        first_bead = 1  ! grow whole chain from scratch
     elseif (new_conf==0) then
        first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
+       if (first_bead>max_regrow) first_bead = max_regrow
        first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
     end if
 
