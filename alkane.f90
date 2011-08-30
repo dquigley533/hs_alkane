@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.11 2011/08/30 10:45:53 phseal Exp $
+! $Id: alkane.f90,v 1.12 2011/08/30 10:49:24 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.12  2011/08/30 10:49:24  phseal
+! Added routines to manipulate max_regrow from C
+!
 ! Revision 1.11  2011/08/30 10:45:53  phseal
 ! Fixed various issues with number of beads regrown in cbmc
 !
@@ -94,6 +97,7 @@ module alkane
   public :: alkane_get_dv_max,alkane_set_dv_max  ! Manipulate dv_max externally
   public :: alkane_get_dh_max,alkane_set_dh_max  ! Manipulate dh_max externally
   public :: alkane_get_ktrial,alkane_set_ktrial  ! Manipulate ktrial externally
+  public :: alkane_get_max_regrow,alkane_set_max_regrow
 
   public :: alkane_get_nchains                   ! Query number of chain per box
   public :: alkane_get_nbeads                    ! Query number of beads per chain
@@ -2477,9 +2481,9 @@ contains
 
     return
 
-  end subroutine alkane_get_ktrial
+  end subroutine alkane_get_max_regrow
 
-  subroutine alkane_set_ktrial(dum_max_regrow) bind(c)
+  subroutine alkane_set_max_regrow(dum_max_regrow) bind(c)
     !-------------------------------------------------------------------------!
     ! Sets module level internal variable controlling the number of segment   !
     ! beads to regrow during a CBMC move                                      !
@@ -2493,7 +2497,7 @@ contains
 
     return
 
-  end subroutine alkane_set_ktrial
+  end subroutine alkane_set_max_regrow
  
   subroutine alkane_get_nchains(dumchains) bind(c)
     !-------------------------------------------------------------------------!
