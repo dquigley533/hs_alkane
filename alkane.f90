@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.10 2011/08/18 17:27:00 phrkao Exp $
+! $Id: alkane.f90,v 1.11 2011/08/30 10:45:53 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.11  2011/08/30 10:45:53  phseal
+! Fixed various issues with number of beads regrown in cbmc
+!
 ! Revision 1.10  2011/08/18 17:27:00  phrkao
 ! randomly had to add in i's back onto ichain and ibox
 !
@@ -828,7 +831,8 @@ contains
     if ( .not.chain_created(ichain,ibox) ) then
        first_bead = 1  ! grow whole chain from scratch
     elseif (new_conf==0) then
-       first_bead = int(random_uniform_random()*real(nbeads-max_regrow,kind=dp)) + 1 + max_regrow
+       first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
+       first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
     end if
 
     allocate(wset(first_bead:nbeads),stat=ierr)
@@ -2454,6 +2458,38 @@ contains
     integer(kind=it),intent(in) :: dum_kt
 
     ktrial = dum_kt
+
+    return
+
+  end subroutine alkane_set_ktrial
+
+   subroutine alkane_get_max_regrow(dum_max_regrow) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the number of segment   !
+    ! beads to regrow during a CBMC move                                      !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),intent(out) :: dum_max_regrow
+
+    dum_max_regrow = max_regrow
+
+    return
+
+  end subroutine alkane_get_ktrial
+
+  subroutine alkane_set_ktrial(dum_max_regrow) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the number of segment   !
+    ! beads to regrow during a CBMC move                                      !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),intent(in) :: dum_max_regrow
+
+    max_regrow = dum_max_regrow
 
     return
 
