@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.13 2011/08/30 12:39:03 phseal Exp $
+! $Id: alkane.f90,v 1.14 2011/08/30 16:00:15 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.14  2011/08/30 16:00:15  phseal
+! Trapped mostly harmless computation of NaN for segment selection probability
+!
 ! Revision 1.13  2011/08/30 12:39:03  phseal
 ! Caught case where RNG returned 1.00000 in alkane_grow_chain
 !
@@ -895,9 +898,11 @@ contains
           !stop
 
           rb_factor = rb_factor*real(wsum,kind=ep)
-          call select_next_segment(n,ifail)         
-          if (ifail/=0) return ! Rosenbluth factor is zero
-          if (new_conf==1) Rchain(:,2,ichain,ibox) = rtrial(:,n)
+          if (new_conf==1) then
+             call select_next_segment(n,ifail)         
+             if (ifail/=0) return ! Rosenbluth factor is zero
+             Rchain(:,2,ichain,ibox) = rtrial(:,n)
+          end if
 
           !write(0,'(I5,3F15.6)')ib,Rchain(:,ib,ichain)
 
@@ -933,10 +938,12 @@ contains
           end do
 
           rb_factor = rb_factor*real(wsum,kind=ep)
-          call select_next_segment(n,ifail)         
-          if (ifail/=0) return ! Rosenbluth factor is zero
-          if (new_conf==1) Rchain(:,3,ichain,ibox) = rtrial(:,n)
-
+          if (new_conf==1) then
+             call select_next_segment(n,ifail)         
+             if (ifail/=0) return ! Rosenbluth factor is zero
+             Rchain(:,3,ichain,ibox) = rtrial(:,n)
+          end if
+          
        else
 
           !======================================================!
@@ -986,9 +993,11 @@ contains
           end do
 
           rb_factor = rb_factor*real(wsum,kind=ep)
-          call select_next_segment(n,ifail)         
-          if (ifail/=0) return ! Rosenbluth factor is zero
-          if (new_conf==1) Rchain(:,ib,ichain,ibox) = rtrial(:,n)
+          if (new_conf==1) then
+             call select_next_segment(n,ifail)         
+             if (ifail/=0) return ! Rosenbluth factor is zero
+             Rchain(:,ib,ichain,ibox) = rtrial(:,n)
+          end if
 
        end if
 
@@ -1019,6 +1028,14 @@ contains
 
       sump = 0.0_dp
       zeta = random_uniform_random()
+
+      ! Trap divide by zero in case where none of the trial segments 
+      ! have a non-zero weight
+      if ( wsum < tiny(1.0_dp) ) then
+         ifail = 1
+         return
+      end if
+
       rws  = 1.0_dp/wsum
 
       if ( zeta < 0.0_dp ) stop 'under'
@@ -1034,8 +1051,10 @@ contains
          end if
       end do
 
-      if (nout==-1) ifail = 1
-
+      if (nout==-1) then
+         ifail = 1
+         write(0,'("Warning in alkane.f90 - failed to select a regrowth segment!")')
+      end if
 
       return
 
