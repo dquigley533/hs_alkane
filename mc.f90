@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.7 2011/08/18 17:27:00 phrkao Exp $
+! $Id: mc.f90,v 1.8 2011/08/30 16:26:20 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.8  2011/08/30 16:26:20  phseal
+! Added ifail argument to alkane_grow_chain to indicate if at any step non
+! of the ktrial segments had a viable weight and hence CBMC move should
+! have zero probability of acceptance.
+!
 ! Revision 1.7  2011/08/18 17:27:00  phrkao
 ! randomly had to add in i's back onto ichain and ibox
 !
@@ -130,7 +135,7 @@ contains
     logical :: overlap,violated           	   ! Checks on overlaps and geometry
 
     ! Loop counters
-    integer(kind=it) :: ipass,ichain,ibead,k,ibox,dummy_int
+    integer(kind=it) :: ipass,ichain,ibead,k,ibox,dummy_int,ifail
 
     !-------------------------------------!
     ! nchains trial moves per cycle       !
@@ -213,11 +218,11 @@ contains
 
           ! Compute the Rosenbluth factor of the old chain
           ! i.e. call grow_chain with regrow = .false.
-          call alkane_grow_chain(ichain,ibox,old_rb_factor,0)
+          call alkane_grow_chain(ichain,ibox,old_rb_factor,0,ifail)
 
           ! Compute the Rosenbluth factor of the new chain
           ! i.e. call grow_chain with regrow = .true.
-          call alkane_grow_chain(ichain,ibox,new_rb_factor,1)
+          call alkane_grow_chain(ichain,ibox,new_rb_factor,1,ifail)
 
           ! Generate a random number and accept of reject the move
           xi = random_uniform_random()
@@ -485,9 +490,9 @@ contains
     implicit none
     logical,optional,intent(in) :: grow_new_chains
 
-    logical :: overlap,violated           ! Checks on overlaps and geometry
-    integer(kind=it) :: ichain,nccopy,ibox         ! Loop counters etc
-    real(kind=dp) :: rb_factor            ! Rosenbluth factor for chain growth
+    logical :: overlap,violated                  ! Checks on overlaps and geometry
+    integer(kind=it) :: ichain,nccopy,ibox,ifail ! Loop counters etc
+    real(kind=dp) :: rb_factor                   ! Rosenbluth factor for chain growth
 
     ! Loop over simulation boxes
     do ibox = 1,nboxes
@@ -504,7 +509,7 @@ contains
           do ichain = 1,nccopy
              nchains = ichain ! only check overlap for j < i
              do
-                call alkane_grow_chain(ichain,ibox,rb_factor,1)
+                call alkane_grow_chain(ichain,ibox,rb_factor,1,ifail)
                 if (rb_factor>tiny(1.0_ep)) exit
              end do
              write(*,'("! ...",I5)')ichain

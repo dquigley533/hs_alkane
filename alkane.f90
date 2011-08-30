@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.14 2011/08/30 16:00:15 phseal Exp $
+! $Id: alkane.f90,v 1.15 2011/08/30 16:26:19 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.15  2011/08/30 16:26:19  phseal
+! Added ifail argument to alkane_grow_chain to indicate if at any step non
+! of the ktrial segments had a viable weight and hence CBMC move should
+! have zero probability of acceptance.
+!
 ! Revision 1.14  2011/08/30 16:00:15  phseal
 ! Trapped mostly harmless computation of NaN for segment selection probability
 !
@@ -788,7 +793,7 @@ contains
 
   end function alkane_dihedral_boltz
 
-  subroutine alkane_grow_chain(ichain,ibox,rb_factor,new_conf) bind(c)
+  subroutine alkane_grow_chain(ichain,ibox,rb_factor,new_conf,ifail) bind(c)
     !-------------------------------------------------------------------------!
     ! (Re)grows chain ichain. Call with ichain,rb_factor,.true. for each      !
     ! chain after calling alkane_init. Subsequently is used in CBMC moves.    !
@@ -807,9 +812,10 @@ contains
                            quat_axis_angle_to_quat
     implicit none
 
-    integer(kind=it),intent(in) :: ichain,ibox   ! chain number to grow/regrow
-    real(kind=ep),intent(out)   :: rb_factor     ! Rosenbluth factor for chain 
-    integer(kind=it),intent(in) :: new_conf      ! old or new configuration?
+    integer(kind=it),intent(in)  :: ichain,ibox   ! chain number to grow/regrow
+    real(kind=ep),intent(out)    :: rb_factor     ! Rosenbluth factor for chain 
+    integer(kind=it),intent(in)  :: new_conf      ! old or new configuration?
+    integer(kind=it),intent(out) :: ifail 
 
     ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
@@ -822,7 +828,7 @@ contains
     real(kind=dp),allocatable,dimension(:)   :: wset
 
     ! Loop counters / error flags
-    integer(kind=it) :: ierr,n,j,ib,jl,ifail
+    integer(kind=it) :: ierr,n,j,ib,jl
 
     ! Rosenbluth variables
     real(kind=dp) :: wsum
