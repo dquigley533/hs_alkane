@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.16 2011/09/01 16:55:13 phrkao Exp $
+! $Id: alkane.f90,v 1.17 2011/09/01 16:58:29 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,10 +14,8 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
-! Revision 1.16  2011/09/01 16:55:13  phrkao
-! Changed alkane_check_chain_geometry to be C compatible, had to change
-! the argument "violate" from logical to integer and subsequently changed
-! mc.f90 where this was used.
+! Revision 1.17  2011/09/01 16:58:29  phrkao
+! *** empty log message ***
 !
 ! Revision 1.15  2011/08/30 16:26:19  phseal
 ! Added ifail argument to alkane_grow_chain to indicate if at any step non
@@ -1590,7 +1588,7 @@ contains
 
   end subroutine alkane_check_chain_overlap
 
-  subroutine alkane_check_chain_geometry(chain,box,violated) bind(c) 
+  subroutine alkane_check_chain_geometry(ichain,ibox,violated) bind(c)
     !-------------------------------------------------------------------------!
     ! Sanity test for debugging. Checks bond lengths within a chain           !
     ! violated = 0 for no problems					      !
@@ -1703,7 +1701,7 @@ contains
        write(0,'("Other chains may be affected")')
        return
     else
-	violated == 0   
+	violated = 0   
     end if
    
     
