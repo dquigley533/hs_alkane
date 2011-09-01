@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.8 2011/08/30 16:26:20 phseal Exp $
+! $Id: mc.f90,v 1.9 2011/09/01 16:55:13 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.9  2011/09/01 16:55:13  phrkao
+! Changed alkane_check_chain_geometry to be C compatible, had to change
+! the argument "violate" from logical to integer and subsequently changed
+! mc.f90 where this was used.
+!
 ! Revision 1.8  2011/08/30 16:26:20  phseal
 ! Added ifail argument to alkane_grow_chain to indicate if at any step non
 ! of the ktrial segments had a viable weight and hence CBMC move should
@@ -132,7 +137,8 @@ contains
     
     real(kind=dp),dimension(4) :: dummy_quat  	   ! Dummy quarternion 
 
-    logical :: overlap,violated           	   ! Checks on overlaps and geometry
+    logical :: overlap				   ! Check on overlaps
+    integer(kind=it) :: violated           	   ! Check on geometry
 
     ! Loop counters
     integer(kind=it) :: ipass,ichain,ibead,k,ibox,dummy_int,ifail
@@ -379,7 +385,7 @@ contains
 
        ! Check the chain geometry
        call alkane_check_chain_geometry(ichain,ibox,violated)
-       if (violated) then
+       if (violated == 1) then
           write(0,'("Last move was of type : ",A11)')name(last_move)
           stop
        end if
@@ -490,7 +496,8 @@ contains
     implicit none
     logical,optional,intent(in) :: grow_new_chains
 
-    logical :: overlap,violated                  ! Checks on overlaps and geometry
+    logical :: overlap                  	 ! Check on overlaps 
+    integer(kind=it) :: violated		 ! Check on geometry
     integer(kind=it) :: ichain,nccopy,ibox,ifail ! Loop counters etc
     real(kind=dp) :: rb_factor                   ! Rosenbluth factor for chain growth
 
@@ -532,7 +539,7 @@ contains
        do ichain = 1,nchains
           call alkane_check_chain_geometry(ichain,ibox,violated)
        end do
-       if (violated) stop
+       if (violated == 1) stop
 
     end do
 

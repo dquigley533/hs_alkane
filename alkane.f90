@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.15 2011/08/30 16:26:19 phseal Exp $
+! $Id: alkane.f90,v 1.16 2011/09/01 16:55:13 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.16  2011/09/01 16:55:13  phrkao
+! Changed alkane_check_chain_geometry to be C compatible, had to change
+! the argument "violate" from logical to integer and subsequently changed
+! mc.f90 where this was used.
+!
 ! Revision 1.15  2011/08/30 16:26:19  phseal
 ! Added ifail argument to alkane_grow_chain to indicate if at any step non
 ! of the ktrial segments had a viable weight and hence CBMC move should
@@ -817,7 +822,7 @@ contains
     integer(kind=it),intent(in)  :: new_conf      ! old or new configuration?
     integer(kind=it),intent(out) :: ifail 
 
-    ! Dihedral / angle calculation
+   ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
     real(kind=dp),dimension(4) :: quat
     real(kind=dp)              :: dih,theta
@@ -846,10 +851,14 @@ contains
     ! Set bead from which to (re)grow
     if ( .not.chain_created(ichain,ibox) ) then
        first_bead = 1  ! grow whole chain from scratch
+      ! write(0,'("alkane : Creating new chain from first bead")')
     elseif (new_conf==0) then
        first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
        if (first_bead>max_regrow) first_bead = max_regrow
        first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
+       !write(0,'("alkane : Regrowing an old chain from bead", I5)')first_bead
+    elseif (new_conf==1) then
+       !write(0,'("alkane : Growing   an new chain from bead", I5)')first_bead
     end if
 
     allocate(wset(first_bead:nbeads),stat=ierr)
@@ -866,17 +875,21 @@ contains
        do ib = first_bead,nbeads
           wset(ib) = alkane_nonbonded_boltz(ib,ichain,ibox,Rchain(:,ib,ichain,ibox))
        end do
+       !write(0,'("alkane : Computing Rosenbluth factor for old configuration")')
     end if
 
     ! Loop over beads
     rb_factor = 1_ep       
     do ib = first_bead,nbeads
 
+       !write(0,'("alkane : Loop at bead number ", I5)')ib
+
        !======================================================!
        ! First bead                                           !
        !======================================================!
        if ( ib==1 ) then
 
+          !write(0,'("alkane : At first bead")')
           if (new_conf==1) then
              Rchain(1,1,ichain,ibox) = random_uniform_random()
              Rchain(2,1,ichain,ibox) = random_uniform_random()
@@ -886,12 +899,14 @@ contains
 
           rb_factor = real(alkane_nonbonded_boltz(1,ichain,ibox,Rchain(:,1,ichain,ibox)),kind=ep)
 
-          !write(0,'(I5,3F15.6)')ib,Rchain(:,ib,ichain)
+          !write(0,'(I5,3F15.6)')ib,Rchain(:,ib,ichain,ibox)
 
        !======================================================!
        ! Second bead                                          !
        !======================================================!
        elseif ( ib==2 ) then
+
+          !write(0,'("alkane : At second bead")')
 
           wsum = wset(ib)
           do j = jl,ktrial
@@ -900,6 +915,7 @@ contains
              wtrial(j)   = alkane_nonbonded_boltz(2,ichain,ibox,rtrial(:,j))
              !print*,wtrial(j)
              wsum = wsum + wtrial(j) 
+             !write(0,'(I5,3F15.6)')ib,rtrial(:,j)
           end do
           !stop
 
@@ -910,12 +926,14 @@ contains
              Rchain(:,2,ichain,ibox) = rtrial(:,n)
           end if
 
-          !write(0,'(I5,3F15.6)')ib,Rchain(:,ib,ichain)
+
 
        !======================================================!
        ! Third bead                                           !
        !======================================================!
        elseif ( ib==3 ) then
+
+          !write(0,'("alkane : At third bead")')
 
           r12 = Rchain(:,2,ichain,ibox) - Rchain(:,1,ichain,ibox)
           wsum = wset(ib)
@@ -941,20 +959,27 @@ contains
              wtrial(j)   = alkane_nonbonded_boltz(3,ichain,ibox,rtrial(:,j))
              wsum = wsum + wtrial(j) 
 
+             !write(0,'(I5,3F15.6)')ib,rtrial(:,j)
+
           end do
 
           rb_factor = rb_factor*real(wsum,kind=ep)
+          
           if (new_conf==1) then
              call select_next_segment(n,ifail)         
              if (ifail/=0) return ! Rosenbluth factor is zero
              Rchain(:,3,ichain,ibox) = rtrial(:,n)
           end if
-          
+
+          !write(0,'(I5,3F15.6)')new_conf,Rchain(:,ib,chain,box)
+
        else
 
           !======================================================!
           ! Fourth and subsequent beads                          !
           !======================================================!
+
+         ! write(0,'("alkane : At fourth bead")')
 
           r12  = Rchain(:,ib-2,ichain,ibox) - Rchain(:,ib-3,ichain,ibox)
           r23  = Rchain(:,ib-1,ichain,ibox) - Rchain(:,ib-2,ichain,ibox)
@@ -996,14 +1021,19 @@ contains
              wtrial(j)   = alkane_nonbonded_boltz(ib,ichain,ibox,rtrial(:,j))
              wsum = wsum + wtrial(j) 
 
+             !write(0,'(I5,3F15.6)')ib,rtrial(:,j)
+
           end do
 
           rb_factor = rb_factor*real(wsum,kind=ep)
+
           if (new_conf==1) then
              call select_next_segment(n,ifail)         
              if (ifail/=0) return ! Rosenbluth factor is zero
              Rchain(:,ib,ichain,ibox) = rtrial(:,n)
           end if
+
+          !write(0,'(I5,3F15.6)')new_conf,Rchain(:,ib,chain,box)
 
        end if
 
@@ -1020,6 +1050,7 @@ contains
     return
 
   contains
+
 
     subroutine select_next_segment(nout,ifail)
       !-------------------------------------------------------------------------!
@@ -1559,9 +1590,11 @@ contains
 
   end subroutine alkane_check_chain_overlap
 
-  subroutine alkane_check_chain_geometry(ichain,ibox,violated) 
+  subroutine alkane_check_chain_geometry(chain,box,violated) bind(c) 
     !-------------------------------------------------------------------------!
     ! Sanity test for debugging. Checks bond lengths within a chain           !
+    ! violated = 0 for no problems					      !
+    ! violated = 1 if there are problems				      !
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
@@ -1570,13 +1603,13 @@ contains
     implicit none
     integer(kind=it),intent(in)  :: ichain
     integer(kind=it),intent(in)  :: ibox
-    logical,intent(out) :: violated 
+    integer(kind=it),intent(out) :: violated 
     
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
     integer(kind=it) :: ibead,jbead
     real(kind=dp) :: boltzf
 
-    violated = .false. ! No problems found yet
+    violated = 0 ! No problems found yet
 
     !==============================================!
     ! Check that all bond lengths are equal to L   !
@@ -1585,13 +1618,13 @@ contains
        jbead = ibead+1
        rsep(:) = box_minimum_image( Rchain(:,jbead,ichain,ibox), Rchain(:,ibead,ichain,ibox), ibox )
        if ( dot_product(rsep,rsep) - L*L > 0.00001_dp ) then
-          violated = .true.
+          violated = 1
           write(0,'("Found a bond length of ",E15.6," between beads ",I5," and ",I5)') &
                sqrt(dot_product(rsep,rsep)),ibead,jbead
        end if
     end do
 
-    if ( violated ) then
+    if ( violated == 1) then
        write(0,'("Bond length violation for chain ",I5)')ichain
        write(0,'("Other chains may be affected")')
        return
@@ -1610,14 +1643,14 @@ contains
        r23(:) = r23(:)/sqrt(dot_product(r23,r23))
 
        if ( abs(acos(dot_product(r12,r23)) - 109.47_dp*Pi/180.0_dp) > 0.0002_dp ) then
-          violated = .true.
+          violated = 1
           write(0,'("Found a bond angle of ",F15.6," involving beads ",3I5)') &
                acos(dot_product(r12,r23))*180.0_dp/Pi,ibead,ibead+1,ibead+2
        end if
 
     end do
 
-    if ( violated ) then
+    if ( violated == 1) then
        write(0,'("Bond angle violation for chain ",I5)')ichain
        write(0,'("Other chains may be affected")')
        return
@@ -1636,7 +1669,7 @@ contains
        boltzf = alkane_dihedral_boltz(r12,r23,r34)
 
        if (boltzf<tiny(1.0_dp)) then
-          violated = .true.
+          violated = 1
           write(0,'("Found a bad dihedral angle involving beads ",I5,",",I5," and ",I5)') &
                ibead,ibead+1,ibead+2
           call alkane_check_dihedral(r12,r23,r34)
@@ -1644,7 +1677,7 @@ contains
 
     end do
 
-    if ( violated ) then
+    if ( violated == 1) then
        write(0,'("Dihedral angle violation for chain ",I5," in box ",I5)')ichain,ibox
        write(0,'("Other chains may be affected")')
        return
@@ -1659,18 +1692,22 @@ contains
           r12(:) = box_minimum_image(Rchain(:,ibead, ichain, ibox),Rchain(:,jbead,ichain, ibox), ibox)
           !print*,sqrt(dot_product(r12,r12))
           if ( dot_product(r12,r12) < sigma*sigma ) then
-             violated = .true.
+             violated = 1
              write(0,'("Found an overlap between beads ",I5," and ",I5," on chain ",I5, " in box ",I5)')ibead,jbead,ichain,ibox
           end if
        end do
     end do
 
-    if ( violated ) then
+    if ( violated == 1) then
        write(0,'("Intra-chain bead overlap violation for chain ",I5, "in box ",I5)')ichain,ibox
        write(0,'("Other chains may be affected")')
        return
+    else
+	violated == 0   
     end if
-
+   
+    
+   
     return
 
   end subroutine alkane_check_chain_geometry

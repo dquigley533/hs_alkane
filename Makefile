@@ -3,12 +3,17 @@
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
 #                                                                             #
-# $Id: Makefile,v 1.4 2011/08/02 12:56:47 phseal Exp $
+# $Id: Makefile,v 1.5 2011/09/01 16:55:13 phrkao Exp $
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
 #
 # $Log: Makefile,v $
+# Revision 1.5  2011/09/01 16:55:13  phrkao
+# Changed alkane_check_chain_geometry to be C compatible, had to change
+# the argument "violate" from logical to integer and subsequently changed
+# mc.f90 where this was used.
+#
 # Revision 1.4  2011/08/02 12:56:47  phseal
 # Added C bindings to all procedures which should be callable externally
 # when compiled as a library.
@@ -36,7 +41,7 @@ bindir     = $(prefix)/bin
 # Compiler and flags
 F90       = gfortran-mp-4.5
 LD        = gfortran-mp-4.5
-FFLAGS    = -O3 -fPIC
+FFLAGS    = -O0 -g -fPIC
 INCLUDE   = 
 LIBS      = 
 
