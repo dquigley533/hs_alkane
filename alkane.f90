@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.17 2011/09/01 16:58:29 phrkao Exp $
+! $Id: alkane.f90,v 1.18 2011/10/16 18:18:23 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.18  2011/10/16 18:18:23  phseal
+! Changed the minimum length to the side of a link cell to be an input
+! parameter. Hence the second argument to box_construct_link_cells is
+! no longer present, and link_cell_length is read from the input file.
+!
 ! Revision 1.17  2011/09/01 16:58:29  phrkao
 ! *** empty log message ***
 !
@@ -512,7 +517,7 @@ contains
 
     end if
 
-    call box_construct_link_cells(ibox,1.001_dp)
+    call box_construct_link_cells(ibox)
 
     call alkane_construct_linked_lists(ibox)
 
@@ -623,7 +628,7 @@ contains
 
     call box_update_recipmatrix(ibox)
 
-    call box_construct_link_cells(ibox,1.001_dp)
+    call box_construct_link_cells(ibox)
 
     call alkane_construct_linked_lists(ibox)
 
@@ -2703,7 +2708,7 @@ contains
 
     ! Book keeping
     call box_update_recipmatrix(ibox)
-    call box_construct_link_cells(ibox,1.001_dp)
+    call box_construct_link_cells(ibox)
     call alkane_construct_linked_lists(ibox)
 
     return

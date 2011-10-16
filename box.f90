@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
+! $Id: box.f90,v 1.6 2011/10/16 18:18:23 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.6  2011/10/16 18:18:23  phseal
+! Changed the minimum length to the side of a link cell to be an input
+! parameter. Hence the second argument to box_construct_link_cells is
+! no longer present, and link_cell_length is read from the input file.
+!
 ! Revision 1.5  2011/08/02 12:56:47  phseal
 ! Added C bindings to all procedures which should be callable externally
 ! when compiled as a library.
@@ -69,6 +74,7 @@ module box
   public :: recip_matrix            ! Matrix of reciprocal lattice vectors
   public :: pbc                     ! Periodic boundary conditions
   public :: use_link_cells          ! Use link cell algorithm
+  public :: link_cell_length        ! Minimum length of link cell size
   public :: isotropic               ! Isotropic volume moves True/False
   public :: pressure                ! External pressure
 
@@ -83,16 +89,16 @@ module box
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
 
-  integer(kind=it),save       :: nboxes            = 1        ! Number of boxes
+  integer(kind=it),save       :: nboxes = 1        ! Number of boxes
 
-  logical,save  :: pbc               = .true.   ! Use periodic bcs
-  logical,save  :: use_link_cells    = .false.  ! Use link cells
-  logical,save  :: bypass_link_cells = .false.  ! Force bypass of above
+  logical,save  :: pbc               = .true.      ! Use periodic bcs
+  logical,save  :: use_link_cells    = .false.     ! Use link cells
+  logical,save  :: bypass_link_cells = .false.     ! Force bypass of above
+
+  real(kind=dp),save :: link_cell_length   = 1.5   ! Minimum link cell length in each dimension
 
   real(kind=dp),allocatable,dimension(:,:,:),save :: hmatrix       ! Matrix of cell vectors
   real(kind=dp),allocatable,dimension(:,:,:),save :: recip_matrix  ! Reciprocal lattice 
-
-  real(kind=dp),save :: rcut
 
   logical,save       :: isotropic = .false. ! isotropic volume moves
   real(kind=dp),save :: pressure  = 6.0     ! external pressure
@@ -319,7 +325,7 @@ contains
 
   end subroutine box_destroy_link_cells
 
-  subroutine box_construct_link_cells(ibox,drcut) bind(c)
+  subroutine box_construct_link_cells(ibox) bind(c)
     !-------------------------------------------------------------------------!
     ! Analyses the dimensions of the simulation cell and determines if use of !
     ! a link-cell algorithm is possible. The module level flag use_link_cells !
@@ -331,7 +337,6 @@ contains
     !-------------------------------------------------------------------------!
     implicit none
     integer(kind=it),intent(in) :: ibox
-    real(kind=dp),intent(in)    :: drcut
     real(kind=dp) :: Lx,Ly,Lz
 
     integer(kind=it) :: ix,iy,iz,jx,jy,jz,icell,jcell
@@ -343,9 +348,6 @@ contains
        write(0,'("Error in box_construct_link_cells : box module not initialised.")')
        stop
     endif
-
-    ! Local copy
-    rcut = drcut
 
     use_link_cells = .true.
 
@@ -361,9 +363,9 @@ contains
     Lz = sqrt(dot_product(hmatrix(:,3,ibox),hmatrix(:,3,ibox)))
 
     ! Number of link cells in each direction
-    ncellx(ibox) = int(Lx/rcut)
-    ncelly(ibox) = int(Ly/rcut)
-    ncellz(ibox) = int(Lz/rcut)
+    ncellx(ibox) = int(Lx/link_cell_length)
+    ncelly(ibox) = int(Ly/link_cell_length)
+    ncellz(ibox) = int(Lz/link_cell_length)
 
     ! Fractional size of link-cells in each cell dimension
     lcellx(ibox) = 1.0_dp/real(ncellx(ibox),kind=dp)
@@ -371,19 +373,16 @@ contains
     lcellz(ibox) = 1.0_dp/real(ncellz(ibox),kind=dp)
 
 
-
     ! Bomb out if system is too small for link cells
     if ( (ncellx(ibox)<4).or.(ncelly(ibox)<4).or.(ncellz(ibox)<4) ) then
        use_link_cells = .false.
-       write(0,'("System has become too small for link cells")')
+       write(0,'("System has become too small for link cells of minimum length ",F15.6)')link_cell_length
        return
     end if
 
     if (allocated(lcneigh)) deallocate(lcneigh)
     allocate(lcneigh(1:27,1:ncellx(ibox)*ncelly(ibox)*ncellz(ibox),1:nboxes),stat=ierr)
     if (ierr/=0) stop 'Error allocating link-cell neighbour array'
-
-
 
     ! Decide which cells are neighbours of each other.
     do iz = 1,ncellz(ibox)

@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.6 2011/08/26 15:03:30 phrkao Exp $
+! $Id: io.f90,v 1.7 2011/10/16 18:18:23 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.7  2011/10/16 18:18:23  phseal
+! Changed the minimum length to the side of a link cell to be an input
+! parameter. Hence the second argument to box_construct_link_cells is
+! no longer present, and link_cell_length is read from the input file.
+!
 ! Revision 1.6  2011/08/26 15:03:30  phrkao
 ! Corrected omission of chain_created = true after xmol read
 !
@@ -85,14 +90,15 @@ contains
     !-------------------------------------------------------------------------!
     use alkane, only : nchains,nbeads,sigma,L,model_type,torsion_type,rigid,max_regrow
     use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix, &
-                       box_update_recipmatrix,nboxes,CellA,CellB,CellC
+                       box_update_recipmatrix,nboxes,CellA,CellB,CellC, &
+                       link_cell_length
     use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
     use timer,  only : timer_closetime,timer_qtime
     implicit none
 
 
     namelist/system/nboxes,nchains,nbeads,CellA,CellB,CellC,sigma,L,model_type, &
-                    torsion_type,pbc,read_xmol,rigid,isotropic
+                    torsion_type,pbc,link_cell_length,read_xmol,rigid,isotropic
     namelist/thermal/pressure
     namelist/bookkeeping/file_output_int,traj_output_int,timer_qtime, &
                         timer_closetime,max_mc_cycles,eq_adjust_mc,mc_target_ratio

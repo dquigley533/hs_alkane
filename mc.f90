@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.9 2011/09/01 16:55:13 phrkao Exp $
+! $Id: mc.f90,v 1.10 2011/10/16 18:18:23 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.10  2011/10/16 18:18:23  phseal
+! Changed the minimum length to the side of a link cell to be an input
+! parameter. Hence the second argument to box_construct_link_cells is
+! no longer present, and link_cell_length is read from the input file.
+!
 ! Revision 1.9  2011/09/01 16:55:13  phrkao
 ! Changed alkane_check_chain_geometry to be C compatible, had to change
 ! the argument "violate" from logical to integer and subsequently changed
@@ -529,7 +534,7 @@ contains
        end if
 
        ! Construct link cells and build linked-lists
-       call box_construct_link_cells(ibox,1.001_dp)
+       call box_construct_link_cells(ibox)
        call alkane_construct_linked_lists(ibox)
 
        ! Check initial configuration is sane
