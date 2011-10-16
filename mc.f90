@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.10 2011/10/16 18:18:23 phseal Exp $
+! $Id: mc.f90,v 1.11 2011/10/16 20:41:02 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.11  2011/10/16 20:41:02  phseal
+! Fixed lack of volume moves when using rigid chains
+!
 ! Revision 1.10  2011/10/16 18:18:23  phseal
 ! Changed the minimum length to the side of a link cell to be an input
 ! parameter. Hence the second argument to box_construct_link_cells is
@@ -139,7 +142,8 @@ contains
     real(kind=dp) :: new_boltz          	   ! New Boltmann factor
     real(kind=dp) :: acrat              	   ! Acceptance ratio
     real(kind=dp) :: dummy_dp			   ! Dummy variable
-    
+    real(kind=dp) :: volP                          ! Vol move prob
+
     real(kind=dp),dimension(4) :: dummy_quat  	   ! Dummy quarternion 
 
     logical :: overlap				   ! Check on overlaps
@@ -163,10 +167,15 @@ contains
        ichain = int(xi*real(nchains,kind=dp))+1
        ichain = min(nchains,ichain)
 
+       volP = 1.0_dp/real(nchains*nbeads,kind=dp)
+
        ! Generate a third random number to select a move type
        xi = random_uniform_random()
        if (nchains<2) xi = 0.5_dp*xi ! don't attempt upper half of moveset for single chains
-       if (rigid)     xi = 0.5_dp+0.5_dp*xi ! ..or lower half for rigid chains
+       if (rigid)     then
+          xi = 0.5_dp+0.5_dp*xi ! ..or lower half for rigid chains
+          volP = volP + 0.5_dp
+       end if
 
        if ( rigid.and.(nchains<2) ) stop 'No meaningfull moves in mc.f90'
 
@@ -175,7 +184,7 @@ contains
        ! Attempt with prob 1/(nchains*nbeads). Don't attempt if   !
        ! if there are no periodic boundary conditions in use.     !
        ! ---------------------------------------------------------!
-       if ( (xi < 1.0_dp/real(nchains*nbeads,kind=dp) ).and.pbc ) then
+       if ( (xi<volP ).and.pbc ) then
 
           ! Resize the box, and return the new acceptance ratio
           ! Setting reset flag to zero
