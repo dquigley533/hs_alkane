@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.18 2011/10/16 18:18:23 phseal Exp $
+! $Id: alkane.f90,v 1.19 2011/10/18 09:26:46 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,11 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.19  2011/10/18 09:26:46  phseal
+! Reduced dihedral violation errors to warnings, as these were being triggered
+! for model IV when the angle was violated by rounding errors, i.e. small differences
+! in the result when computing the angle for construction and checking purposes.
+!
 ! Revision 1.18  2011/10/16 18:18:23  phseal
 ! Changed the minimum length to the side of a link cell to be an input
 ! parameter. Hence the second argument to box_construct_link_cells is
@@ -1672,10 +1677,13 @@ contains
        boltzf = alkane_dihedral_boltz(r12,r23,r34)
 
        if (boltzf<tiny(1.0_dp)) then
-          violated = 1
-          write(0,'("Found a bad dihedral angle involving beads ",I5,",",I5," and ",I5)') &
+          write(0,'("Warning: Found a bad dihedral angle involving beads ",I5,",",I5," and ",I5)') &
                ibead,ibead+1,ibead+2
           call alkane_check_dihedral(r12,r23,r34)
+          ! DQ - this should only be a warning, as rounding errors often trigger this for dihedral
+          ! angles slightly outside the allowed range when operations are performed in a different
+          ! order to how they are generated.
+          ! violated = 1 
        end if
 
     end do
