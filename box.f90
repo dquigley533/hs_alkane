@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.6 2011/10/16 18:18:23 phseal Exp $
+! $Id: box.f90,v 1.7 2011/10/19 16:20:17 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.7  2011/10/19 16:20:17  phseal
+! bypass_link_cells can now be read from the input file.
+!
 ! Revision 1.6  2011/10/16 18:18:23  phseal
 ! Changed the minimum length to the side of a link cell to be an input
 ! parameter. Hence the second argument to box_construct_link_cells is
@@ -74,6 +77,7 @@ module box
   public :: recip_matrix            ! Matrix of reciprocal lattice vectors
   public :: pbc                     ! Periodic boundary conditions
   public :: use_link_cells          ! Use link cell algorithm
+  public :: bypass_link_cells       ! Force link cell bypass
   public :: link_cell_length        ! Minimum length of link cell size
   public :: isotropic               ! Isotropic volume moves True/False
   public :: pressure                ! External pressure

@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.7 2011/10/16 18:18:23 phseal Exp $
+! $Id: io.f90,v 1.8 2011/10/19 16:20:17 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.8  2011/10/19 16:20:17  phseal
+! bypass_link_cells can now be read from the input file.
+!
 ! Revision 1.7  2011/10/16 18:18:23  phseal
 ! Changed the minimum length to the side of a link cell to be an input
 ! parameter. Hence the second argument to box_construct_link_cells is
@@ -91,14 +94,15 @@ contains
     use alkane, only : nchains,nbeads,sigma,L,model_type,torsion_type,rigid,max_regrow
     use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix, &
                        box_update_recipmatrix,nboxes,CellA,CellB,CellC, &
-                       link_cell_length
+                       link_cell_length,bypass_link_cells
     use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
     use timer,  only : timer_closetime,timer_qtime
     implicit none
 
 
     namelist/system/nboxes,nchains,nbeads,CellA,CellB,CellC,sigma,L,model_type, &
-                    torsion_type,pbc,link_cell_length,read_xmol,rigid,isotropic
+                    torsion_type,pbc,link_cell_length,bypass_link_cells, &
+                    read_xmol,rigid,isotropic
     namelist/thermal/pressure
     namelist/bookkeeping/file_output_int,traj_output_int,timer_qtime, &
                         timer_closetime,max_mc_cycles,eq_adjust_mc,mc_target_ratio
@@ -136,7 +140,7 @@ contains
           write(*,*)
           write(*,*) '        D. Quigley - University of Warwick  '
           write(*,*)
-          write(*,*) '   Alternatively (or if operating in library) mode '
+          write(*,*) '   Alternatively (or if operating in library mode) '
           write(*,*) 'ensure hs_alkane.input exists in the current directory'
           write(*,*)
           stop
