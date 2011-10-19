@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.19 2011/10/18 09:26:46 phseal Exp $
+! $Id: alkane.f90,v 1.20 2011/10/19 16:21:42 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,10 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.20  2011/10/19 16:21:42  phseal
+! alkane_check_overlap will now check for overlaps both with and without the
+! use of linked lists, and compare the result of the two methods.
+!
 ! Revision 1.19  2011/10/18 09:26:46  phseal
 ! Reduced dihedral violation errors to warnings, as these were being triggered
 ! for model IV when the angle was violated by rounding errors, i.e. small differences
@@ -1560,8 +1564,6 @@ contains
 
   end subroutine alkane_check_dihedral
 
-
-
   subroutine alkane_check_chain_overlap(ibox,overlap)
     !-------------------------------------------------------------------------!
     ! Sanity test for debugging. Checks if any two chains overlap. Does not   !
@@ -1569,29 +1571,79 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
+    use box, only : use_link_cells
     implicit none
     integer(kind=it),intent(in) :: ibox
-    real(kind=dp) :: test,acc
+    real(kind=dp) :: test,acc,acc_link
     integer(kind=it) :: ichain
     logical,intent(out) :: overlap
 
     if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
     
-    overlap = .false.
+    ! We take one of two paths through this routine.   
+    if (.not.use_link_cells) then
+       
+       ! Just check for overlaps 
+       
+       overlap = .false.
+       acc = 1.0_dp
+       do ichain = 1,nchains
+          test = alkane_chain_inter_boltz(ichain,ibox)
+          acc  = acc*test
+          if (test < tiny(1.0_dp) ) then
+             write(0,'("Chain ",I5", overlaps with another chain")')ichain
+          end if
+       end do
 
-    acc = 1.0_dp
-    do ichain = 1,nchains
-       test = alkane_chain_inter_boltz(ichain,ibox)
-       acc  = acc*test
-       if (test < tiny(1.0_dp) ) then
-          write(0,'("Chain ",I5", overlaps with another chain")')ichain
+       if (acc<tiny(1.0_dp)) then
+          !write(0,'("Stopping")')
+          !stop
+          overlap = .true.
        end if
-    end do
+        
+       
+    else
+    
+       ! Check for overlaps using link cells
+       overlap = .false.
+       acc_link = 1.0_dp
+       do ichain = 1,nchains
+          test = alkane_chain_inter_boltz(ichain,ibox)
+          acc_link  = acc_link*test
+          if (test < tiny(1.0_dp) ) then
+             write(0,'("Chain ",I5", overlaps with another chain (computed using link cells)")')ichain
+          end if
+       end do
+        
+       ! Temporarily disable link cells
+       use_link_cells = .false.
 
-    if (acc<tiny(1.0_dp)) then
-       !write(0,'("Stopping")')
-       !stop
-       overlap = .true.
+       overlap = .false.
+       acc = 1.0_dp
+       do ichain = 1,nchains
+          test = alkane_chain_inter_boltz(ichain,ibox)
+          acc  = acc*test
+          if (test < tiny(1.0_dp) ) then
+             write(0,'("Chain ",I5", overlaps with another chain (computed without link cells)")')ichain
+          end if
+       end do
+
+       ! Re-enable link cells
+       use_link_cells = .true.
+
+       if (acc<tiny(1.0_dp)) then
+          !write(0,'("Stopping")')
+          !stop
+          overlap = .true.
+       end if
+
+       ! Check for consistency
+       if ( abs(acc-acc_link) > epsilon(1.0_dp) ) then
+          write(0,'("Error : Link cell calculation of overlaps disagrees with brute force method!")')
+          write(0,'("Error : Boltzmann factors are ",F12.8," (link cell) ",F12.8," (brute force).")')acc_link,acc
+       end if
+
+
     end if
 
     return
