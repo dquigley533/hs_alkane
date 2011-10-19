@@ -9,21 +9,22 @@
 !  System definition     !
 !------------------------!
 &system 
-nboxes           = 1           ! Number of simulation boxes
-nchains          = 256         ! Number of alkane molecules
-nbeads           = 4           ! Number of beads per molecule
-CellA            = 5.0,0.0,0.0 ! Box dimension in x
-CellB            = 0.0,5.0,0.0 ! Box dimension in y
-CellC            = 0.0,0.0,5.0 ! Box dimension in z
-sigma            = 1.0         ! Beads radius
-L                = 0.4         ! Bond length
-model_type       = 4           ! Model number
-torsion_type     = 1           ! Torsion potential (if relevent)
-pbc              = .true.      ! Use periodic boundary conditions
-link_cell_length = 1.5         ! Minimum link cell side length
-read_xmol        = .true.      ! Read initial config from xmol
-rigid            = .false.     ! Use rigid chains
-isotropic        = .false.     ! Isotropic volume moves
+nboxes            = 1           ! Number of simulation boxes
+nchains           = 256         ! Number of alkane molecules
+nbeads            = 4           ! Number of beads per molecule
+CellA             = 5.0,0.0,0.0 ! Box dimension in x
+CellB             = 0.0,5.0,0.0 ! Box dimension in y
+CellC             = 0.0,0.0,5.0 ! Box dimension in z
+sigma             = 1.0         ! Beads radius
+L                 = 0.4         ! Bond length
+model_type        = 4           ! Model number
+torsion_type      = 1           ! Torsion potential (if relevent)
+pbc               = .true.      ! Use periodic boundary conditions
+link_cell_length  = 1.5         ! Minimum link cell side length
+bypass_link_cells = .false.     ! Don't use link cells
+read_xmol         = .true.      ! Read initial config from xmol
+rigid             = .false.     ! Use rigid chains
+isotropic         = .false.     ! Isotropic volume moves
 /
 !-------------------------!
 !   Thermal Parameters    !
