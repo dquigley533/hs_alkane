@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.20 2011/10/19 16:21:42 phseal Exp $
+! $Id: alkane.f90,v 1.21 2011/10/26 16:14:57 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.21  2011/10/26 16:14:57  phrkao
+! made alkane_check_chain_overlap c compatible and corresponding mc.f90 calls adapted
+!
 ! Revision 1.20  2011/10/19 16:21:42  phseal
 ! alkane_check_overlap will now check for overlaps both with and without the
 ! use of linked lists, and compare the result of the two methods.
@@ -1564,7 +1567,7 @@ contains
 
   end subroutine alkane_check_dihedral
 
-  subroutine alkane_check_chain_overlap(ibox,overlap)
+  subroutine alkane_check_chain_overlap(ibox,overlap) bind(c)
     !-------------------------------------------------------------------------!
     ! Sanity test for debugging. Checks if any two chains overlap. Does not   !
     ! check if a chain overlaps with itself.                                  !
@@ -1576,7 +1579,7 @@ contains
     integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: test,acc,acc_link
     integer(kind=it) :: ichain
-    logical,intent(out) :: overlap
+    integer(kind=it),intent(out) :: overlap
 
     if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
     
@@ -1585,7 +1588,7 @@ contains
        
        ! Just check for overlaps 
        
-       overlap = .false.
+       overlap = 0
        acc = 1.0_dp
        do ichain = 1,nchains
           test = alkane_chain_inter_boltz(ichain,ibox)
@@ -1598,14 +1601,14 @@ contains
        if (acc<tiny(1.0_dp)) then
           !write(0,'("Stopping")')
           !stop
-          overlap = .true.
+          overlap = 1
        end if
         
        
     else
     
        ! Check for overlaps using link cells
-       overlap = .false.
+       overlap = 0
        acc_link = 1.0_dp
        do ichain = 1,nchains
           test = alkane_chain_inter_boltz(ichain,ibox)
@@ -1618,7 +1621,7 @@ contains
        ! Temporarily disable link cells
        use_link_cells = .false.
 
-       overlap = .false.
+       overlap = 0
        acc = 1.0_dp
        do ichain = 1,nchains
           test = alkane_chain_inter_boltz(ichain,ibox)
@@ -1634,7 +1637,7 @@ contains
        if (acc<tiny(1.0_dp)) then
           !write(0,'("Stopping")')
           !stop
-          overlap = .true.
+          overlap = 1
        end if
 
        ! Check for consistency
@@ -2366,6 +2369,7 @@ contains
                    if ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) ) then
                       ! ibead on ichain overlaps with jbead on jchain
                       noverlap = noverlap + 1
+		      write(*,*)'overlap between chain',ichain,'and',jchain,'separation',rx*rx+ry*ry+rz*rz
                       !loverlap(1,noverlap) = jbead   ! Store bead number
                       !loverlap(2,noverlap) = jchain  ! ..and chain number
                    end if

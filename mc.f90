@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.11 2011/10/16 20:41:02 phseal Exp $
+! $Id: mc.f90,v 1.12 2011/10/26 16:14:57 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.12  2011/10/26 16:14:57  phrkao
+! made alkane_check_chain_overlap c compatible and corresponding mc.f90 calls adapted
+!
 ! Revision 1.11  2011/10/16 20:41:02  phseal
 ! Fixed lack of volume moves when using rigid chains
 !
@@ -146,7 +149,7 @@ contains
 
     real(kind=dp),dimension(4) :: dummy_quat  	   ! Dummy quarternion 
 
-    logical :: overlap				   ! Check on overlaps
+    integer(kind=it) :: overlap			   ! Check on overlaps
     integer(kind=it) :: violated           	   ! Check on geometry
 
     ! Loop counters
@@ -408,9 +411,9 @@ contains
 
     ! Check for chain overlap periodically
     if (mod(mc_cycle_num,1000)==0) then
-       overlap = .false.
+       overlap = 0
        if (nchains>1) call alkane_check_chain_overlap(ibox,overlap)
-       if (overlap) then
+       if (overlap == 1) then
           write(0,'("Last move was of type : ",A11)')name(last_move)
           stop
        end if
@@ -510,7 +513,7 @@ contains
     implicit none
     logical,optional,intent(in) :: grow_new_chains
 
-    logical :: overlap                  	 ! Check on overlaps 
+    integer(kind=it) :: overlap                  	 ! Check on overlaps 
     integer(kind=it) :: violated		 ! Check on geometry
     integer(kind=it) :: ichain,nccopy,ibox,ifail ! Loop counters etc
     real(kind=dp) :: rb_factor                   ! Rosenbluth factor for chain growth
@@ -547,9 +550,9 @@ contains
        call alkane_construct_linked_lists(ibox)
 
        ! Check initial configuration is sane
-       overlap = .false.
+       overlap = 0
        if (nchains>1) call alkane_check_chain_overlap(ibox,overlap)
-       if (overlap) stop
+       if (overlap == 1) stop
        do ichain = 1,nchains
           call alkane_check_chain_geometry(ichain,ibox,violated)
        end do
