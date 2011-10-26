@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.21 2011/10/26 16:14:57 phrkao Exp $
+! $Id: alkane.f90,v 1.22 2011/10/26 16:16:03 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.22  2011/10/26 16:16:03  phrkao
+! *** empty log message ***
+!
 ! Revision 1.21  2011/10/26 16:14:57  phrkao
 ! made alkane_check_chain_overlap c compatible and corresponding mc.f90 calls adapted
 !
@@ -2369,7 +2372,7 @@ contains
                    if ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) ) then
                       ! ibead on ichain overlaps with jbead on jchain
                       noverlap = noverlap + 1
-		      write(*,*)'overlap between chain',ichain,'and',jchain,'separation',rx*rx+ry*ry+rz*rz
+		      !write(*,*)'overlap between chain',ichain,'and',jchain,'separation',rx*rx+ry*ry+rz*rz
                       !loverlap(1,noverlap) = jbead   ! Store bead number
                       !loverlap(2,noverlap) = jchain  ! ..and chain number
                    end if
