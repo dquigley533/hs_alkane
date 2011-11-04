@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.7 2011/10/19 16:20:17 phseal Exp $
+! $Id: box.f90,v 1.8 2011/11/04 16:12:44 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.8  2011/11/04 16:12:44  phseal
+! Added box_get_num_boxes for C integration purposes.
+!
 ! Revision 1.7  2011/10/19 16:20:17  phseal
 ! bypass_link_cells can now be read from the input file.
 !
@@ -63,6 +66,8 @@ module box
   public :: box_compute_volume          ! Compute volume
 
   public :: box_get_cell, box_set_cell  ! Manipulate hmatrix externally
+  public :: box_get_num_boxes           ! Query number of boxes in use
+
 
   public :: box_cart_to_frac            ! Convert absolute coords to fractional
   public :: box_frac_to_cart            ! Convert fractional coords to absolute
@@ -440,6 +445,22 @@ contains
     return
 
   end subroutine box_get_cell
+
+  subroutine box_get_num_boxes(dumnb) bind (c)
+    !-------------------------------------------------------------------------!
+    ! Queries the number of simulation boxes in use as set when the input     !
+    ! file is read. Provided for use from C when code compiled as library.    !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley November 2011                                                 !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),intent(out) :: dumnb
+
+    dumnb = nboxes
+
+    return
+
+  end subroutine box_get_num_boxes
 
   subroutine box_set_cell(ibox,dumhmatrix) bind(c)
     !-------------------------------------------------------------------------!
