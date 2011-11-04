@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.22 2011/10/26 16:16:03 phrkao Exp $
+! $Id: alkane.f90,v 1.23 2011/11/04 16:12:20 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.23  2011/11/04 16:12:20  phseal
+! Added more informative check of link cell consistency
+!
 ! Revision 1.22  2011/10/26 16:16:03  phrkao
 ! *** empty log message ***
 !
@@ -1581,8 +1584,9 @@ contains
     implicit none
     integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: test,acc,acc_link
-    integer(kind=it) :: ichain
+    integer(kind=it) :: ichain,num_chains_overlapping,num_chains_overlapping_link
     integer(kind=it),intent(out) :: overlap
+
 
     if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
     
@@ -1612,12 +1616,14 @@ contains
     
        ! Check for overlaps using link cells
        overlap = 0
+       num_chains_overlapping_link = 0
        acc_link = 1.0_dp
        do ichain = 1,nchains
           test = alkane_chain_inter_boltz(ichain,ibox)
           acc_link  = acc_link*test
           if (test < tiny(1.0_dp) ) then
              write(0,'("Chain ",I5", overlaps with another chain (computed using link cells)")')ichain
+             num_chains_overlapping_link = num_chains_overlapping_link + 1
           end if
        end do
         
@@ -1625,12 +1631,14 @@ contains
        use_link_cells = .false.
 
        overlap = 0
+       num_chains_overlapping = 0
        acc = 1.0_dp
        do ichain = 1,nchains
           test = alkane_chain_inter_boltz(ichain,ibox)
           acc  = acc*test
           if (test < tiny(1.0_dp) ) then
              write(0,'("Chain ",I5", overlaps with another chain (computed without link cells)")')ichain
+             num_chains_overlapping = num_chains_overlapping + 1
           end if
        end do
 
@@ -1643,10 +1651,17 @@ contains
           overlap = 1
        end if
 
-       ! Check for consistency
+       ! Check for consistency in the overall Boltzmann factor of the cell
        if ( abs(acc-acc_link) > epsilon(1.0_dp) ) then
           write(0,'("Error : Link cell calculation of overlaps disagrees with brute force method!")')
           write(0,'("Error : Boltzmann factors are ",F12.8," (link cell) ",F12.8," (brute force).")')acc_link,acc
+       end if
+
+       ! Check for consitency in the number of chains identified as overlapping with others
+       if ( num_chains_overlapping /= num_chains_overlapping_link ) then
+          write(0,'("Error : Link cell calculation of overlaps disagrees with brute force method!")')
+          write(0,'("Error : Num. overlapping chains :",I5," (link cell) ",I5," (brute force).")') &
+               num_chains_overlapping_link,num_chains_overlapping
        end if
 
 
