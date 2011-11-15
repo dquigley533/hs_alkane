@@ -3,13 +3,16 @@
 !                               V  I  S                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: vis_module.f90,v 1.5 2011/08/02 12:56:47 phseal Exp $
+! $Id: vis_module.f90,v 1.6 2011/11/15 17:42:14 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: vis_module.f90,v $
+! Revision 1.6  2011/11/15 17:42:14  phseal
+! Reinstated wrapping of chain COM inside box
+!
 ! Revision 1.5  2011/08/02 12:56:47  phseal
 ! Added C bindings to all procedures which should be callable externally
 ! when compiled as a library.
@@ -283,7 +286,7 @@ module vis
 
           ! Apply to all beads in a chain
           do ibead = 1,nbeads
-             rcopy(:,ibead,ichain) = rchain(:,ibead,ichain,ibox) !+ tmpcom(:)
+             rcopy(:,ibead,ichain) = rchain(:,ibead,ichain,ibox) + tmpcom(:)
           end do
 
        end do
