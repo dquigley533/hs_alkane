@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.12 2011/10/26 16:14:57 phrkao Exp $
+! $Id: mc.f90,v 1.13 2011/11/15 17:43:05 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.13  2011/11/15 17:43:05  phseal
+! Added printing of move counters
+!
 ! Revision 1.12  2011/10/26 16:14:57  phrkao
 ! made alkane_check_chain_overlap c compatible and corresponding mc.f90 calls adapted
 !
@@ -393,7 +396,6 @@ contains
 
           else
 
-             ! Reject and put the old position back
              Rchain(:,:,ichain,ibox) = backup_chain(:,:)
 
           end if
@@ -435,13 +437,19 @@ contains
        ktrial = max(5,int(real(ktrial,kind=dp)*mc_target_ratio/acrat))
        ktrial = min(10,ktrial)
 
+       
        write(*,'("! Configurational bias moves   : ",I2" %   ")')nint(acrat*100.0_dp)
+       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
+            mc_accepted_cbmc,mc_attempted_cbmc
 
        acrat = real(mc_accepted_dih)/real(mc_attempted_dih)
        mc_dh_max = max(0.001,mc_dh_max*acrat/mc_target_ratio)
        mc_dh_max = min(mc_dh_max,Pi)
 
        write(*,'("! Dihedral angle moves         : ",I2," %   ")')nint(acrat*100.0_dp)
+       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
+            mc_accepted_dih,mc_attempted_dih
+
 
        if (nchains > 1) then
 
@@ -449,12 +457,18 @@ contains
        mc_dr_max = max(0.001,mc_dr_max*acrat/mc_target_ratio)
 
        write(*,'("! Molecule translation moves   : ",I2," %   ")')nint(acrat*100.0_dp)
+       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
+            mc_accepted_trans,mc_attempted_trans
+
 
        acrat = real(mc_accepted_rot)/real(mc_attempted_rot)
        mc_dt_max = max(0.001,mc_dt_max*acrat/mc_target_ratio)
        mc_dt_max = min(mc_dt_max,Pi)
 
        write(*,'("! Molecule rotation moves      : ",I2," %   ")')nint(acrat*100.0_dp)
+       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
+            mc_accepted_rot,mc_attempted_rot
+
 
        end if
 
@@ -464,6 +478,9 @@ contains
        mc_dv_max = max(0.0001,mc_dv_max*acrat/mc_target_ratio)
 
        write(*,'("! Box moves                    : ",I2," %   ")')nint(acrat*100.0_dp)
+       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
+            mc_accepted_box,mc_attempted_box
+
 
        end if
 
