@@ -3,13 +3,16 @@
 !                               V  I  S                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: vis_module.f90,v 1.6 2011/11/15 17:42:14 phseal Exp $
+! $Id: vis_module.f90,v 1.7 2011/11/18 17:33:16 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: vis_module.f90,v $
+! Revision 1.7  2011/11/18 17:33:16  phseal
+! Checked array allocatate and deallocate in write_dcd_snapshot
+!
 ! Revision 1.6  2011/11/15 17:42:14  phseal
 ! Reinstated wrapping of chain COM inside box
 !
@@ -231,6 +234,7 @@ module vis
     character(30) :: filename
 
     allocate(rcopy(1:3,1:nbeads,1:nchains),stat=ierr)
+    if (ierr/=0) stop 'Error allocating rcopy in write_dcd_snapshot'
 
 !!$    do ichain = 1,nchains
 !!$       do j = 1,nbeads
@@ -342,7 +346,7 @@ module vis
     end do
 
     deallocate(rcopy,stat=ierr)
-
+    if (ierr/=0) stop 'Error releasing rcopy in write_dcd_snapshot'
 
   end subroutine write_dcd_snapshot
 
