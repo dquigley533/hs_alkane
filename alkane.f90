@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.25 2011/11/21 12:53:41 phseal Exp $
+! $Id: alkane.f90,v 1.26 2011/11/21 16:07:47 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.26  2011/11/21 16:07:47  phseal
+! Removed unused variables and refactored volume moves to prevent compiler warnings
+!
 ! Revision 1.25  2011/11/21 12:53:41  phseal
 ! Stopped alkane_construct_linked_lists from trying to build before cells constructed
 !
@@ -278,7 +281,7 @@ contains
     use box, only : use_link_cells
     implicit none
     
-    integer(kind=it),dimension(2) :: ierr
+    integer(kind=it),dimension(2) :: ierr = 0
 
     deallocate(Rchain,chain_created,list,startinlist,endinlist,stat=ierr(1))
     if (use_link_cells) deallocate(head_of_cell,linked_list,stat=ierr(2))
@@ -333,11 +336,11 @@ contains
     use random, only     : random_uniform_random
     use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
     implicit none
-    integer(kind=it),intent(in) 	    :: ichain,ibox
-    real(kind=dp),intent(out)  		    :: new_boltz
-    real(kind=dp),dimension(3)  	    :: axis,rcom
+    integer(kind=it),intent(in)             :: ichain,ibox
+    real(kind=dp),intent(out)               :: new_boltz
+    real(kind=dp),dimension(3)              :: axis,rcom
     real(kind=dp),dimension(4),intent(out)  :: quat
-    real(kind=dp)               	    :: theta
+    real(kind=dp)                           :: theta
 
     integer(kind=it) :: ibead
 
@@ -450,12 +453,16 @@ contains
        hmatrix(:,:,ibox) = old_hmatrix(:,:)
        call box_update_recipmatrix(ibox)
 
+       ! Restoring the old configuration, acc_prob irrelevant
+       acc_prob = 1.0_dp
+
 
     else
 
 
        old_hmatrix  = hmatrix(:,:,ibox)
        old_volume   = box_compute_volume(ibox)
+       delta_vol    = 0.0_dp
 
        if (isotropic) then
 
@@ -539,21 +546,9 @@ contains
        !stop
        call box_update_recipmatrix(ibox)
 
-    end if
-
-    call box_construct_link_cells(ibox)
-    call alkane_construct_linked_lists(ibox)
-
-    if ( reset == 1 ) then
-       ! Restoring the old configuration, acc_prob irrelevant
-       acc_prob = 1.0_dp
-       return
-    else
        ! This is a trial move and we need to check for overlaps
        ! if the box has shrunk
        acc_prob = exp(-pressure*delta_vol + real(nchains,kind=dp)*log(new_volume/old_volume))
-
-       !if ( any(boxscale<1.0_dp) ) then
 
        do ichain = 1,nchains
           if ( alkane_chain_inter_boltz(ichain,ibox) < tiny(1.0_dp) ) then
@@ -562,9 +557,10 @@ contains
           end if
        end do
 
-       !end if
-
     end if
+
+    call box_construct_link_cells(ibox)
+    call alkane_construct_linked_lists(ibox)
 
     return
 
@@ -591,9 +587,9 @@ contains
     real(kind=dp),intent(in)     :: scaleA,scaleB,scaleC
     real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
-    real(kind=dp) :: old_volume,new_volume,delta_vol
+    real(kind=dp) :: old_volume
 
-    integer(kind=it) :: ichain,ibead,jdim,idim
+    integer(kind=it) :: ichain,ibead
 
 
     ! Uniform scaling of box dimensions
@@ -601,8 +597,8 @@ contains
     old_volume  = box_compute_volume(ibox)
 
     new_hmatrix(:,1) = old_hmatrix(:,1)*scaleA
-    new_hmatrix(:,2) = old_hmatrix(:,2)*scaleA
-    new_hmatrix(:,3) = old_hmatrix(:,3)*scaleA
+    new_hmatrix(:,2) = old_hmatrix(:,2)*scaleB
+    new_hmatrix(:,3) = old_hmatrix(:,3)*scaleC
     
     hmatrix(:,:,ibox)  = new_hmatrix(:,:)
 
@@ -678,10 +674,10 @@ contains
     real(kind=dp),dimension(4)  :: quat
 
     real(kind=dp),intent(out) :: angle
-    real(kind=dp) 	      :: xi
+    real(kind=dp)             :: xi
 
-    integer(kind=it) 		 :: ibead
-    integer(kind=it),intent(out) ::ia
+    integer(kind=it)             :: ibead
+    integer(kind=it),intent(out) :: ia
 
     if (nbeads<4) stop 'Called alkane_bond_rotate with nbeads < 4'
 
@@ -779,6 +775,7 @@ contains
           return
 
        case(3)
+          alkane_dihedral_boltz = 0.0_dp
           stop 'Not implemented'
        case(4)
 
@@ -798,6 +795,9 @@ contains
              !print*,"rejecting a new dihedral of ",angle*180.0_dp/Pi
              return
           end if
+          
+       case default
+          alkane_dihedral_boltz = 0.0_dp
              
     end select
 
@@ -1519,6 +1519,7 @@ contains
           phi = xi*360.0_dp - 180.0_dp
 
        case(3)
+          phi = 0.0_dp
           stop 'Not implemented'
        case(4)
 
@@ -1540,6 +1541,9 @@ contains
                 phi = -120.0_dp + xi*20.0_dp - 10.0_dp
              end if
           end if
+
+       case default
+          phi = 0.0_dp
 
     end select
 
@@ -1810,7 +1814,7 @@ contains
        write(0,'("Other chains may be affected")')
        return
     else
-	violated = 0   
+       violated = 0   
     end if
    
     
@@ -1925,13 +1929,14 @@ contains
     implicit none
     integer(kind=it),intent(in) :: ibox
     integer(kind=it) :: ichain,ibead,icell,ix,iy,iz,ierr
-    integer(kind=it) :: t1,t2,rate,jbead,jchain
+    integer(kind=it) :: jbead,jchain
     real(kind=dp)    :: rlcellx,rlcelly,rlcellz 
     real(kind=dp),dimension(3) :: rbead,sbead
 
     logical :: lrebuild_all_boxes = .false.
     integer(kind=it) :: ifirst,ilast
     integer(kind=it) :: jbox
+    !integer(kind=it) :: t1,t2,rate,
 
 
     if (.not.use_link_cells) return
@@ -2056,7 +2061,9 @@ contains
     real(kind=dp),dimension(3),intent(in) :: old_pos,new_pos
     real(kind=dp),dimension(3) :: sbead
     integer(kind=it) :: ix,iy,iz,ncell,ocell,jchain,jbead
-    integer(kind=it) :: t1,t2,rate,tmpint,kbead,kchain
+    integer(kind=it) :: kbead,kchain
+    !integer(kind=it) :: t1,t2,rate
+
 
     if (.not.use_link_cells) return
 
@@ -2248,8 +2255,8 @@ contains
     integer(kind=it),intent(out) :: noverlap ! number of intra-chain overlaps
     !integer(kind=it),dimension(2,mxoverlap) :: poverlap ! list of overlapping pairs
 
-    real(kind=dp),dimension(3) :: rsep,r12,r23,r34
-    integer(kind=it) :: ibead,jbead,iovlp
+    real(kind=dp),dimension(3) :: r12,r23,r34
+    integer(kind=it) :: ibead,jbead
     real(kind=dp) :: boltzf
 
     noverlap = 0
@@ -2328,13 +2335,10 @@ contains
     real(kind=dp),dimension(3) :: rbead
     real(kind=dp),dimension(3) :: rsep,sbead
 
-    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,iovlp
+    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
-
-    real(kind=dp) :: alkane_chain_inter_boltz
-  
 
     sigma_sq = sigma*sigma
 
@@ -2767,9 +2771,9 @@ contains
 
     real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
-    real(kind=dp) :: old_volume,new_volume,delta_vol
+    real(kind=dp) :: old_volume
 
-    integer(kind=it) :: ichain,ibead,jdim,idim
+    integer(kind=it) :: ichain,ibead
 
 
     ! Change hmatrix by delta_H
