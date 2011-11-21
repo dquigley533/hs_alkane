@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.23 2011/11/04 16:12:20 phseal Exp $
+! $Id: alkane.f90,v 1.24 2011/11/21 11:24:22 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.24  2011/11/21 11:24:22  phseal
+! Fixed out-of-bounds errors when one box had less link cells
+!
 ! Revision 1.23  2011/11/04 16:12:20  phseal
 ! Added more informative check of link cell consistency
 !
@@ -536,7 +539,6 @@ contains
     end if
 
     call box_construct_link_cells(ibox)
-
     call alkane_construct_linked_lists(ibox)
 
     if ( reset == 1 ) then
@@ -645,9 +647,7 @@ contains
     end do
 
     call box_update_recipmatrix(ibox)
-
     call box_construct_link_cells(ibox)
-
     call alkane_construct_linked_lists(ibox)
 
     return
@@ -1898,7 +1898,7 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     use box,       only : ncellx,ncelly,ncellz,lcellx,lcelly,lcellz,use_link_cells, &
-                          recip_matrix,nboxes
+                          recip_matrix,nboxes,maxcells
     implicit none
     integer(kind=it),intent(in) :: ibox
     integer(kind=it) :: ichain,ibead,icell,ix,iy,iz,ierr
@@ -1907,21 +1907,28 @@ contains
     real(kind=dp),dimension(3) :: rbead,sbead
 
     logical :: lrebuild_all_boxes = .false.
-    integer(kind=it) :: ifirst,ilast,jbox
+    integer(kind=it) :: ifirst,ilast
+    integer(kind=it) :: jbox
+
 
     if (.not.use_link_cells) return
 
+    ! Allocate head_of_cell array using this size if not allocated
     if ( .not.allocated(head_of_cell) ) then
-       allocate(head_of_cell(1:2,1:ncellx(ibox)*ncelly(ibox)*ncellz(ibox),1:nboxes),stat=ierr)
+        allocate(head_of_cell(1:2,1:maxcells,1:nboxes),stat=ierr)
        if (ierr/=0) stop 'Error allocating head_of_cell'
     end if
-    if (size(head_of_cell,2)/=ncellx(ibox)*ncelly(ibox)*ncellz(ibox)) then
+
+    ! Check that currently allocated head_of_cell arrray can hold all cells in each box
+    if (size(head_of_cell,2)/=maxcells) then
        deallocate(head_of_cell,stat=ierr)
        if (ierr/=0) stop 'Error resizing head_of_cell'
-       allocate(head_of_cell(1:2,1:ncellx(ibox)*ncelly(ibox)*ncellz(ibox),1:nboxes),stat=ierr)
+       allocate(head_of_cell(1:2,1:maxcells,1:nboxes),stat=ierr)
        if (ierr/=0) stop 'Error allocating head_of_cell'
        lrebuild_all_boxes = .true.
     end if
+
+    ! Allocate linked_list array itself
     if ( .not.allocated(linked_list) ) then
        allocate(linked_list(1:4,0:nbeads,0:nchains,1:nboxes),stat=ierr)
        if (ierr/=0) stop 'Error allocating linked_lists'

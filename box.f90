@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.8 2011/11/04 16:12:44 phseal Exp $
+! $Id: box.f90,v 1.9 2011/11/21 11:24:22 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.9  2011/11/21 11:24:22  phseal
+! Fixed out-of-bounds errors when one box had less link cells
+!
 ! Revision 1.8  2011/11/04 16:12:44  phseal
 ! Added box_get_num_boxes for C integration purposes.
 !
@@ -91,6 +94,7 @@ module box
   public :: ncellx,ncelly,ncellz    ! Number of link cells
   public :: lcellx,lcelly,lcellz    ! dimensions of link cells
   public :: lcneigh                 ! link cell topology
+  public :: maxcells                ! Biggest number of cells in any box
 
   public :: CellA, CellB, CellC     ! Temporary cell vectors to populate hmatrix
 
@@ -103,6 +107,8 @@ module box
   logical,save  :: pbc               = .true.      ! Use periodic bcs
   logical,save  :: use_link_cells    = .false.     ! Use link cells
   logical,save  :: bypass_link_cells = .false.     ! Force bypass of above
+
+  integer(kind=it),save :: maxcells                ! Maximum number of cells per box
 
   real(kind=dp),save :: link_cell_length   = 1.5   ! Minimum link cell length in each dimension
 
@@ -348,9 +354,10 @@ contains
     integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: Lx,Ly,Lz
 
-    integer(kind=it) :: ix,iy,iz,jx,jy,jz,icell,jcell
+    integer(kind=it) :: ix,iy,iz,jx,jy,jz,icell,jcell,jbox
     integer(kind=it) :: kx,ky,kz,jn
     integer(kind=it) :: ierr
+    integer(kind=it),allocatable,dimension(:) :: ncells
 
     ! Sanity check
     if (.not.box_initialised) then
@@ -382,6 +389,17 @@ contains
     lcellz(ibox) = 1.0_dp/real(ncellz(ibox),kind=dp)
 
 
+    ! Find the maximum number of link cells per box
+    allocate(ncells(1:nboxes),stat=ierr)
+    if (ierr/=0) stop 'Error allocating temporary ncells array in alkane_construct_linked_lists'
+    do jbox = 1,nboxes
+       ncells(jbox) = ncellx(jbox)*ncelly(jbox)*ncellz(jbox)
+    end do
+    maxcells = maxval(ncells,1)
+    deallocate(ncells,stat=ierr)
+    if (ierr/=0) stop 'Error deallocating temporary ncells array in alkane_construct_linked_lists'
+
+
     ! Bomb out if system is too small for link cells
     if ( (ncellx(ibox)<4).or.(ncelly(ibox)<4).or.(ncellz(ibox)<4) ) then
        use_link_cells = .false.
@@ -390,7 +408,7 @@ contains
     end if
 
     if (allocated(lcneigh)) deallocate(lcneigh)
-    allocate(lcneigh(1:27,1:ncellx(ibox)*ncelly(ibox)*ncellz(ibox),1:nboxes),stat=ierr)
+    allocate(lcneigh(1:27,1:maxcells,1:nboxes),stat=ierr)
     if (ierr/=0) stop 'Error allocating link-cell neighbour array'
 
     ! Decide which cells are neighbours of each other.
