@@ -3,13 +3,16 @@
 !                               V  I  S                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: vis_module.f90,v 1.7 2011/11/18 17:33:16 phseal Exp $
+! $Id: vis_module.f90,v 1.8 2011/11/21 14:12:45 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: vis_module.f90,v $
+! Revision 1.8  2011/11/21 14:12:45  phseal
+! Added DCD title
+!
 ! Revision 1.7  2011/11/18 17:33:16  phseal
 ! Checked array allocatate and deallocate in write_dcd_snapshot
 !
@@ -169,6 +172,8 @@ module vis
     integer(kind=it) :: i,ierr,ibox
     character(3)     :: boxstring
     character(30)    :: filename
+
+    dcdtitle = 'DCD file written by hs_alkane'
 
     do ibox = 1,nboxes ! loop over boxes
        
