@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.13 2011/11/15 17:43:05 phseal Exp $
+! $Id: mc.f90,v 1.14 2011/11/21 16:08:49 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.14  2011/11/21 16:08:49  phseal
+! Removed MS Windoze tab characters
+!
 ! Revision 1.13  2011/11/15 17:43:05  phseal
 ! Added printing of move counters
 !
@@ -141,19 +144,19 @@ contains
     
     implicit none
 
-    real(kind=dp) :: xi                  	   ! Random number on 0-1.
-    real(kind=dp) :: acc_prob            	   ! Acceptance probability
-    real(kind=dp) :: old_rb_factor       	   ! Old Rosenbluth factor
-    real(kind=dp) :: new_rb_factor       	   ! New Rosenbluth factor
-    real(kind=dp) :: new_boltz          	   ! New Boltmann factor
-    real(kind=dp) :: acrat              	   ! Acceptance ratio
-    real(kind=dp) :: dummy_dp			   ! Dummy variable
+    real(kind=dp) :: xi                            ! Random number on 0-1.
+    real(kind=dp) :: acc_prob                      ! Acceptance probability
+    real(kind=dp) :: old_rb_factor                 ! Old Rosenbluth factor
+    real(kind=dp) :: new_rb_factor                 ! New Rosenbluth factor
+    real(kind=dp) :: new_boltz                     ! New Boltmann factor
+    real(kind=dp) :: acrat                         ! Acceptance ratio
+    real(kind=dp) :: dummy_dp                      ! Dummy variable
     real(kind=dp) :: volP                          ! Vol move prob
 
-    real(kind=dp),dimension(4) :: dummy_quat  	   ! Dummy quarternion 
+    real(kind=dp),dimension(4) :: dummy_quat       ! Dummy quarternion 
 
-    integer(kind=it) :: overlap			   ! Check on overlaps
-    integer(kind=it) :: violated           	   ! Check on geometry
+    integer(kind=it) :: overlap                    ! Check on overlaps
+    integer(kind=it) :: violated                   ! Check on geometry
 
     ! Loop counters
     integer(kind=it) :: ipass,ichain,ibead,k,ibox,dummy_int,ifail
@@ -439,16 +442,16 @@ contains
 
        
        write(*,'("! Configurational bias moves   : ",I2" %   ")')nint(acrat*100.0_dp)
-       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
-            mc_accepted_cbmc,mc_attempted_cbmc
+       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+       !     mc_accepted_cbmc,mc_attempted_cbmc
 
        acrat = real(mc_accepted_dih)/real(mc_attempted_dih)
        mc_dh_max = max(0.001,mc_dh_max*acrat/mc_target_ratio)
        mc_dh_max = min(mc_dh_max,Pi)
 
        write(*,'("! Dihedral angle moves         : ",I2," %   ")')nint(acrat*100.0_dp)
-       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
-            mc_accepted_dih,mc_attempted_dih
+       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+       !     mc_accepted_dih,mc_attempted_dih
 
 
        if (nchains > 1) then
@@ -457,8 +460,8 @@ contains
        mc_dr_max = max(0.001,mc_dr_max*acrat/mc_target_ratio)
 
        write(*,'("! Molecule translation moves   : ",I2," %   ")')nint(acrat*100.0_dp)
-       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
-            mc_accepted_trans,mc_attempted_trans
+       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+       !     mc_accepted_trans,mc_attempted_trans
 
 
        acrat = real(mc_accepted_rot)/real(mc_attempted_rot)
@@ -466,8 +469,8 @@ contains
        mc_dt_max = min(mc_dt_max,Pi)
 
        write(*,'("! Molecule rotation moves      : ",I2," %   ")')nint(acrat*100.0_dp)
-       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
-            mc_accepted_rot,mc_attempted_rot
+       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+       !     mc_accepted_rot,mc_attempted_rot
 
 
        end if
@@ -478,8 +481,8 @@ contains
        mc_dv_max = max(0.0001,mc_dv_max*acrat/mc_target_ratio)
 
        write(*,'("! Box moves                    : ",I2," %   ")')nint(acrat*100.0_dp)
-       write(*,'("! Number of moves (accepted)/(attempted) : ",I5,"/",I5)') &
-            mc_accepted_box,mc_attempted_box
+       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+       !     mc_accepted_box,mc_attempted_box
 
 
        end if
@@ -530,8 +533,8 @@ contains
     implicit none
     logical,optional,intent(in) :: grow_new_chains
 
-    integer(kind=it) :: overlap                  	 ! Check on overlaps 
-    integer(kind=it) :: violated		 ! Check on geometry
+    integer(kind=it) :: overlap                  ! Check on overlaps 
+    integer(kind=it) :: violated                 ! Check on geometry
     integer(kind=it) :: ichain,nccopy,ibox,ifail ! Loop counters etc
     real(kind=dp) :: rb_factor                   ! Rosenbluth factor for chain growth
 
