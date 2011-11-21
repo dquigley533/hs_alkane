@@ -3,13 +3,16 @@
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
 !                                                                             !
-! $Id: main.f90,v 1.6 2011/08/08 10:57:45 phseal Exp $
+! $Id: main.f90,v 1.7 2011/11/21 16:09:11 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: main.f90,v $
+! Revision 1.7  2011/11/21 16:09:11  phseal
+! Removed unused variable
+!
 ! Revision 1.6  2011/08/08 10:57:45  phseal
 ! Added signal handler for SIGTERM
 !
@@ -83,7 +86,7 @@ program hs_alkane
   integer(kind=it) :: safe 
 
   ! Loop counters / error flags
-  integer(kind=it) :: ibead,ichain,ierr,ibox,noverlaps
+  integer(kind=it) :: ibead,ichain,ierr,ibox
 
   ! Strings
   character(30) :: denfile
