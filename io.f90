@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.8 2011/10/19 16:20:17 phseal Exp $
+! $Id: io.f90,v 1.9 2011/11/21 16:08:18 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.9  2011/11/21 16:08:18  phseal
+! Removed unused variables
+!
 ! Revision 1.8  2011/10/19 16:20:17  phseal
 ! bypass_link_cells can now be read from the input file.
 !
@@ -118,7 +121,7 @@ contains
     !    integer(kind=it),  external ::  iargc
     !    external  getarg
 
-    integer(kind=it) :: ierr,ibox ! error flag
+    integer(kind=it) :: ierr  ! error flag
     logical :: lexist
 
     ! check that there is only one argument.
@@ -152,6 +155,7 @@ contains
        end do
        
        ! find the last dot in the filename.
+       last_dot = len(seedname)
        do idata = 1, len(seedname)
           if(command_line(1)(idata:idata)=='.') last_dot = idata
        end do
