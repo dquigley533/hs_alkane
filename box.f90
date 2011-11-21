@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.9 2011/11/21 11:24:22 phseal Exp $
+! $Id: box.f90,v 1.10 2011/11/21 11:46:52 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.10  2011/11/21 11:46:52  phseal
+! Fixed purging of other boxes when reallocating lcneigh
+!
 ! Revision 1.9  2011/11/21 11:24:22  phseal
 ! Fixed out-of-bounds errors when one box had less link cells
 !
@@ -169,6 +172,9 @@ contains
     allocate(ncellx(1:nboxes),ncelly(1:nboxes),ncellz(1:nboxes),stat=ierr(1))
     allocate(lcellx(1:nboxes),lcelly(1:nboxes),lcellz(1:nboxes),stat=ierr(2))
     if (any(ierr/=0)) stop 'Error allocating link-cell sizes in box_initialise'
+
+    ncellx = 0      ; ncelly = 0      ; ncellz = 0
+    lcellx = 0.0_dp ; lcelly = 0.0_dp ; lcellz = 0.0_dp
 
     box_initialised = .true.
 
@@ -355,7 +361,7 @@ contains
     real(kind=dp) :: Lx,Ly,Lz
 
     integer(kind=it) :: ix,iy,iz,jx,jy,jz,icell,jcell,jbox
-    integer(kind=it) :: kx,ky,kz,jn
+    integer(kind=it) :: kx,ky,kz,jn,firstbox,lastbox
     integer(kind=it) :: ierr
     integer(kind=it),allocatable,dimension(:) :: ncells
 
@@ -395,6 +401,9 @@ contains
     do jbox = 1,nboxes
        ncells(jbox) = ncellx(jbox)*ncelly(jbox)*ncellz(jbox)
     end do
+
+    !write(0,'("Called box_construct_link_cells with ibox = :",I5," ncells =", 2I5)')ibox,ncells
+
     maxcells = maxval(ncells,1)
     deallocate(ncells,stat=ierr)
     if (ierr/=0) stop 'Error deallocating temporary ncells array in alkane_construct_linked_lists'
@@ -407,39 +416,60 @@ contains
        return
     end if
 
-    if (allocated(lcneigh)) deallocate(lcneigh)
-    allocate(lcneigh(1:27,1:maxcells,1:nboxes),stat=ierr)
-    if (ierr/=0) stop 'Error allocating link-cell neighbour array'
+    ! Decide if we need to reallcoate the neighbour arrays and hence rebuild them for all boxes
+    if (allocated(lcneigh)) then
+       if (size(lcneigh,2)/=maxcells) then
+          deallocate(lcneigh)
+          allocate(lcneigh(1:27,1:maxcells,1:nboxes),stat=ierr)
+          if (ierr/=0) stop 'Error allocating link-cell neighbour array'
+          firstbox = 1
+          lastbox  = nboxes
+       else
+          firstbox = ibox
+          lastbox  = ibox
+       end if
+    else
+       ! Allocate for box boxes and populate the current box
+       ! (this will only happen at first initialisation)
+       allocate(lcneigh(1:27,1:maxcells,1:nboxes),stat=ierr)
+       firstbox = ibox
+       lastbox  = ibox
+    end if
 
-    ! Decide which cells are neighbours of each other.
-    do iz = 1,ncellz(ibox)
-       do iy = 1,ncelly(ibox)
-          do ix = 1,ncellx(ibox)       
+    ! loop ovr boxes to rebuild
+    do jbox = firstbox,lastbox
 
-             icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix           
+       ! Decide which cells are neighbours of each other.
+       do iz = 1,ncellz(jbox)
+          do iy = 1,ncelly(jbox)
+             do ix = 1,ncellx(jbox)       
 
-             jn = 1
-             do jz = iz-1,iz+1
-                do jy = iy-1,iy+1
-                   do jx = ix-1,ix+1
+                icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix           
 
-                      kx = mod(jx,ncellx(ibox)) ; if (kx==0) kx=ncellx(ibox)
-                      ky = mod(jy,ncelly(ibox)) ; if (ky==0) ky=ncelly(ibox)
-                      kz = mod(jz,ncellz(ibox)) ; if (kz==0) kz=ncellz(ibox)                    
+                jn = 1
+                do jz = iz-1,iz+1
+                   do jy = iy-1,iy+1
+                      do jx = ix-1,ix+1
 
-                      jcell = (kz-1)*ncellx(ibox)*ncelly(ibox) + (ky-1)*ncellx(ibox) + kx    
+                         kx = mod(jx,ncellx(jbox)) ; if (kx==0) kx=ncellx(jbox)
+                         ky = mod(jy,ncelly(jbox)) ; if (ky==0) ky=ncelly(jbox)
+                         kz = mod(jz,ncellz(jbox)) ; if (kz==0) kz=ncellz(jbox)                    
 
-                      lcneigh(jn,icell,ibox) = jcell
+                         jcell = (kz-1)*ncellx(jbox)*ncelly(jbox) + (ky-1)*ncellx(jbox) + kx    
 
-                      jn = jn + 1
+                         lcneigh(jn,icell,jbox) = jcell
 
+                         jn = jn + 1
+
+                      end do
                    end do
                 end do
-             end do
 
+             end do
           end do
        end do
-    end do
+
+    end do ! loop over boxes to rebuild
 
     return
 
