@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.24 2011/11/21 11:24:22 phseal Exp $
+! $Id: alkane.f90,v 1.25 2011/11/21 12:53:41 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.25  2011/11/21 12:53:41  phseal
+! Stopped alkane_construct_linked_lists from trying to build before cells constructed
+!
 ! Revision 1.24  2011/11/21 11:24:22  phseal
 ! Fixed out-of-bounds errors when one box had less link cells
 !
@@ -1321,6 +1324,7 @@ contains
     integer(kind=it),intent(in) :: ichain,ibox
     real(kind=dp),dimension(3)  :: rbead
     real(kind=dp),dimension(3)  :: rsep,sbead
+    real(kind=dp),dimension(9)  :: hcache
 
     integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint
     real(kind=dp) :: sigma_sq
@@ -1333,11 +1337,20 @@ contains
     sigma_sq = sigma*sigma
     overlap  = .false.
 
+    iz = 1
+    do ix = 1,3
+       do iy = 1,3
+          hcache(iz) = hmatrix(ix,iy,ibox) 
+          iz = iz + 1
+       end do
+    end do
+
     ! Run over beads in other chains....
     if (nchains>1) then
 
        if ( use_link_cells ) then
 
+  
           do ibead = 1,nbeads
 
              rbead(:) = Rchain(:,ibead,ichain,ibox)
@@ -1398,29 +1411,39 @@ contains
                    sz = sz - floor(sz+0.5_dp,kind=dp)
 
                    ! scale back up
-                   rx = hmatrix(1,1,ibox)*sx + &
-                        hmatrix(1,2,ibox)*sy + &
-                        hmatrix(1,3,ibox)*sz
-                                   
-                   ry = hmatrix(2,1,ibox)*sx + &
-                        hmatrix(2,2,ibox)*sy + &
-                        hmatrix(2,3,ibox)*sz
-                                   
-                   rz = hmatrix(3,1,ibox)*sx + &
-                        hmatrix(3,2,ibox)*sy + &
-                        hmatrix(3,3,ibox)*sz
+                   rx = hcache(1)*sx + hcache(2)*sy + hcache(3)*sz
+                   ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
+                   rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
+                   
+!!$                   rx = hmatrix(1,1,ibox)*sx + &
+!!$                        hmatrix(1,2,ibox)*sy + &
+!!$                        hmatrix(1,3,ibox)*sz
 
-                   overlap = overlap.or.( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
+                                   
+!!$                   ry = hmatrix(2,1,ibox)*sx + &
+!!$                        hmatrix(2,2,ibox)*sy + &
+!!$                        hmatrix(2,3,ibox)*sz
+                                   
+!!$                   rz = hmatrix(3,1,ibox)*sx + &
+!!$                        hmatrix(3,2,ibox)*sy + &
+!!$                        hmatrix(3,3,ibox)*sz
+
+                   !overlap = overlap.or.( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
+                   overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
+                   if ( overlap ) then
+                      alkane_chain_inter_boltz = 0.0_dp
+                      return
+                   end if
 
                    tmpint  = linked_list(1,jbead,jchain,ibox)
                    jchain  = linked_list(2,jbead,jchain,ibox)
                    jbead   = tmpint              
 
                 end do
-                if ( overlap ) then
-                   alkane_chain_inter_boltz = 0.0_dp
-                   return
-                end if
+                !if ( overlap ) then
+                !   alkane_chain_inter_boltz = 0.0_dp
+                !   return
+                !end if
              end do
 
           end do
@@ -1943,6 +1966,10 @@ contains
     !call system_clock(count=t1)
 
     do jbox = ifirst,ilast
+
+       ! Don't try to build link cells if cell dimensions have not
+       ! been set for jbox, i.e. at initialisation.
+       if ( ncellx(jbox)*ncelly(jbox)*ncellz(jbox) == 0 ) cycle
 
        head_of_cell(:,:,jbox) = 0
        
