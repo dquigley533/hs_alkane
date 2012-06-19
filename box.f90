@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.10 2011/11/21 11:46:52 phseal Exp $
+! $Id: box.f90,v 1.11 2012/06/19 16:40:22 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.11  2012/06/19 16:40:22  phrkao
+! changed centre of mass to first bead
+!
 ! Revision 1.10  2011/11/21 11:46:52  phseal
 ! Fixed purging of other boxes when reallocating lcneigh
 !
@@ -402,7 +405,6 @@ contains
        ncells(jbox) = ncellx(jbox)*ncelly(jbox)*ncellz(jbox)
     end do
 
-    !write(0,'("Called box_construct_link_cells with ibox = :",I5," ncells =", 2I5)')ibox,ncells
 
     maxcells = maxval(ncells,1)
     deallocate(ncells,stat=ierr)
@@ -412,7 +414,6 @@ contains
     ! Bomb out if system is too small for link cells
     if ( (ncellx(ibox)<4).or.(ncelly(ibox)<4).or.(ncellz(ibox)<4) ) then
        use_link_cells = .false.
-       write(0,'("System has become too small for link cells of minimum length ",F15.6)')link_cell_length
        return
     end if
 
@@ -470,6 +471,7 @@ contains
        end do
 
     end do ! loop over boxes to rebuild
+
 
     return
 

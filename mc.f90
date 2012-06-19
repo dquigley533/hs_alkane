@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.14 2011/11/21 16:08:49 phseal Exp $
+! $Id: mc.f90,v 1.15 2012/06/19 16:40:22 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.15  2012/06/19 16:40:22  phrkao
+! changed centre of mass to first bead
+!
 ! Revision 1.14  2011/11/21 16:08:49  phseal
 ! Removed MS Windoze tab characters
 !
@@ -429,7 +432,7 @@ contains
     ! eq_adjust_mc is true. Should only be used to select moves params   !
     ! for subsequent simulations with fixed values.                      !
     !--------------------------------------------------------------------!
-    if ( (mod(mc_cycle_num,1000)==0).and.eq_adjust_mc ) then
+    if ( (mod(mc_cycle_num,10000)==0).and.eq_adjust_mc ) then
 
        write(*,'("!=======================================!")') 
        write(*,'("! Checking move acceptance ratios...    !")')
@@ -439,9 +442,9 @@ contains
        acrat  = real(mc_accepted_cbmc)/real(mc_attempted_cbmc)
        ktrial = max(5,int(real(ktrial,kind=dp)*mc_target_ratio/acrat))
        ktrial = min(10,ktrial)
-
+       if (mc_accepted_cbmc == 0) ktrial = 10
        
-       write(*,'("! Configurational bias moves   : ",I2" %   ")')nint(acrat*100.0_dp)
+       write(*,'("! Configurational bias moves   : ",I2" %   ",I5)')nint(acrat*100.0_dp),mc_attempted_cbmc
        !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
        !     mc_accepted_cbmc,mc_attempted_cbmc
 

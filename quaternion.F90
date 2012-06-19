@@ -3,13 +3,16 @@
 !                          Q U A T E R N I O N                                !
 !=============================================================================!
 !                                                                             !
-! $Id: quaternion.F90,v 1.2 2011/08/03 20:00:06 phseal Exp $
+! $Id: quaternion.F90,v 1.3 2012/06/19 16:40:22 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to compute, manipulate and apply quaternion rotations.             !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: quaternion.F90,v $
+! Revision 1.3  2012/06/19 16:40:22  phrkao
+! changed centre of mass to first bead
+!
 ! Revision 1.2  2011/08/03 20:00:06  phseal
 ! Added C wrappers for functions
 !
@@ -54,6 +57,14 @@ module quaternion
       real(kind=dp),dimension(4),intent(out) :: quat
 
       real(kind=dp) :: m2v1,m2v2
+
+      !check v1 and v2 are normalised
+#ifdef DEBUG
+      if  ( (abs(sqrt(dot_product(v1,v1)) - 1.0_dp) > epsilon(1.0_dp)) .or. (abs(sqrt(dot_product(v2,v2)) - 1.0_dp) > epsilon(1.0_dp)) ) then
+         write(0,'("Warning in quat_axis_angle_to_quat : axis is not a unit vector")')
+      end if
+#endif
+
 
       m2v1   = dot_product(v1,v1)
       m2v2   = dot_product(v2,v2)

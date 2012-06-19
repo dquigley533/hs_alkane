@@ -3,12 +3,15 @@
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
 #                                                                             #
-# $Id: Makefile,v 1.5 2011/09/01 16:55:13 phrkao Exp $
+# $Id: Makefile,v 1.6 2012/06/19 16:40:22 phrkao Exp $
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
 #
 # $Log: Makefile,v $
+# Revision 1.6  2012/06/19 16:40:22  phrkao
+# changed centre of mass to first bead
+#
 # Revision 1.5  2011/09/01 16:55:13  phrkao
 # Changed alkane_check_chain_geometry to be C compatible, had to change
 # the argument "violate" from logical to integer and subsequently changed
@@ -39,9 +42,9 @@ prefix     = $(HOME)
 bindir     = $(prefix)/bin
 
 # Compiler and flags
-F90       = gfortran-mp-4.5
-LD        = gfortran-mp-4.5
-FFLAGS    = -O0 -g -fPIC
+F90       =gfortran-4.5
+LD        =gfortran-4.5
+FFLAGS    = -pg -fPIC
 INCLUDE   = 
 LIBS      = 
 
@@ -85,5 +88,5 @@ library-query:
 clean : 
 
 	rm -f *.mod *.d *.il *.o work.*
-	rm -f $(bindir)/hs_alkane
+	rm -f $(bindir)/hs_alkane libalkane.so
 

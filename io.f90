@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.9 2011/11/21 16:08:18 phseal Exp $
+! $Id: io.f90,v 1.10 2012/06/19 16:40:22 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.10  2012/06/19 16:40:22  phrkao
+! changed centre of mass to first bead
+!
 ! Revision 1.9  2011/11/21 16:08:18  phseal
 ! Removed unused variables
 !
@@ -122,7 +125,7 @@ contains
     !    external  getarg
 
     integer(kind=it) :: ierr  ! error flag
-    logical :: lexist
+    logical :: lexist = .false.
 
     ! check that there is only one argument.
     num_args = iargc()

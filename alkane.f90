@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.26 2011/11/21 16:07:47 phseal Exp $
+! $Id: alkane.f90,v 1.27 2012/06/19 16:40:22 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.27  2012/06/19 16:40:22  phrkao
+! changed centre of mass to first bead
+!
 ! Revision 1.26  2011/11/21 16:07:47  phseal
 ! Removed unused variables and refactored volume moves to prevent compiler warnings
 !
@@ -328,8 +331,9 @@ contains
   subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is rotated     !
-    ! about its centre of mass. The new Boltzmann factor after the trial move !
+    ! about the first bead. The new Boltzmann factor after the trial move     !
     ! is returned as new_boltz. The old Boltzmann factor will always be one.  !
+    ! Changed from rotation about Centre of Mass to about first bead          !
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
@@ -338,7 +342,7 @@ contains
     implicit none
     integer(kind=it),intent(in)             :: ichain,ibox
     real(kind=dp),intent(out)               :: new_boltz
-    real(kind=dp),dimension(3)              :: axis,rcom
+    real(kind=dp),dimension(3)              :: axis,first
     real(kind=dp),dimension(4),intent(out)  :: quat
     real(kind=dp)                           :: theta
 
@@ -356,18 +360,28 @@ contains
     call quat_axis_angle_to_quat(axis,theta,quat)
 
     ! chain center of mass
-    rcom(:) = 0.0_dp
+   ! rcom(:) = 0.0_dp
+    !do ibead = 1,nbeads
+     !  rcom(:) = rcom(:) + Rchain(:,ibead,ichain,ibox)
+    !end do
+    !rcom(:) = rcom(:)/real(nbeads,kind=dp)
+
+    !first bead 
+    first(:) = Rchain(:,1,ichain,ibox)
+
+    !move so first bead is at the origin, rotate, move back
     do ibead = 1,nbeads
-       rcom(:) = rcom(:) + Rchain(:,ibead,ichain,ibox)
-    end do
-    rcom(:) = rcom(:)/real(nbeads,kind=dp)
+       Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - first(:)
+       Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
+       Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + first(:)
+  end do
 
     ! rotate the chain
-    do ibead = 1,nbeads
-       Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - rcom(:)
-       Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
-       Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + rcom(:)
-    end do
+!    do ibead = 1,nbeads
+       !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - rcom(:)
+       !Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
+       !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + rcom(:)
+ !   end do
 
     new_boltz = alkane_chain_inter_boltz(ichain,ibox)
 
@@ -380,7 +394,7 @@ contains
     ! Implements an MC trial move in which the size (and possibly shape) of   !
     ! the simulation box is altered by a random amount. The ratio  of new/old !
     ! Boltmann factors (i.e. the acceptance probability) is returned as       !
-    ! new_boltz. The centre-of-mass position of each chain in fractional      !
+    ! new_boltz. The position of the FIRST BEAD is constant in fractional     !
     ! coordinates is constant during the move. Note that any torsional        !
     ! potential does not enter into the acceptance criteria.                  !
     !-------------------------------------------------------------------------!
@@ -396,7 +410,8 @@ contains
     integer(kind=it),intent(in)  :: ibox
     integer(kind=it),intent(in)  :: reset
     real(kind=dp),intent(out)    :: acc_prob
-    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+!    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+    real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3),save :: old_hmatrix,new_hmatrix,delta_hmatrix
     real(kind=dp) :: old_volume,new_volume,delta_vol,x
 
@@ -406,46 +421,44 @@ contains
 
        do ichain = 1,nchains
 
-          comchain(:) = 0.0_dp
-          do ibead = 1,nbeads
-             comchain(:) = comchain(:) + Rchain(:,ibead,ichain,ibox)
-          end do
-          comchain(:) = comchain(:)/real(nbeads,kind=dp)
-          oldcom(:)   = comchain(:)
+          first(:) = 0.0_dp
+          ibead = 1
+          first(:) =  Rchain(:,ibead,ichain,ibox)
 
-          ! Compute fractional com position using the current recip_matrix          
-          tmpcom(1) = recip_matrix(1,1,ibox)*oldcom(1) + &
-                      recip_matrix(2,1,ibox)*oldcom(2) + &
-                      recip_matrix(3,1,ibox)*oldcom(3)
-          tmpcom(2) = recip_matrix(1,2,ibox)*oldcom(1) + &
-                      recip_matrix(2,2,ibox)*oldcom(2) + &
-                      recip_matrix(3,2,ibox)*oldcom(3)  
-          tmpcom(3) = recip_matrix(1,3,ibox)*oldcom(1) + &
-                      recip_matrix(2,3,ibox)*oldcom(2) + &
-                      recip_matrix(3,3,ibox)*oldcom(3) 
+          
+          ! Compute fractional first bead position using the current recip_matrix          
+          frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
+                         recip_matrix(2,1,ibox)*first(2) + &
+                         recip_matrix(3,1,ibox)*first(3)
+          frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
+                         recip_matrix(2,2,ibox)*first(2) + &
+                         recip_matrix(3,2,ibox)*first(3)  
+          frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
+                         recip_matrix(2,3,ibox)*first(2) + &
+                         recip_matrix(3,3,ibox)*first(3) 
 
-          tmpcom = tmpcom*0.5_dp*invPi 
+          frac_first = frac_first*0.5_dp*invPi 
 
 
           ! Scale to the previous cell
-          comchain(1) = old_hmatrix(1,1)*tmpcom(1) + &
-                        old_hmatrix(1,2)*tmpcom(2) + &
-                        old_hmatrix(1,3)*tmpcom(3)
+          first_chain(1) = old_hmatrix(1,1)*frac_first(1) + &
+                           old_hmatrix(1,2)*frac_first(2) + &
+                           old_hmatrix(1,3)*frac_first(3)
 
-          comchain(2) = old_hmatrix(2,1)*tmpcom(1) + &
-                        old_hmatrix(2,2)*tmpcom(2) + &
-                        old_hmatrix(2,3)*tmpcom(3)
+          first_chain(2) = old_hmatrix(2,1)*frac_first(1) + &
+                           old_hmatrix(2,2)*frac_first(2) + &
+                           old_hmatrix(2,3)*frac_first(3)
 
-          comchain(3) = old_hmatrix(3,1)*tmpcom(1) + &
-                        old_hmatrix(3,2)*tmpcom(2) + &
-                        old_hmatrix(3,3)*tmpcom(3)
+          first_chain(3) = old_hmatrix(3,1)*frac_first(1) + &
+                           old_hmatrix(3,2)*frac_first(2) + &
+                           old_hmatrix(3,3)*frac_first(3)
 
-          tmpcom(:) = comchain(:) - oldcom(:)
+          delta_first(:) = first_chain(:) - first(:)
 
-          !write(*,'(3F15.6)')tmpcom
+          !write(*,'(3F15.6)')delta_first
 
           do ibead = 1,nbeads
-             Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + tmpcom(:)
+             Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + delta_first(:)
           end do
 
        end do
@@ -500,45 +513,42 @@ contains
 
        do ichain = 1,nchains
 
-          comchain(:) = 0.0_dp
-          do ibead = 1,nbeads
-             comchain(:) = comchain(:) + Rchain(:,ibead,ichain,ibox)
-          end do
-          comchain(:) = comchain(:)/real(nbeads,kind=dp)
-          oldcom(:)   = comchain(:)
+          first(:) = 0.0_dp
+          ibead = 1
+          first(:) =  Rchain(:,ibead,ichain,ibox)
+          
+          ! Compute fractional first bead position using the current recip_matrix          
+          frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
+                          recip_matrix(2,1,ibox)*first(2) + &
+                          recip_matrix(3,1,ibox)*first(3)
+          frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
+                          recip_matrix(2,2,ibox)*first(2) + &
+                          recip_matrix(3,2,ibox)*first(3)  
+          frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
+                          recip_matrix(2,3,ibox)*first(2) + &
+                          recip_matrix(3,3,ibox)*first(3) 
 
-          ! Compute fractional com position using the current recip_matrix          
-          tmpcom(1) = recip_matrix(1,1,ibox)*oldcom(1) + &
-                      recip_matrix(2,1,ibox)*oldcom(2) + &
-                      recip_matrix(3,1,ibox)*oldcom(3)
-          tmpcom(2) = recip_matrix(1,2,ibox)*oldcom(1) + &
-                      recip_matrix(2,2,ibox)*oldcom(2) + &
-                      recip_matrix(3,2,ibox)*oldcom(3)  
-          tmpcom(3) = recip_matrix(1,3,ibox)*oldcom(1) + &
-                      recip_matrix(2,3,ibox)*oldcom(2) + &
-                      recip_matrix(3,3,ibox)*oldcom(3) 
-
-          tmpcom = tmpcom*0.5_dp*invPi 
+          frac_first = frac_first*0.5_dp*invPi 
 
           ! Scale to the new cell
-          comchain(1) = hmatrix(1,1,ibox)*tmpcom(1) + &
-                        hmatrix(1,2,ibox)*tmpcom(2) + &
-                        hmatrix(1,3,ibox)*tmpcom(3)
+          first_chain(1) = hmatrix(1,1,ibox)*frac_first(1) + &
+                           hmatrix(1,2,ibox)*frac_first(2) + &
+                           hmatrix(1,3,ibox)*frac_first(3)
 
-          comchain(2) = hmatrix(2,1,ibox)*tmpcom(1) + &
-                        hmatrix(2,2,ibox)*tmpcom(2) + &
-                        hmatrix(2,3,ibox)*tmpcom(3)
+          first_chain(2) = hmatrix(2,1,ibox)*frac_first(1) + &
+                           hmatrix(2,2,ibox)*frac_first(2) + &
+                           hmatrix(2,3,ibox)*frac_first(3)
 
-          comchain(3) = hmatrix(3,1,ibox)*tmpcom(1) + &
-                        hmatrix(3,2,ibox)*tmpcom(2) + &
-                        hmatrix(3,3,ibox)*tmpcom(3)
+          first_chain(3) = hmatrix(3,1,ibox)*frac_first(1) + &
+                           hmatrix(3,2,ibox)*frac_first(2) + &
+                           hmatrix(3,3,ibox)*frac_first(3)
 
-          tmpcom(:) = comchain(:) - oldcom(:)
+          delta_first(:) = first_chain(:) - first(:)
 
-          !write(*,'(3F15.6)')tmpcom
+          !write(*,'(3F15.6)')delta_first
 
           do ibead = 1,nbeads
-             Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + tmpcom(:)
+             Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + delta_first(:)
           end do
 
        end do
@@ -571,7 +581,7 @@ contains
     ! Implements an MC trial move in which the size (and possibly shape) of   !
     ! the simulation box is altered by a random amount. The ratio  of new/old !
     ! Boltmann factors (i.e. the acceptance probability) is returned as       !
-    ! new_boltz. The centre-of-mass position of each chain in fractional      !
+    ! new_boltz. The first bead position of each chain in fractional          !
     ! coordinates is constant during the move. Note that any torsional        !
     ! potential does not enter into the acceptance criteria.                  !
     !-------------------------------------------------------------------------!
@@ -585,7 +595,8 @@ contains
 
     integer(kind=it),intent(in)  :: ibox
     real(kind=dp),intent(in)     :: scaleA,scaleB,scaleC
-    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+!    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+    real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
     real(kind=dp) :: old_volume
 
@@ -604,43 +615,39 @@ contains
 
     do ichain = 1,nchains
 
-       comchain(:) = 0.0_dp
-       do ibead = 1,nbeads
-          comchain(:) = comchain(:) + Rchain(:,ibead,ichain,ibox)
-       end do
-       comchain(:) = comchain(:)/real(nbeads,kind=dp)
-       oldcom(:)   = comchain(:)
+       ibead = 1
+       first(:) = Rchain(:,ibead,ichain,ibox)
 
        ! Compute fractional com position using the current recip_matrix          
-       tmpcom(1) = recip_matrix(1,1,ibox)*oldcom(1) + &
-                   recip_matrix(2,1,ibox)*oldcom(2) + &
-                   recip_matrix(3,1,ibox)*oldcom(3)
-       tmpcom(2) = recip_matrix(1,2,ibox)*oldcom(1) + &
-                   recip_matrix(2,2,ibox)*oldcom(2) + &
-                   recip_matrix(3,2,ibox)*oldcom(3)  
-       tmpcom(3) = recip_matrix(1,3,ibox)*oldcom(1) + &
-                   recip_matrix(2,3,ibox)*oldcom(2) + &
-                   recip_matrix(3,3,ibox)*oldcom(3) 
+       frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
+                   recip_matrix(2,1,ibox)*first(2) + &
+                   recip_matrix(3,1,ibox)*first(3)
+       frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
+                   recip_matrix(2,2,ibox)*first(2) + &
+                   recip_matrix(3,2,ibox)*first(3)  
+       frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
+                   recip_matrix(2,3,ibox)*first(2) + &
+                   recip_matrix(3,3,ibox)*first(3) 
 
-       tmpcom = tmpcom*0.5_dp*invPi 
+       frac_first = frac_first*0.5_dp*invPi 
 
        ! Scale to the new cell
-       comchain(1) = hmatrix(1,1,ibox)*tmpcom(1) + &
-                     hmatrix(1,2,ibox)*tmpcom(2) + &
-                     hmatrix(1,3,ibox)*tmpcom(3)
+       first_chain(1) = hmatrix(1,1,ibox)*frac_first(1) + &
+                        hmatrix(1,2,ibox)*frac_first(2) + &
+                        hmatrix(1,3,ibox)*frac_first(3)
                                 
-       comchain(2) = hmatrix(2,1,ibox)*tmpcom(1) + &
-                     hmatrix(2,2,ibox)*tmpcom(2) + &
-                     hmatrix(2,3,ibox)*tmpcom(3)
+       first_chain(2) = hmatrix(2,1,ibox)*frac_first(1) + &
+                        hmatrix(2,2,ibox)*frac_first(2) + &
+                        hmatrix(2,3,ibox)*frac_first(3)
                                 
-       comchain(3) = hmatrix(3,1,ibox)*tmpcom(1) + &
-                     hmatrix(3,2,ibox)*tmpcom(2) + &
-                     hmatrix(3,3,ibox)*tmpcom(3)
+       first_chain(3) = hmatrix(3,1,ibox)*frac_first(1) + &
+                        hmatrix(3,2,ibox)*frac_first(2) + &
+                        hmatrix(3,3,ibox)*frac_first(3)
 
-       tmpcom(:) = comchain(:) - oldcom(:)
+       delta_first(:) = first_chain(:) - first(:)
 
        do ibead = 1,nbeads
-          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox ) + tmpcom(:)
+          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox ) + delta_first(:)
        end do
 
     end do
@@ -1553,7 +1560,7 @@ contains
 
   end function alkane_random_dihedral
     
-  subroutine alkane_check_dihedral(b1,b2,b3) bind(c)
+  subroutine alkane_check_dihedral(b1,b2,b3,angle) bind(c)
     !-------------------------------------------------------------------------!
     ! Computes the dihedral angle formed as that between the two planes       !
     ! formed by b1xb2 and b2xb3 and shifts to be consistent with the          !
@@ -1564,8 +1571,9 @@ contains
     use constants, only : Pi
     implicit none
     real(kind=dp),dimension(3),intent(in) :: b1,b2,b3
+    real(kind=dp),intent(out) :: angle
     real(kind=dp),dimension(3)            :: t1,t2
-    real(kind=dp) :: arg1,arg2,angle
+    real(kind=dp) :: arg1,arg2
 
     t1 = cross_product(b2,b3)
     t2 = cross_product(b1,b2)
@@ -1578,7 +1586,7 @@ contains
     ! convect to be consistent with the angle-origin define by the model
     angle = -sign(180.0_dp-abs(angle),angle)
 
-    write(0,'("Measured dihedral angle as : ",F15.6)')angle 
+    !write(0,'("Measured dihedral angle as : ",F15.6)')angle 
 
   contains
 
@@ -1678,6 +1686,7 @@ contains
           overlap = 1
        end if
 
+       
        ! Check for consistency in the overall Boltzmann factor of the cell
        if ( abs(acc-acc_link) > epsilon(1.0_dp) ) then
           write(0,'("Error : Link cell calculation of overlaps disagrees with brute force method!")')
@@ -1715,7 +1724,8 @@ contains
     
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
     integer(kind=it) :: ibead,jbead
-    real(kind=dp) :: boltzf
+    real(kind=dp) :: boltzf,angle
+
 
     violated = 0 ! No problems found yet
 
@@ -1777,9 +1787,10 @@ contains
        boltzf = alkane_dihedral_boltz(r12,r23,r34)
 
        if (boltzf<tiny(1.0_dp)) then
-          write(0,'("Warning: Found a bad dihedral angle involving beads ",I5,",",I5," and ",I5)') &
-               ibead,ibead+1,ibead+2
-          call alkane_check_dihedral(r12,r23,r34)
+          write(*,*)"Warning: Found a bad dihedral angle on chain ",ichain,"box ",ibox
+          write(*,*)"botltzman factor: ",boltzf
+          call alkane_check_dihedral(r12,r23,r34,angle)
+          write(*,*)"with angle ",angle
           ! DQ - this should only be a warning, as rounding errors often trigger this for dihedral
           ! angles slightly outside the allowed range when operations are performed in a different
           ! order to how they are generated.
@@ -1789,8 +1800,8 @@ contains
     end do
 
     if ( violated == 1) then
-       write(0,'("Dihedral angle violation for chain ",I5," in box ",I5)')ichain,ibox
-       write(0,'("Other chains may be affected")')
+       write(*,'("Dihedral angle violation for chain ",I5," in box ",I5)')ichain,ibox
+       write(*,'("Other chains may be affected")')
        return
     end if
 
@@ -1817,7 +1828,6 @@ contains
        violated = 0   
     end if
    
-    
    
     return
 
@@ -2753,8 +2763,8 @@ contains
   subroutine alkane_change_box(ibox,delta_H) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements a change in the matrix of cell vectors for box ibox, by      !
-    ! the matrix delta_H. The box is changed, the chain C.O.M. positions are  !
-    ! scaled accordinly, and the matrix of reciprocal lattice vectors is      !
+    ! the matrix delta_H. The box is changed, the chain first bead positions  !
+    ! are scaled accordinly, and the matrix of reciprocal lattice vectors is  !
     ! updated for that box. For use in applying moves to an inactive box      !
     ! in lattice-switching calculations.                                      !
     !-------------------------------------------------------------------------!
@@ -2769,7 +2779,8 @@ contains
     integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(in)     :: delta_H
 
-    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+!    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
+    real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
     real(kind=dp) :: old_volume
 
@@ -2785,43 +2796,39 @@ contains
 
     do ichain = 1,nchains
 
-       comchain(:) = 0.0_dp
-       do ibead = 1,nbeads
-          comchain(:) = comchain(:) + Rchain(:,ibead,ichain,ibox)
-       end do
-       comchain(:) = comchain(:)/real(nbeads,kind=dp)
-       oldcom(:)   = comchain(:)
+       ibead = 1
+       first(:) = Rchain(:,ibead,ichain,ibox)
 
-       ! Compute fractional com position using the current recip_matrix          
-       tmpcom(1) = recip_matrix(1,1,ibox)*oldcom(1) + &
-                   recip_matrix(2,1,ibox)*oldcom(2) + &
-                   recip_matrix(3,1,ibox)*oldcom(3)
-       tmpcom(2) = recip_matrix(1,2,ibox)*oldcom(1) + &
-                   recip_matrix(2,2,ibox)*oldcom(2) + &
-                   recip_matrix(3,2,ibox)*oldcom(3)  
-       tmpcom(3) = recip_matrix(1,3,ibox)*oldcom(1) + &
-                   recip_matrix(2,3,ibox)*oldcom(2) + &
-                   recip_matrix(3,3,ibox)*oldcom(3) 
+       ! Compute fractional first bead position using the current recip_matrix          
+       frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
+                       recip_matrix(2,1,ibox)*first(2) + &
+                       recip_matrix(3,1,ibox)*first(3)
+       frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
+                       recip_matrix(2,2,ibox)*first(2) + &
+                       recip_matrix(3,2,ibox)*first(3)  
+       frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
+                       recip_matrix(2,3,ibox)*first(2) + &
+                       recip_matrix(3,3,ibox)*first(3) 
 
-       tmpcom = tmpcom*0.5_dp*invPi 
+       frac_first = frac_first*0.5_dp*invPi 
 
        ! Scale to the new cell
-       comchain(1) = hmatrix(1,1,ibox)*tmpcom(1) + &
-                     hmatrix(1,2,ibox)*tmpcom(2) + &
-                     hmatrix(1,3,ibox)*tmpcom(3)
+       first_chain(1) = hmatrix(1,1,ibox)*frac_first(1) + &
+                        hmatrix(1,2,ibox)*frac_first(2) + &
+                        hmatrix(1,3,ibox)*frac_first(3)
                                 
-       comchain(2) = hmatrix(2,1,ibox)*tmpcom(1) + &
-                     hmatrix(2,2,ibox)*tmpcom(2) + &
-                     hmatrix(2,3,ibox)*tmpcom(3)
+       first_chain(2) = hmatrix(2,1,ibox)*frac_first(1) + &
+                        hmatrix(2,2,ibox)*frac_first(2) + &
+                        hmatrix(2,3,ibox)*frac_first(3)
                                 
-       comchain(3) = hmatrix(3,1,ibox)*tmpcom(1) + &
-                     hmatrix(3,2,ibox)*tmpcom(2) + &
-                     hmatrix(3,3,ibox)*tmpcom(3)
+       first_chain(3) = hmatrix(3,1,ibox)*frac_first(1) + &
+                        hmatrix(3,2,ibox)*frac_first(2) + &
+                        hmatrix(3,3,ibox)*frac_first(3)
 
-       tmpcom(:) = comchain(:) - oldcom(:)
+       delta_first(:) = first_chain(:) - first(:)
 
        do ibead = 1,nbeads
-          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox ) + tmpcom(:)
+          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox ) + delta_first(:)
        end do
 
     end do
