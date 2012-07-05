@@ -3,13 +3,16 @@
 !                          Q U A T E R N I O N                                !
 !=============================================================================!
 !                                                                             !
-! $Id: quaternion.F90,v 1.3 2012/06/19 16:40:22 phrkao Exp $
+! $Id: quaternion.F90,v 1.4 2012/07/05 13:04:42 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Routines to compute, manipulate and apply quaternion rotations.             !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: quaternion.F90,v $
+! Revision 1.4  2012/07/05 13:04:42  phrkao
+! merged
+!
 ! Revision 1.3  2012/06/19 16:40:22  phrkao
 ! changed centre of mass to first bead
 !
@@ -92,7 +95,7 @@ module quaternion
       real(kind=dp) :: sh,ch
 
 #ifdef DEBUG
-      if  ( sqrt(dot_product(axis,axis))> 1.0_dp ) then
+      if  ( sqrt(dot_product(axis,axis)) - 1.0_dp > tiny(1.0_dp) ) then
          write(0,'("Warning in quat_axis_angle_to_quat : axis is not a unit vector")')
       end if
 #endif 
@@ -193,8 +196,8 @@ module quaternion
       real(kind=dp),dimension(4) :: tmpquat
       
 #ifdef DEBUG
-      if  ( sqrt(dot_product(a,a))> 1.0_dp ) then
-         write(0,'("Warning in quat_inverse : a is not normalised")')
+      if  ( sqrt(dot_product(a,a)) - 1.0_dp <tiny(1.0_dp) ) then
+         write(0,'("Warning in quat_inverse : a is not normalised",F15.6)')sqrt(dot_product(a,a))
       end if
 #endif 
 
@@ -237,8 +240,8 @@ module quaternion
       real(kind=dp),dimension(4) :: q,b
       
 #ifdef DEBUG
-      if  ( sqrt(dot_product(a,a))> 1.0_dp ) then
-         write(0,'("Warning in quat_inverse : a is not normalised")')
+      if  ( sqrt(dot_product(a,a)) - 1.0_dp > tiny(1.0_dp) ) then
+         write(0,'("Warning in quat_inverse : a is not normalised",F15.6)')sqrt(dot_product(a,a))-1.0_dp
       end if
 #endif 
 

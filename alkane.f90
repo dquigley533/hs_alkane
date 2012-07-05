@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.27 2012/06/19 16:40:22 phrkao Exp $
+! $Id: alkane.f90,v 1.28 2012/07/05 13:04:42 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.28  2012/07/05 13:04:42  phrkao
+! merged
+!
 ! Revision 1.27  2012/06/19 16:40:22  phrkao
 ! changed centre of mass to first bead
 !
@@ -882,13 +885,14 @@ contains
     ! Set bead from which to (re)grow
     if ( .not.chain_created(ichain,ibox) ) then
        first_bead = 1  ! grow whole chain from scratch
-      ! write(0,'("alkane : Creating new chain from first bead")')
+       !write(0,'("alkane : Creating new chain from first bead")')
     elseif (new_conf==0) then
        first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
        if (first_bead>max_regrow) first_bead = max_regrow
        first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
        !write(0,'("alkane : Regrowing an old chain from bead", I5)')first_bead
     elseif (new_conf==1) then
+       first_bead = 1
        !write(0,'("alkane : Growing   an new chain from bead", I5)')first_bead
     end if
 
@@ -1621,7 +1625,8 @@ contains
     real(kind=dp) :: test,acc,acc_link
     integer(kind=it) :: ichain,num_chains_overlapping,num_chains_overlapping_link
     integer(kind=it),intent(out) :: overlap
-
+    
+    !write(*,*)"check chain ibox=",ibox
 
     if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
     
@@ -1636,7 +1641,7 @@ contains
           test = alkane_chain_inter_boltz(ichain,ibox)
           acc  = acc*test
           if (test < tiny(1.0_dp) ) then
-             write(0,'("Chain ",I5", overlaps with another chain")')ichain
+            ! write(0,'("Chain ",I5", overlaps with another chain")')ichain
           end if
        end do
 
@@ -1657,7 +1662,7 @@ contains
           test = alkane_chain_inter_boltz(ichain,ibox)
           acc_link  = acc_link*test
           if (test < tiny(1.0_dp) ) then
-             write(0,'("Chain ",I5", overlaps with another chain (computed using link cells)")')ichain
+             !write(0,'("Chain ",I5", overlaps with another chain (computed using link cells)")')ichain
              num_chains_overlapping_link = num_chains_overlapping_link + 1
           end if
        end do
@@ -1672,7 +1677,7 @@ contains
           test = alkane_chain_inter_boltz(ichain,ibox)
           acc  = acc*test
           if (test < tiny(1.0_dp) ) then
-             write(0,'("Chain ",I5", overlaps with another chain (computed without link cells)")')ichain
+             !write(0,'("Chain ",I5", overlaps with another chain (computed without link cells)")')ichain
              num_chains_overlapping = num_chains_overlapping + 1
           end if
        end do
@@ -1686,7 +1691,6 @@ contains
           overlap = 1
        end if
 
-       
        ! Check for consistency in the overall Boltzmann factor of the cell
        if ( abs(acc-acc_link) > epsilon(1.0_dp) ) then
           write(0,'("Error : Link cell calculation of overlaps disagrees with brute force method!")')
