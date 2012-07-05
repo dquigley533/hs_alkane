@@ -3,12 +3,15 @@
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
 #                                                                             #
-# $Id: Makefile,v 1.6 2012/06/19 16:40:22 phrkao Exp $
+# $Id: Makefile,v 1.7 2012/07/05 12:59:56 phrkao Exp $
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
 #
 # $Log: Makefile,v $
+# Revision 1.7  2012/07/05 12:59:56  phrkao
+# included ability to set compiler and flags from commandline in the Makefile
+#
 # Revision 1.6  2012/06/19 16:40:22  phrkao
 # changed centre of mass to first bead
 #
@@ -40,13 +43,24 @@ SHELL = /bin/sh
 # Where you want the executable
 prefix     = $(HOME)
 bindir     = $(prefix)/bin
+libdir     = $(prefix)/lib
 
-# Compiler and flags
-F90       =gfortran-4.5
-LD        =gfortran-4.5
-FFLAGS    = -pg -fPIC
+# Default compiler and flags
+F90       = gfortran
+LD        = gfortran
+FFLAGS    = -O3 -fPIC
 INCLUDE   = 
 LIBS      = 
+
+ifneq ($(comp),)
+  F90 = $(comp)
+  LD  = $(comp)
+endif
+
+ifneq ($(flags),)
+  FFLAGS = $(flags)
+endif
+
 
 # Nothing should need to be changed below here.
 #=====================================================================
@@ -63,7 +77,7 @@ hs_alkane : $(OBJECTS)
 
 # Library - should make clean && make if building this after the stand-along f90 code
 library: $(LIBOBJ)
-	$(F90) $(LIBOBJ) -shared -o libalkane.so $(FFLAGS) $(LIBS) 
+	$(F90) $(LIBOBJ) -shared -o $(libdir)/libalkane.so $(FFLAGS) $(LIBS) 
 
 # Lists the procedues in libalkane.so accessible by C binding without mangling
 library-query:
