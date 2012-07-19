@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.11 2012/06/19 16:40:22 phrkao Exp $
+! $Id: box.f90,v 1.12 2012/07/19 13:50:01 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.12  2012/07/19 13:50:01  phrkao
+! added box_frac_to_cart_otherbox, for a specified hmatrix
+!
 ! Revision 1.11  2012/06/19 16:40:22  phrkao
 ! changed centre of mass to first bead
 !
@@ -413,7 +416,9 @@ contains
 
     ! Bomb out if system is too small for link cells
     if ( (ncellx(ibox)<4).or.(ncelly(ibox)<4).or.(ncellz(ibox)<4) ) then
+       write(0,'("system too small for link cells of this size",3I5)')ncellx(ibox),ncelly(ibox),ncellz(ibox)
        use_link_cells = .false.
+       stop
        return
     end if
 
@@ -599,5 +604,39 @@ contains
 
   end subroutine box_frac_to_cart
 
+
+ subroutine box_frac_to_cart_otherbox(hmatrix_loc,in_vector,out_vector) bind(c)
+    !-------------------------------------------------------------------------!
+    ! For the specified hmatrix convert in_vector in box-scaled coords     !
+    ! into out_vector in absolute cartesian coords.                           !
+    !                                                                         !
+    ! Requirements : hmatrix must be valid and current for ibox               !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    use constants, only : invPi
+    implicit none
+    real(kind=dp),dimension(3,3),intent(in)  :: hmatrix_loc
+    real(kind=dp),dimension(3),intent(in)  :: in_vector
+    real(kind=dp),dimension(3),intent(out) :: out_vector
+
+    out_vector(1) = hmatrix_loc(1,1)*in_vector(1) + &
+                    hmatrix_loc(1,2)*in_vector(2) + &
+                    hmatrix_loc(1,3)*in_vector(3)
+                       
+    out_vector(2) = hmatrix_loc(2,1)*in_vector(1) + &
+                    hmatrix_loc(2,2)*in_vector(2) + &
+                    hmatrix_loc(2,3)*in_vector(3)
+                       
+    out_vector(3) = hmatrix_loc(3,1)*in_vector(1) + &
+                    hmatrix_loc(3,2)*in_vector(2) + &
+                    hmatrix_loc(3,3)*in_vector(3)
+
+    return
+
+  end subroutine box_frac_to_cart_otherbox
+
+
+  
 
 end module box
