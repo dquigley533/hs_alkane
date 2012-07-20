@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.28 2012/07/05 13:04:42 phrkao Exp $
+! $Id: alkane.f90,v 1.29 2012/07/20 08:58:32 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.29  2012/07/20 08:58:32  phrkao
+! removed first_bead=1 from alkane_grow_chain
+!
 ! Revision 1.28  2012/07/05 13:04:42  phrkao
 ! merged
 !
@@ -892,7 +895,6 @@ contains
        first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
        !write(0,'("alkane : Regrowing an old chain from bead", I5)')first_bead
     elseif (new_conf==1) then
-       first_bead = 1
        !write(0,'("alkane : Growing   an new chain from bead", I5)')first_bead
     end if
 
