@@ -3,13 +3,16 @@
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
 !                                                                             !
-! $Id: main.f90,v 1.7 2011/11/21 16:09:11 phseal Exp $
+! $Id: main.f90,v 1.8 2012/08/09 14:50:43 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: main.f90,v $
+! Revision 1.8  2012/08/09 14:50:43  phrkao
+! increased the number of decimal places being printed to final.xmols
+!
 ! Revision 1.7  2011/11/21 16:09:11  phseal
 ! Removed unused variable
 !
@@ -242,10 +245,10 @@ program hs_alkane
 
   do ibox = 1,nboxes
      write(25+ibox-1,*)nbeads*nchains
-     write(25+ibox-1,'("* ",9F15.6)')hmatrix(:,:,ibox)
+     write(25+ibox-1,'("* ",9F20.15)')hmatrix(:,:,ibox)
      do ichain = 1,nchains
         do ibead = 1,nbeads
-           write(25+ibox-1,'("C ",3F15.6)')Rchain(:,ibead,ichain,ibox)
+           write(25+ibox-1,'("C ",3F20.15)')Rchain(:,ibead,ichain,ibox)
         end do
      end do
   end do
