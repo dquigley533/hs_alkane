@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.29 2012/07/20 08:58:32 phrkao Exp $
+! $Id: alkane.f90,v 1.30 2012/08/21 10:31:59 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.30  2012/08/21 10:31:59  phrkao
+! Added alkane_set...  and box_set... routines to take the place of a separate fortran input file when using as a library from C
+!
 ! Revision 1.29  2012/07/20 08:58:32  phrkao
 ! removed first_bead=1 from alkane_grow_chain
 !
@@ -155,7 +158,9 @@ module alkane
   public :: alkane_get_max_regrow,alkane_set_max_regrow
 
   public :: alkane_get_nchains                   ! Query number of chain per box
+  public :: alkane_set_nchains                   ! Manipulate number of chains externally
   public :: alkane_get_nbeads                    ! Query number of beads per chain
+  public :: alkane_set_nbeads                    ! Manipulate number of beads per chain
 
   public :: alkane_get_chain                     ! Query coordinates of a single chain
   public :: alkane_set_chain                     ! Update coordinates of a single chain
@@ -2326,7 +2331,7 @@ contains
 
   end subroutine alkane_get_internal_overlaps
 
-  !subroutine alkane_get_external_overlaps(ichain,ibox,mxoverlap,noverlap,loverlap)
+  !subroutine alkane_get_extercbrt(1./packing_fraction);nal_overlaps(ichain,ibox,mxoverlap,noverlap,loverlap)
   subroutine alkane_get_external_overlaps(ichain,ibox,noverlap) bind(c)
     !-------------------------------------------------------------------------!
     ! Counts the number of overlaps between ichain and all other chains, and  !
@@ -2719,6 +2724,21 @@ contains
     
   end subroutine alkane_get_nchains
 
+  subroutine alkane_set_nchains(dumchains) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Sets the number of chains per box in use by this module.             !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),intent(in) :: dumchains
+
+    nchains = dumchains
+
+    return
+    
+  end subroutine alkane_set_nchains
+
   subroutine alkane_get_nbeads(dumbeads) bind(c)
     !-------------------------------------------------------------------------!
     ! Queries the number of beads per chain in use by this module.            !
@@ -2733,6 +2753,22 @@ contains
     return
     
   end subroutine alkane_get_nbeads
+
+  subroutine alkane_set_nbeads(dumbeads) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Sets the number of beads per chain in use by this module.            !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2011                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),intent(in) :: dumbeads
+
+    nbeads = dumbeads 
+
+    return
+    
+  end subroutine alkane_set_nbeads
+  
 
   subroutine alkane_set_chain(ichain,ibox,r) bind(c)
     !-------------------------------------------------------------------------!
