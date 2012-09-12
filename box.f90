@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.13 2012/08/21 10:31:59 phrkao Exp $
+! $Id: box.f90,v 1.14 2012/09/12 12:20:27 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.14  2012/09/12 12:20:27  phrkao
+! when set cell, always update the recip matrix as well
+!
 ! Revision 1.13  2012/08/21 10:31:59  phrkao
 ! Added alkane_set...  and box_set... routines to take the place of a separate fortran input file when using as a library from C
 !
@@ -425,6 +428,7 @@ contains
     ! Bomb out if system is too small for link cells
     if ( (ncellx(ibox)<4).or.(ncelly(ibox)<4).or.(ncellz(ibox)<4) ) then
        write(0,'("system too small for link cells of this size",3I5)')ncellx(ibox),ncelly(ibox),ncellz(ibox)
+       write(*,*)"hmatrix", hmatrix
        write(*,*)"dot prods",Lx,Ly,Lz,"link cell length",link_cell_length
        use_link_cells = .false.
        stop
@@ -618,6 +622,8 @@ contains
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
 
     hmatrix(:,:,ibox) = dumhmatrix
+
+    call box_update_recipmatrix(ibox)
 
     return
 
