@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.14 2012/09/12 12:20:27 phrkao Exp $
+! $Id: box.f90,v 1.15 2012/09/19 13:01:44 phrkao Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.15  2012/09/19 13:01:44  phrkao
+! added ability to set pbc from C code via new subroutine box_set_pbc
+!
 ! Revision 1.14  2012/09/12 12:20:27  phrkao
 ! when set cell, always update the recip matrix as well
 !
@@ -89,6 +92,7 @@ module box
   public :: box_set_num_boxes           ! Set the number of boxes externally
   public :: box_set_link_cell_length    ! Set the link_cell_length
   public :: box_set_bypass_link_cells   ! Set bypass_link_cells
+  public :: box_set_pbc                 ! Set the periodic boundary conditions
   
 
 
@@ -603,7 +607,27 @@ contains
   end subroutine box_set_bypass_link_cells
 
 
+  subroutine box_set_pbc(dumpbc) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Sets the logical variable pbc (periodic boundary), for use instead of input   !
+    ! file. Provided for use from C when code compiled as library.    !
+    !-------------------------------------------------------------------------!
+    ! S. Bridgwater August 2012                                          !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it), intent(in) :: dumpbc
 
+    if (dumpbc .eq. 0) then
+       pbc = .false.
+    else
+       pbc = .true.
+    endif
+
+    return
+
+
+
+  end subroutine box_set_pbc
 
   subroutine box_set_cell(ibox,dumhmatrix) bind(c)
     !-------------------------------------------------------------------------!
