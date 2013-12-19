@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.30 2012/08/21 10:31:59 phrkao Exp $
+! $Id: alkane.f90,v 1.31 2013/12/19 17:20:54 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.31  2013/12/19 17:20:54  phseal
+! Added optional argument to alkane_bond_rotate to disable flips between basins
+!
 ! Revision 1.30  2012/08/21 10:31:59  phrkao
 ! Added alkane_set...  and box_set... routines to take the place of a separate fortran input file when using as a library from C
 !
@@ -672,7 +675,7 @@ contains
   end subroutine alkane_box_scale
 
 
-  subroutine alkane_bond_rotate(ichain,ibox,new_boltz,ia,angle) bind(c)
+  subroutine alkane_bond_rotate(ichain,ibox,new_boltz,ia,angle,allow_flip) bind(c)
     !-------------------------------------------------------------------------!
     ! Selects a random dihedral angle on the selected chain and alters it by  !
     ! a random angle. The Boltzmann factor after the move is returned as      !
@@ -686,6 +689,7 @@ contains
     use quaternion,       only : quat_axis_angle_to_quat,quat_conjugate_q_with_v
     implicit none
     integer(kind=it),intent(in) :: ichain,ibox
+    integer(kind=it),optional,intent(in) :: allow_flip
     real(kind=dp),intent(out)   :: new_boltz
 
     real(kind=dp),dimension(3)  :: axis,r12,r23,r34
@@ -696,6 +700,18 @@ contains
 
     integer(kind=it)             :: ibead
     integer(kind=it),intent(out) :: ia
+
+    logical :: doflips = .true.
+
+    if (present(allow_flip)) then
+       if (allow_flip==1) then
+          doflips=.true.
+       else if (allow_flip==0) then
+          doflips=.false.
+       else
+          stop 'Error in alkane_bond_rotate - unknown allow_flip value'
+       end if
+    end if
 
     if (nbeads<4) stop 'Called alkane_bond_rotate with nbeads < 4'
 
@@ -711,7 +727,7 @@ contains
     angle = mc_dh_max*(2.0_dp*random_uniform_random() - 1.0_dp)
 
     ! Flip between square-well torsions if using model IV
-    if ( model_type==4 ) then
+    if ( (model_type==4).and. doflips ) then
        xi = random_uniform_random()
        if ( xi < 0.5_dp ) then ! flip between basins
           angle = sign(2.0_dp*Pi/3.0_dp,angle) + angle 
