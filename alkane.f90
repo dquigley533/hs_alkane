@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.31 2013/12/19 17:20:54 phseal Exp $
+! $Id: alkane.f90,v 1.32 2014/05/06 14:39:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.32  2014/05/06 14:39:29  phseal
+! Added option for use of Verlet lists instead of link cells
+!
 ! Revision 1.31  2013/12/19 17:20:54  phseal
 ! Added optional argument to alkane_bond_rotate to disable flips between basins
 !
@@ -280,7 +283,7 @@ contains
     chain_created(1:nchains,1:nboxes) = .false.
 
     ! Neighbour list
-    allocate(list(1:nbeads*nchains*100,1:nboxes)   ,stat=ierr(1))
+    allocate(list(1:nbeads*nchains*nbeads*nchains,1:nboxes)   ,stat=ierr(1))
     allocate(startinlist(1:nbeads*nchains,1:nboxes),stat=ierr(2))
     allocate(endinlist(1:nbeads*nchains,1:nboxes)  ,stat=ierr(3))
     if (any(ierr/=0)) stop 'Error allocating neighbour list arrays'
@@ -1166,7 +1169,8 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     use box, only :  box_minimum_image,use_link_cells,ncellx,ncelly,ncellz, &
-                     lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix
+                     lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix, &
+                     use_verlet_list
 
     implicit none
 
@@ -1174,7 +1178,7 @@ contains
     real(kind=dp),dimension(3),intent(in) :: rbead
     real(kind=dp),dimension(3)  :: rsep,sbead
 
-    integer(kind=it) :: jchain,ix,iy,iz,icell,ni,jcell,jbead,tmpint
+    integer(kind=it) :: jchain,ix,iy,iz,icell,ni,jcell,jbead,tmpint,ll
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
@@ -1213,7 +1217,24 @@ contains
     ! Run over beads in other chains....
     if (nchains>1) then
 
-       if (use_link_cells) then
+       if (use_verlet_list) then
+
+          do ll = startinlist((ichain-1)*nbeads+i,ibox),endinlist((ichain-1)*nbeads+i,ibox)
+
+             jchain = list(ll,ibox)/nbeads + 1
+             jbead  = list(ll,ibox) - (jchain-1)*nbeads 
+
+             ! The compiler needs to inline this, use -ipo on Intel
+             rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
+             overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+             if ( overlap ) then
+                !print*,'overlap found in alkane_nonbonded_boltz'
+                alkane_nonbonded_boltz = 0.0_dp
+                return
+             end if
+          end do
+         
+       else if (use_link_cells) then
           
           ! compute fractional coordinates sbead from rbead
           sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
@@ -1352,7 +1373,8 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     use box,       only :  box_minimum_image,use_link_cells,ncellx,ncelly,ncellz, &
-                           lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix
+                           lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix, &
+                           use_verlet_list
     implicit none
 
     integer(kind=it),intent(in) :: ichain,ibox
@@ -1360,7 +1382,7 @@ contains
     real(kind=dp),dimension(3)  :: rsep,sbead
     real(kind=dp),dimension(9)  :: hcache
 
-    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint
+    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,ll
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
@@ -1382,9 +1404,29 @@ contains
     ! Run over beads in other chains....
     if (nchains>1) then
 
-       if ( use_link_cells ) then
+       if (use_verlet_list) then
 
-  
+          do ibead = 1,nbeads
+             rbead(:) = Rchain(:,ibead,ichain,ibox)
+             do ll = startinlist((ichain-1)*nbeads+ibead,ibox),endinlist((ichain-1)*nbeads+ibead,ibox)
+                
+                jchain = list(ll,ibox)/nbeads + 1
+                jbead  = list(ll,ibox) - (jchain-1)*nbeads 
+                
+                ! The compiler needs to inline this, use -ipo on Intel
+                rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
+                overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+                if ( overlap ) then
+                   !print*,'overlap found in alkane_chain_inter_boltz',ibead,ichain,jbead,jchain
+                   alkane_chain_inter_boltz = 0.0_dp
+                   return
+                end if
+             end do
+             
+          end do
+
+       else if ( use_link_cells ) then
+
           do ibead = 1,nbeads
 
              rbead(:) = Rchain(:,ibead,ichain,ibox)
@@ -1657,23 +1699,21 @@ contains
     if (.not.use_link_cells) then
        
        ! Just check for overlaps 
-       
        overlap = 0
        acc = 1.0_dp
        do ichain = 1,nchains
           test = alkane_chain_inter_boltz(ichain,ibox)
           acc  = acc*test
           if (test < tiny(1.0_dp) ) then
-            ! write(0,'("Chain ",I5", overlaps with another chain")')ichain
+             ! write(0,'("Chain ",I5", overlaps with another chain")')ichain
           end if
        end do
-
+       
        if (acc<tiny(1.0_dp)) then
           !write(0,'("Stopping")')
           !stop
           overlap = 1
        end if
-        
        
     else
     
@@ -1882,7 +1922,8 @@ contains
     logical,save  :: firstpass = .true.
     integer(kind=it),save  :: lcnv
 
-    nl_range_sq = (2.0_dp*sigma)**2
+    ! This number should be adjustable
+    nl_range_sq = (3.0_dp*sigma)**2
 
     if ( firstpass ) then
 
@@ -1898,10 +1939,10 @@ contains
 
        firstpass = .false.
 
-       allocate(advance(1:nchains*nbeads),stat=ierr)
-       if (ierr/=0) stop 'Error allocating advance array'
-
     end if
+    
+    allocate(advance(1:nchains*nbeads),stat=ierr)
+    if (ierr/=0) stop 'Error allocating advance array'
 
     call system_clock(count=t1)
 
@@ -1920,7 +1961,7 @@ contains
                 !rsep(1) = rsep(1) - Lx*anint(rsep(1)*rLx)
                 !rsep(2) = rsep(2) - Ly*anint(rsep(2)*rLy)
                 !rsep(3) = rsep(3) - Lz*anint(rsep(3)*rLz)
-                lrange  = (dot_product(rsep,rsep)<nl_range_sq).and.(ichain/=jchain) 
+                lrange  = (dot_product(rsep,rsep)<nl_range_sq).and.(ichain/=jchain)
                 advance(k) = lcnv*transfer(lrange,myint)
                 k = k + 1
              end do

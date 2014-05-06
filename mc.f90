@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.15 2012/06/19 16:40:22 phrkao Exp $
+! $Id: mc.f90,v 1.16 2014/05/06 14:39:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.16  2014/05/06 14:39:29  phseal
+! Added option for use of Verlet lists instead of link cells
+!
 ! Revision 1.15  2012/06/19 16:40:22  phrkao
 ! changed centre of mass to first bead
 !
@@ -220,62 +223,62 @@ contains
           ! Attempted with prob 0.4 - 1/(nchains*nbeads) unless we   !
           ! have a rigid/inflexible chains.                          !
           ! ---------------------------------------------------------!
-       else if (xi < 0.4_dp) then
-
-          mc_attempted_cbmc = mc_attempted_cbmc + 1
-
-          ! 50 % probability of reversing the labelling of the
-          ! chain, i.e. we can regrow from either end.
-          xi = random_uniform_random()
-          if ( xi > 0.5_dp ) then
-
-             ! Reverse the chain and regrow from the other end
-             k = 1
-             backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
-             do ibead = nbeads,1,-1
-                Rchain(:,k,ichain,ibox) = backup_chain(:,ibead)
-                k = k + 1
-             end do
-
-             ! Update linked lists to reflect the renumbering
-             do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain,ibox, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
-             end do
-
-          end if
-
-          ! Store the backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
-
-          ! Compute the Rosenbluth factor of the old chain
-          ! i.e. call grow_chain with regrow = .false.
-          call alkane_grow_chain(ichain,ibox,old_rb_factor,0,ifail)
-
-          ! Compute the Rosenbluth factor of the new chain
-          ! i.e. call grow_chain with regrow = .true.
-          call alkane_grow_chain(ichain,ibox,new_rb_factor,1,ifail)
-
-          ! Generate a random number and accept of reject the move
-          xi = random_uniform_random()
-          if ( xi < new_rb_factor/old_rb_factor ) then
-
-             ! Accept the new config
-             mc_accepted_cbmc = mc_accepted_cbmc + 1
-             last_move = 2
-
-             ! Update the linked lists
-             do ibead = 1,nbeads
-                call alkane_update_linked_lists(ibead,ichain,ibox, &
-                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
-             end do
-
-          else
-
-             ! Reject and put the old chain back
-             Rchain(:,:,ichain,ibox) = backup_chain(:,:)
-
-          end if
+!!$       else if (xi < 0.4_dp) then
+!!$
+!!$          mc_attempted_cbmc = mc_attempted_cbmc + 1
+!!$
+!!$          ! 50 % probability of reversing the labelling of the
+!!$          ! chain, i.e. we can regrow from either end.
+!!$          xi = random_uniform_random()
+!!$          if ( xi > 0.5_dp ) then
+!!$
+!!$             ! Reverse the chain and regrow from the other end
+!!$             k = 1
+!!$             backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
+!!$             do ibead = nbeads,1,-1
+!!$                Rchain(:,k,ichain,ibox) = backup_chain(:,ibead)
+!!$                k = k + 1
+!!$             end do
+!!$
+!!$             ! Update linked lists to reflect the renumbering
+!!$             do ibead = 1,nbeads
+!!$                call alkane_update_linked_lists(ibead,ichain,ibox, &
+!!$                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
+!!$             end do
+!!$
+!!$          end if
+!!$
+!!$          ! Store the backup chain
+!!$          backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
+!!$
+!!$          ! Compute the Rosenbluth factor of the old chain
+!!$          ! i.e. call grow_chain with regrow = .false.
+!!$          call alkane_grow_chain(ichain,ibox,old_rb_factor,0,ifail)
+!!$
+!!$          ! Compute the Rosenbluth factor of the new chain
+!!$          ! i.e. call grow_chain with regrow = .true.
+!!$          call alkane_grow_chain(ichain,ibox,new_rb_factor,1,ifail)
+!!$
+!!$          ! Generate a random number and accept of reject the move
+!!$          xi = random_uniform_random()
+!!$          if ( xi < new_rb_factor/old_rb_factor ) then
+!!$
+!!$             ! Accept the new config
+!!$             mc_accepted_cbmc = mc_accepted_cbmc + 1
+!!$             last_move = 2
+!!$
+!!$             ! Update the linked lists
+!!$             do ibead = 1,nbeads
+!!$                call alkane_update_linked_lists(ibead,ichain,ibox, &
+!!$                     backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
+!!$             end do
+!!$
+!!$          else
+!!$
+!!$             ! Reject and put the old chain back
+!!$             Rchain(:,:,ichain,ibox) = backup_chain(:,:)
+!!$
+!!$          end if
 
 
           !----------------------------------------------------------!
@@ -427,6 +430,8 @@ contains
        end if
     end if
 
+    ! Periodically reconstruct verlet list. Shouldn't be needed for solids
+
     !--------------------------------------------------------------------!
     ! Check move acceptance rations and adjust move parameters if flag   !
     ! eq_adjust_mc is true. Should only be used to select moves params   !
@@ -528,11 +533,11 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
-    use box,       only : box_construct_link_cells,nboxes
+    use box,       only : box_construct_link_cells,nboxes,use_verlet_list
     use constants, only : ep,dp
     use alkane,    only : alkane_grow_chain,nchains,nbeads,&
                           alkane_check_chain_overlap,alkane_check_chain_geometry,&
-                          alkane_construct_linked_lists
+                          alkane_construct_linked_lists,alkane_construct_neighbour_list
     implicit none
     logical,optional,intent(in) :: grow_new_chains
 
@@ -572,14 +577,18 @@ contains
        call box_construct_link_cells(ibox)
        call alkane_construct_linked_lists(ibox)
 
+       ! Construct verlet neighbour list if in use
+       if (use_verlet_list) call alkane_construct_neighbour_list(ibox)
+
+
        ! Check initial configuration is sane
        overlap = 0
        if (nchains>1) call alkane_check_chain_overlap(ibox,overlap)
-       if (overlap == 1) stop
+       if (overlap == 1) stop 'overlap in initial config'
        do ichain = 1,nchains
           call alkane_check_chain_geometry(ichain,ibox,violated)
        end do
-       if (violated == 1) stop
+       if (violated == 1) stop 'Error in initial configuration'
 
     end do
 

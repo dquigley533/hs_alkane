@@ -3,7 +3,7 @@
 !                               B  O  X                                       !
 !=============================================================================!
 !                                                                             !
-! $Id: box.f90,v 1.15 2012/09/19 13:01:44 phrkao Exp $
+! $Id: box.f90,v 1.16 2014/05/06 14:39:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
@@ -12,6 +12,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: box.f90,v $
+! Revision 1.16  2014/05/06 14:39:29  phseal
+! Added option for use of Verlet lists instead of link cells
+!
 ! Revision 1.15  2012/09/19 13:01:44  phrkao
 ! added ability to set pbc from C code via new subroutine box_set_pbc
 !
@@ -92,6 +95,7 @@ module box
   public :: box_set_num_boxes           ! Set the number of boxes externally
   public :: box_set_link_cell_length    ! Set the link_cell_length
   public :: box_set_bypass_link_cells   ! Set bypass_link_cells
+  public :: box_set_use_verlet_list     ! Set use verlet list
   public :: box_set_pbc                 ! Set the periodic boundary conditions
   
 
@@ -110,6 +114,7 @@ module box
   public :: pbc                     ! Periodic boundary conditions
   public :: use_link_cells          ! Use link cell algorithm
   public :: bypass_link_cells       ! Force link cell bypass
+  public :: use_verlet_list         ! Use Verlet list if bypassing link cells
   public :: link_cell_length        ! Minimum length of link cell size
   public :: isotropic               ! Isotropic volume moves True/False
   public :: pressure                ! External pressure
@@ -131,6 +136,7 @@ module box
   logical,save  :: pbc               = .true.      ! Use periodic bcs
   logical,save  :: use_link_cells    = .false.     ! Use link cells
   logical,save  :: bypass_link_cells = .false.     ! Force bypass of above
+  logical,save  :: use_verlet_list   = .false.     ! Use Verlet list instread of brute force
 
   integer(kind=it),save :: maxcells                ! Maximum number of cells per box
 
@@ -605,6 +611,26 @@ contains
     return
 
   end subroutine box_set_bypass_link_cells
+
+  subroutine box_set_use_verlet_list(dumll) bind (c)
+    !-------------------------------------------------------------------------!
+    ! Sets the logical variable use_verlet_list, for use instead of input     !
+    ! file. Provided for use from C when code compiled as library.            !
+    !-------------------------------------------------------------------------!
+    ! D. Quigley May 2014                                                     !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),intent(in) :: dumll
+
+    if (dumll .eq. 0) then
+       use_verlet_list = .false.
+    else
+        use_verlet_list = .true.
+    endif
+
+    return
+
+  end subroutine box_set_use_verlet_list
 
 
   subroutine box_set_pbc(dumpbc) bind(c)

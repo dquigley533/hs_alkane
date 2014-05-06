@@ -3,7 +3,7 @@
 !                              I   O                                          !
 !=============================================================================!
 !                                                                             !
-! $Id: io.f90,v 1.10 2012/06/19 16:40:22 phrkao Exp $
+! $Id: io.f90,v 1.11 2014/05/06 14:39:29 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Holds routines to read the main input file, the xmol file containing        !
@@ -11,6 +11,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: io.f90,v $
+! Revision 1.11  2014/05/06 14:39:29  phseal
+! Added option for use of Verlet lists instead of link cells
+!
 ! Revision 1.10  2012/06/19 16:40:22  phrkao
 ! changed centre of mass to first bead
 !
@@ -100,7 +103,7 @@ contains
     use alkane, only : nchains,nbeads,sigma,L,model_type,torsion_type,rigid,max_regrow
     use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix, &
                        box_update_recipmatrix,nboxes,CellA,CellB,CellC, &
-                       link_cell_length,bypass_link_cells
+                       link_cell_length,bypass_link_cells,use_verlet_list
     use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
     use timer,  only : timer_closetime,timer_qtime
     implicit none
@@ -108,7 +111,7 @@ contains
 
     namelist/system/nboxes,nchains,nbeads,CellA,CellB,CellC,sigma,L,model_type, &
                     torsion_type,pbc,link_cell_length,bypass_link_cells, &
-                    read_xmol,rigid,isotropic
+                    use_verlet_list,read_xmol,rigid,isotropic
     namelist/thermal/pressure
     namelist/bookkeeping/file_output_int,traj_output_int,timer_qtime, &
                         timer_closetime,max_mc_cycles,eq_adjust_mc,mc_target_ratio
@@ -178,6 +181,12 @@ contains
     read(25,nml=system,iostat=ierr)
     if(ierr/=0) stop 'Error reading system namelist'
 
+    ! enforce exclusivity of link cells and verlet list
+    if ( (.not.bypass_link_cells).and.(use_verlet_list) ) then
+       write(0,'("Error in system namelist - must bypass link cells if using ")')
+       write(0,'("Verlet neighbour list instead.")')
+       stop
+    end if
 
 
     max_regrow = nbeads - 1
