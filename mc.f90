@@ -3,7 +3,7 @@
 !                                   M   C                                     !
 !=============================================================================!
 !                                                                             !
-! $Id: mc.f90,v 1.16 2014/05/06 14:39:29 phseal Exp $
+! $Id: mc.f90,v 1.17 2014/05/07 16:54:03 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to perform a number of Monte-Carlo moves on hard-sphere   !
@@ -13,6 +13,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: mc.f90,v $
+! Revision 1.17  2014/05/07 16:54:03  phseal
+! Added minor changes for compatibility with ponders
+!
 ! Revision 1.16  2014/05/06 14:39:29  phseal
 ! Added option for use of Verlet lists instead of link cells
 !
@@ -317,7 +320,7 @@ contains
           ! Rotate a randomly selected torsion angle along the chain
           ! TODO - this will fail for model III with continuous
           ! torsion potentials.
-          call alkane_bond_rotate(ichain,ibox,new_boltz,dummy_int,dummy_dp)
+          call alkane_bond_rotate(ichain,ibox,new_boltz,dummy_int,dummy_dp,1)
 
           ! Accept or reject move.
           xi = random_uniform_random()
@@ -387,7 +390,7 @@ contains
 
           ! Rotate by a random angle about a random axis
           ! new_boltz holds the new Boltzmann factor
-          call alkane_rotate_chain(ichain,ibox,new_boltz,dummy_quat)
+          call alkane_rotate_chain(ichain,ibox,new_boltz,dummy_quat,0)
 
           ! Accept or reject.
           xi = random_uniform_random()

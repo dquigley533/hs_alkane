@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.32 2014/05/06 14:39:29 phseal Exp $
+! $Id: alkane.f90,v 1.33 2014/05/07 16:54:03 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.33  2014/05/07 16:54:03  phseal
+! Added minor changes for compatibility with ponders
+!
 ! Revision 1.32  2014/05/06 14:39:29  phseal
 ! Added option for use of Verlet lists instead of link cells
 !
@@ -161,6 +164,7 @@ module alkane
   public :: alkane_get_dv_max,alkane_set_dv_max  ! Manipulate dv_max externally
   public :: alkane_get_dh_max,alkane_set_dh_max  ! Manipulate dh_max externally
   public :: alkane_get_ktrial,alkane_set_ktrial  ! Manipulate ktrial externally
+  public :: alkane_get_axis_max,alkane_set_axis_max 
   public :: alkane_get_max_regrow,alkane_set_max_regrow
 
   public :: alkane_get_nchains                   ! Query number of chain per box
@@ -191,6 +195,7 @@ module alkane
   public :: mc_dt_max                       ! Maximum whole chain rotation
   public :: mc_dv_max                       ! Maximum volume move
   public :: mc_dh_max                       ! Maximum torsion angle change
+  public :: mc_axis_max                     ! Maximum rotaton about long axis
 
 
   !---------------------------------------------------------------------------!
@@ -247,6 +252,7 @@ module alkane
   real(kind=dp),save :: mc_dt_max = 0.3181_dp    ! Maximum rotation angle
   real(kind=dp),save :: mc_dv_max = 0.2958_dp    ! Maximum volume change
   real(kind=dp),save :: mc_dh_max = 0.0159_dp    ! Maximum dihedral change
+  real(kind=dp),save :: mc_axis_max = 3.14_dp    ! Maximal rotation about axis
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
@@ -345,64 +351,139 @@ contains
 
   end subroutine alkane_translate_chain
 
-  subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat) bind(c)
+
+ subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat,axis) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is rotated     !
     ! about the first bead. The new Boltzmann factor after the trial move     !
     ! is returned as new_boltz. The old Boltzmann factor will always be one.  !
     ! Changed from rotation about Centre of Mass to about first bead          !
     !-------------------------------------------------------------------------!
-    ! D.Quigley January 2010                                                  !
-    !-------------------------------------------------------------------------!
-    use random, only     : random_uniform_random
-    use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
     implicit none
     integer(kind=it),intent(in)             :: ichain,ibox
     real(kind=dp),intent(out)               :: new_boltz
-    real(kind=dp),dimension(3)              :: axis,first
     real(kind=dp),dimension(4),intent(out)  :: quat
-    real(kind=dp)                           :: theta
+    integer(kind=it),intent(in)             :: axis   ! 1 if use long axis 0 normal
 
-    integer(kind=it) :: ibead
 
-    ! generate random rotation axis
-    axis(1) = 2.0_dp*random_uniform_random() - 1.0_dp
-    axis(2) = 2.0_dp*random_uniform_random() - 1.0_dp
-    axis(3) = 2.0_dp*random_uniform_random() - 1.0_dp
-    axis(:) = axis(:)/sqrt(dot_product(axis,axis))
+    if(axis == 0) then
+      call alkane_rotate_chain_fort(ichain,ibox,new_boltz,quat)
+    else if (axis == 1)then
+      call alkane_axis_rotate_chain(ichain,ibox,new_boltz,quat)
+    endif
+    
 
-    ! generate random rotation angle
-    theta = (2.0_dp*random_uniform_random() - 1.0_dp) * mc_dt_max
+  contains
+   
 
-    call quat_axis_angle_to_quat(axis,theta,quat)
+    subroutine alkane_rotate_chain_fort(ichain,ibox,new_boltz,quat) !bind(c)
+      !-------------------------------------------------------------------------!
+      ! Implements an MC trial move in which the specified chain is rotated     !
+      ! about the first bead. The new Boltzmann factor after the trial move     !
+      ! is returned as new_boltz. The old Boltzmann factor will always be one.  !
+      ! Changed from rotation about Centre of Mass to about first bead          !
+      !-------------------------------------------------------------------------!
+      ! D.Quigley January 2010                                                  !
+      !-------------------------------------------------------------------------!
+      use random, only     : random_uniform_random
+      use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
+      implicit none
+      integer(kind=it),intent(in)             :: ichain,ibox
+      real(kind=dp),intent(out)               :: new_boltz
+      real(kind=dp),dimension(3)              :: axis,first
+      real(kind=dp),dimension(4),intent(out)  :: quat
+      real(kind=dp)                           :: theta
 
-    ! chain center of mass
-   ! rcom(:) = 0.0_dp
-    !do ibead = 1,nbeads
-     !  rcom(:) = rcom(:) + Rchain(:,ibead,ichain,ibox)
-    !end do
-    !rcom(:) = rcom(:)/real(nbeads,kind=dp)
+      integer(kind=it) :: ibead
 
-    !first bead 
-    first(:) = Rchain(:,1,ichain,ibox)
+      ! generate random rotation axis
+      axis(1) = 2.0_dp*random_uniform_random() - 1.0_dp
+      axis(2) = 2.0_dp*random_uniform_random() - 1.0_dp
+      axis(3) = 2.0_dp*random_uniform_random() - 1.0_dp
+      axis(:) = axis(:)/sqrt(dot_product(axis,axis))
 
-    !move so first bead is at the origin, rotate, move back
-    do ibead = 1,nbeads
-       Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - first(:)
-       Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
-       Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + first(:)
-  end do
+      ! generate random rotation angle
+      theta = (2.0_dp*random_uniform_random() - 1.0_dp) * mc_dt_max
 
-    ! rotate the chain
-!    do ibead = 1,nbeads
-       !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - rcom(:)
-       !Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
-       !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + rcom(:)
- !   end do
+      call quat_axis_angle_to_quat(axis,theta,quat)
 
-    new_boltz = alkane_chain_inter_boltz(ichain,ibox)
+      ! chain center of mass
+     ! rcom(:) = 0.0_dp
+      !do ibead = 1,nbeads
+       !  rcom(:) = rcom(:) + Rchain(:,ibead,ichain,ibox)
+      !end do
+      !rcom(:) = rcom(:)/real(nbeads,kind=dp)
 
-    return
+      !first bead 
+      first(:) = Rchain(:,1,ichain,ibox)
+
+      !move so first bead is at the origin, rotate, move back
+      do ibead = 1,nbeads
+         Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - first(:)
+         Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
+         Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + first(:)
+      end do
+
+        ! rotate the chain
+    !    do ibead = 1,nbeads
+         !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - rcom(:)
+         !Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
+         !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + rcom(:)
+   !   end do
+
+      new_boltz = alkane_chain_inter_boltz(ichain,ibox)
+
+      return
+
+    end subroutine alkane_rotate_chain_fort
+
+
+    subroutine alkane_axis_rotate_chain(ichain,ibox,new_boltz,quat) !bind(c)
+      !-------------------------------------------------------------------------!
+      ! Implements an MC trial move in which the specified chain is rotated     !
+      ! about the first bead. The new Boltzmann factor after the trial move     !
+      ! is returned as new_boltz. The old Boltzmann factor will always be one.  !
+      ! Changed from rotation about Centre of Mass to about first bead          !
+      !-------------------------------------------------------------------------!
+      ! D.Quigley January 2010                                                  !
+      !-------------------------------------------------------------------------!
+      use random, only     : random_uniform_random
+      use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
+      implicit none
+      integer(kind=it),intent(in)             :: ichain,ibox
+      real(kind=dp),intent(out)               :: new_boltz
+      real(kind=dp),dimension(3)              :: axis,first
+      real(kind=dp),dimension(4),intent(out)  :: quat
+      real(kind=dp)                           :: theta
+
+      integer(kind=it) :: ibead
+
+      if(nbeads < 2) return
+
+      !generate rotation axis, along the molecule (first bead minus second bead)
+      axis(:) = Rchain(:,1,ichain,ibox) - Rchain(:,2,ichain,ibox)
+
+      ! generate random rotation angle
+      theta = (2.0_dp*random_uniform_random() - 1.0_dp) * mc_axis_max
+
+      call quat_axis_angle_to_quat(axis,theta,quat)
+
+      !first bead 
+      first(:) = Rchain(:,1,ichain,ibox)
+
+      !move so first bead is at the origin, rotate, move back
+      do ibead = 1,nbeads
+         Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - first(:)
+         Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
+         Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + first(:)
+      end do
+      
+      new_boltz = alkane_chain_inter_boltz(ichain,ibox)
+
+      return
+
+    end subroutine alkane_axis_rotate_chain
+
 
   end subroutine alkane_rotate_chain
 
@@ -692,7 +773,7 @@ contains
     use quaternion,       only : quat_axis_angle_to_quat,quat_conjugate_q_with_v
     implicit none
     integer(kind=it),intent(in) :: ichain,ibox
-    integer(kind=it),optional,intent(in) :: allow_flip
+    integer(kind=it),intent(in) :: allow_flip
     real(kind=dp),intent(out)   :: new_boltz
 
     real(kind=dp),dimension(3)  :: axis,r12,r23,r34
@@ -706,14 +787,12 @@ contains
 
     logical :: doflips = .true.
 
-    if (present(allow_flip)) then
-       if (allow_flip==1) then
-          doflips=.true.
-       else if (allow_flip==0) then
-          doflips=.false.
-       else
-          stop 'Error in alkane_bond_rotate - unknown allow_flip value'
-       end if
+    if (allow_flip==1) then
+      doflips=.true.
+    else if (allow_flip==0) then
+      doflips=.false.
+    else
+      stop 'Error in alkane_bond_rotate - unknown allow_flip value'
     end if
 
     if (nbeads<4) stop 'Called alkane_bond_rotate with nbeads < 4'
@@ -1225,8 +1304,49 @@ contains
              jbead  = list(ll,ibox) - (jchain-1)*nbeads 
 
              ! The compiler needs to inline this, use -ipo on Intel
-             rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
-             overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+             !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
+             rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
+             ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
+             rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
+             
+             sx = recip_matrix(1,1,ibox)*rx + &
+                  recip_matrix(2,1,ibox)*ry + &
+                  recip_matrix(3,1,ibox)*rz
+             sy = recip_matrix(1,2,ibox)*rx + &
+                  recip_matrix(2,2,ibox)*ry + &
+                  recip_matrix(3,2,ibox)*rz  
+             sz = recip_matrix(1,3,ibox)*rx + &
+                  recip_matrix(2,3,ibox)*ry + &
+                  recip_matrix(3,3,ibox)*rz 
+             
+             sx = sx*0.5_dp*invPi 
+             sy = sy*0.5_dp*invPi
+             sz = sz*0.5_dp*invPi 
+
+             ! apply boundary conditions
+             sx = sx - floor(sx+0.5_dp,kind=dp)
+             sy = sy - floor(sy+0.5_dp,kind=dp)
+             sz = sz - floor(sz+0.5_dp,kind=dp)
+             
+             ! scale back up
+             rx = hmatrix(1,1,ibox)*sx + &
+                  hmatrix(1,2,ibox)*sy + &
+                  hmatrix(1,3,ibox)*sz
+             
+             ry = hmatrix(2,1,ibox)*sx + &
+                  hmatrix(2,2,ibox)*sy + &
+                  hmatrix(2,3,ibox)*sz
+             
+             rz = hmatrix(3,1,ibox)*sx + &
+                  hmatrix(3,2,ibox)*sy + &
+                  hmatrix(3,3,ibox)*sz
+             
+!!$                rx = rx - Lx*anint(rx*rLx)
+!!$                ry = ry - Ly*anint(ry*rLy)
+!!$                rz = rz - Lz*anint(rz*rLz)
+             
+             overlap = ( ( rx*rx+ry*ry+rz*rz < sigma_sq ))
+                                       
              if ( overlap ) then
                 !print*,'overlap found in alkane_nonbonded_boltz'
                 alkane_nonbonded_boltz = 0.0_dp
@@ -1414,8 +1534,39 @@ contains
                 jbead  = list(ll,ibox) - (jchain-1)*nbeads 
                 
                 ! The compiler needs to inline this, use -ipo on Intel
-                rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
-                overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+                !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
+                 
+                rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
+                ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
+                rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
+                
+                sx = recip_matrix(1,1,ibox)*rx + &
+                     recip_matrix(2,1,ibox)*ry + &
+                     recip_matrix(3,1,ibox)*rz
+                sy = recip_matrix(1,2,ibox)*rx + &
+                     recip_matrix(2,2,ibox)*ry + &
+                     recip_matrix(3,2,ibox)*rz  
+                sz = recip_matrix(1,3,ibox)*rx + &
+                     recip_matrix(2,3,ibox)*ry + &
+                     recip_matrix(3,3,ibox)*rz 
+                
+                sx = sx*0.5_dp*invPi 
+                sy = sy*0.5_dp*invPi
+                sz = sz*0.5_dp*invPi 
+                
+                ! apply boundary conditions
+                sx = sx - floor(sx+0.5_dp,kind=dp)
+                sy = sy - floor(sy+0.5_dp,kind=dp)
+                sz = sz - floor(sz+0.5_dp,kind=dp)
+                
+                ! scale back up
+                rx = hcache(1)*sx + hcache(2)*sy + hcache(3)*sz
+                ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
+                rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
+                                
+                overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq) )
+                
+!                overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
                 if ( overlap ) then
                    !print*,'overlap found in alkane_chain_inter_boltz',ibead,ichain,jbead,jchain
                    alkane_chain_inter_boltz = 0.0_dp
@@ -1923,7 +2074,7 @@ contains
     integer(kind=it),save  :: lcnv
 
     ! This number should be adjustable
-    nl_range_sq = (3.0_dp*sigma)**2
+    nl_range_sq = (4.0_dp*sigma)**2
 
     if ( firstpass ) then
 
@@ -2733,6 +2884,40 @@ contains
     return
 
   end subroutine alkane_set_ktrial
+
+
+  subroutine alkane_get_axis_max(dum_axis) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Gets module level internal variable controlling the rotation about
+    ! the long axis of the molecule.
+    !-------------------------------------------------------------------------!
+    ! S. Bridgwater Apr 2014                                                  !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(out) :: dum_axis
+
+    dum_axis = mc_axis_max
+
+    return
+   
+  end subroutine alkane_get_axis_max
+
+  subroutine alkane_set_axis_max(dum_axis) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Sets module level internal variable controlling the rotation about
+    ! the long axis of the molecule.
+    !-------------------------------------------------------------------------!
+    ! S. Bridgwater Apr 2014                                                  !
+    !-------------------------------------------------------------------------!
+    implicit none
+    real(kind=dp),intent(in) :: dum_axis
+
+    mc_axis_max = dum_axis
+
+    return
+   
+  end subroutine alkane_set_axis_max
+
 
    subroutine alkane_get_max_regrow(dum_max_regrow) bind(c)
     !-------------------------------------------------------------------------!
