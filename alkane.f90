@@ -3,7 +3,7 @@
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
 !                                                                             !
-! $Id: alkane.f90,v 1.33 2014/05/07 16:54:03 phseal Exp $
+! $Id: alkane.f90,v 1.34 2014/05/08 20:54:33 phseal Exp $
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Contains routines to store and manipulate (i.e. attempt trial MC moves) a   !
@@ -14,6 +14,9 @@
 !-----------------------------------------------------------------------------!
 !                                                                             !
 ! $Log: alkane.f90,v $
+! Revision 1.34  2014/05/08 20:54:33  phseal
+! Paranoid enforcement of random numbers for selecting box element
+!
 ! Revision 1.33  2014/05/07 16:54:03  phseal
 ! Added minor changes for compatibility with ponders
 !
@@ -248,10 +251,10 @@ module alkane
   integer(kind=it),save :: max_regrow = 3                 ! Maximum segments to regrow
 
   ! Other MC move parameters
-  real(kind=dp),save :: mc_dr_max = 0.0421_dp    ! Maximum translation move
-  real(kind=dp),save :: mc_dt_max = 0.3181_dp    ! Maximum rotation angle
-  real(kind=dp),save :: mc_dv_max = 0.2958_dp    ! Maximum volume change
-  real(kind=dp),save :: mc_dh_max = 0.0159_dp    ! Maximum dihedral change
+  real(kind=dp),save :: mc_dr_max = 0.012_dp    ! Maximum translation move
+  real(kind=dp),save :: mc_dt_max = 0.07_dp    ! Maximum rotation angle
+  real(kind=dp),save :: mc_dv_max = 0.003_dp    ! Maximum volume change
+  real(kind=dp),save :: mc_dh_max = 0.06_dp    ! Maximum dihedral change
   real(kind=dp),save :: mc_axis_max = 3.14_dp    ! Maximal rotation about axis
 
   !---------------------------------------------------------------------------!
@@ -588,8 +591,10 @@ contains
           ! Tweak a random sub-diagonal element         
           x = random_uniform_random()
           idim = int(x*3.0_dp)+1
+          idim = min(idim,3)
           x = random_uniform_random()
           jdim = int(x*real(idim,kind=dp))+1
+          jdim = min(jdim,idim)
 
           x = random_uniform_random()
 
