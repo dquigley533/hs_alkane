@@ -46,7 +46,7 @@ SHELL = /bin/sh
 # Where you want the executable
 prefix     = $(HOME)
 bindir     = $(prefix)/bin
-libdir     = 
+libdir     = $(prefix)/lib
 
 # Default compiler and flags
 F90       = gfortran
@@ -54,16 +54,6 @@ LD        = gfortran
 FFLAGS    = -O3 -fPIC
 INCLUDE   = 
 LIBS      = 
-
-ifneq ($(comp),)
-  F90 = $(comp)
-  LD  = $(comp)
-endif
-
-ifneq ($(flags),)
-  FFLAGS = $(flags)
-endif
-
 
 # Nothing should need to be changed below here.
 #=====================================================================
@@ -80,11 +70,11 @@ hs_alkane : $(OBJECTS)
 
 # Library - should make clean && make if building this after the stand-along f90 code
 library: $(LIBOBJ)
-	$(F90) $(LIBOBJ) -shared -o $(libdir)libalkane.so $(FFLAGS) $(LIBS) 
+	$(F90) $(LIBOBJ) -shared -o $(libdir)/libalkane.so $(FFLAGS) $(LIBS) 
 
 # Lists the procedues in libalkane.so accessible by C binding without mangling
-library-query:
-	nm libalkane.so | grep -v '__' | grep T
+library-query: library
+	nm $(libdir)/libalkane.so | grep -v '__' | grep T
 
 
 .PRECIOUS: %.o
@@ -105,5 +95,5 @@ library-query:
 clean : 
 
 	rm -f *.mod *.d *.il *.o work.*
-	rm -f $(bindir)/hs_alkane libalkane.so
+	rm -f $(bindir)/hs_alkane $(libdir)/libalkane.so
 
