@@ -12,125 +12,6 @@
 ! Uses the link-cell structure in box.f90, and returns Boltzmann factors for  !
 ! any trial moves attempted. These will be one or zero in most cases.         !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: alkane.f90,v $
-! Revision 1.34  2014/05/08 20:54:33  phseal
-! Paranoid enforcement of random numbers for selecting box element
-!
-! Revision 1.33  2014/05/07 16:54:03  phseal
-! Added minor changes for compatibility with ponders
-!
-! Revision 1.32  2014/05/06 14:39:29  phseal
-! Added option for use of Verlet lists instead of link cells
-!
-! Revision 1.31  2013/12/19 17:20:54  phseal
-! Added optional argument to alkane_bond_rotate to disable flips between basins
-!
-! Revision 1.30  2012/08/21 10:31:59  phrkao
-! Added alkane_set...  and box_set... routines to take the place of a separate fortran input file when using as a library from C
-!
-! Revision 1.29  2012/07/20 08:58:32  phrkao
-! removed first_bead=1 from alkane_grow_chain
-!
-! Revision 1.28  2012/07/05 13:04:42  phrkao
-! merged
-!
-! Revision 1.27  2012/06/19 16:40:22  phrkao
-! changed centre of mass to first bead
-!
-! Revision 1.26  2011/11/21 16:07:47  phseal
-! Removed unused variables and refactored volume moves to prevent compiler warnings
-!
-! Revision 1.25  2011/11/21 12:53:41  phseal
-! Stopped alkane_construct_linked_lists from trying to build before cells constructed
-!
-! Revision 1.24  2011/11/21 11:24:22  phseal
-! Fixed out-of-bounds errors when one box had less link cells
-!
-! Revision 1.23  2011/11/04 16:12:20  phseal
-! Added more informative check of link cell consistency
-!
-! Revision 1.22  2011/10/26 16:16:03  phrkao
-! *** empty log message ***
-!
-! Revision 1.21  2011/10/26 16:14:57  phrkao
-! made alkane_check_chain_overlap c compatible and corresponding mc.f90 calls adapted
-!
-! Revision 1.20  2011/10/19 16:21:42  phseal
-! alkane_check_overlap will now check for overlaps both with and without the
-! use of linked lists, and compare the result of the two methods.
-!
-! Revision 1.19  2011/10/18 09:26:46  phseal
-! Reduced dihedral violation errors to warnings, as these were being triggered
-! for model IV when the angle was violated by rounding errors, i.e. small differences
-! in the result when computing the angle for construction and checking purposes.
-!
-! Revision 1.18  2011/10/16 18:18:23  phseal
-! Changed the minimum length to the side of a link cell to be an input
-! parameter. Hence the second argument to box_construct_link_cells is
-! no longer present, and link_cell_length is read from the input file.
-!
-! Revision 1.17  2011/09/01 16:58:29  phrkao
-! *** empty log message ***
-!
-! Revision 1.15  2011/08/30 16:26:19  phseal
-! Added ifail argument to alkane_grow_chain to indicate if at any step non
-! of the ktrial segments had a viable weight and hence CBMC move should
-! have zero probability of acceptance.
-!
-! Revision 1.14  2011/08/30 16:00:15  phseal
-! Trapped mostly harmless computation of NaN for segment selection probability
-!
-! Revision 1.13  2011/08/30 12:39:03  phseal
-! Caught case where RNG returned 1.00000 in alkane_grow_chain
-!
-! Revision 1.12  2011/08/30 10:49:24  phseal
-! Added routines to manipulate max_regrow from C
-!
-! Revision 1.11  2011/08/30 10:45:53  phseal
-! Fixed various issues with number of beads regrown in cbmc
-!
-! Revision 1.10  2011/08/18 17:27:00  phrkao
-! randomly had to add in i's back onto ichain and ibox
-!
-! Revision 1.9  2011/08/18 17:20:26  phrkao
-! alkane.f90 has been updated to return quaternion and bond,angle information
-! for use with lattice_switching code, bond_rotate and rotate_chain were changed.
-! Dummy variables added to mc.f90 to account for this
-!
-! Revision 1.8  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.7  2011/08/02 12:30:53  phseal
-! mc.f90
-!
-! Revision 1.6  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.5  2011/08/02 10:04:18  phseal
-! Added routines to manipulate inactive boxes from outside of the box and
-! alkane module. Updates overlap counting routines to return only the
-! total number of overlaps found rather than lists of overlapping atoms.
-!
-! Revision 1.4  2011/07/29 19:28:30  phseal
-! Added experimental routines to count and store the number of intra-chain
-! and inter-chain bead-bead overlaps. For use on inactive lattices with
-! lattice-switching calculations.
-!
-! Revision 1.3  2011/07/29 15:58:29  phseal
-! Added multiple simulation box support.
-!
-! Revision 1.2  2011/03/11 13:47:19  phseal
-! Moved from single to double linked-lists
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 
 module alkane
 
@@ -252,10 +133,10 @@ module alkane
 
   ! Other MC move parameters
   real(kind=dp),save :: mc_dr_max = 0.012_dp    ! Maximum translation move
-  real(kind=dp),save :: mc_dt_max = 0.07_dp    ! Maximum rotation angle
+  real(kind=dp),save :: mc_dt_max = 0.07_dp     ! Maximum rotation angle
   real(kind=dp),save :: mc_dv_max = 0.003_dp    ! Maximum volume change
-  real(kind=dp),save :: mc_dh_max = 0.06_dp    ! Maximum dihedral change
-  real(kind=dp),save :: mc_axis_max = 3.14_dp    ! Maximal rotation about axis
+  real(kind=dp),save :: mc_dh_max = 0.06_dp     ! Maximum dihedral change
+  real(kind=dp),save :: mc_axis_max = 3.14_dp   ! Maximal rotation about axis
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
@@ -354,7 +235,6 @@ contains
 
   end subroutine alkane_translate_chain
 
-
  subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat,axis) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is rotated     !
@@ -410,13 +290,6 @@ contains
 
       call quat_axis_angle_to_quat(axis,theta,quat)
 
-      ! chain center of mass
-     ! rcom(:) = 0.0_dp
-      !do ibead = 1,nbeads
-       !  rcom(:) = rcom(:) + Rchain(:,ibead,ichain,ibox)
-      !end do
-      !rcom(:) = rcom(:)/real(nbeads,kind=dp)
-
       !first bead 
       first(:) = Rchain(:,1,ichain,ibox)
 
@@ -427,19 +300,11 @@ contains
          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + first(:)
       end do
 
-        ! rotate the chain
-    !    do ibead = 1,nbeads
-         !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) - rcom(:)
-         !Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
-         !Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + rcom(:)
-   !   end do
-
       new_boltz = alkane_chain_inter_boltz(ichain,ibox)
 
       return
 
     end subroutine alkane_rotate_chain_fort
-
 
     subroutine alkane_axis_rotate_chain(ichain,ibox,new_boltz,quat) !bind(c)
       !-------------------------------------------------------------------------!
@@ -511,7 +376,6 @@ contains
     integer(kind=it),intent(in)  :: ibox
     integer(kind=it),intent(in)  :: reset
     real(kind=dp),intent(out)    :: acc_prob
-!    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3),save :: old_hmatrix,new_hmatrix,delta_hmatrix
     real(kind=dp) :: old_volume,new_volume,delta_vol,x
@@ -601,11 +465,6 @@ contains
           delta_hmatrix = 0.0_dp
           delta_hmatrix(jdim,idim) =  (2.0_dp*x-1.0_dp)*mc_dv_max
 
-!!$          write(*,'(3F15.6)')delta_hmatrix(:,1)
-!!$          write(*,'(3F15.6)')delta_hmatrix(:,2)
-!!$          write(*,'(3F15.6)')delta_hmatrix(:,3)
-!!$          write(*,*)
-
           new_hmatrix       = old_hmatrix + delta_hmatrix
           hmatrix(:,:,ibox) = new_hmatrix(:,:)
           new_volume        = box_compute_volume(ibox)
@@ -648,15 +507,12 @@ contains
 
           delta_first(:) = first_chain(:) - first(:)
 
-          !write(*,'(3F15.6)')delta_first
-
           do ibead = 1,nbeads
              Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + delta_first(:)
           end do
 
        end do
 
-       !stop
        call box_update_recipmatrix(ibox)
 
        ! This is a trial move and we need to check for overlaps
@@ -698,13 +554,11 @@ contains
 
     integer(kind=it),intent(in)  :: ibox
     real(kind=dp),intent(in)     :: scaleA,scaleB,scaleC
-!    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom
     real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
     real(kind=dp) :: old_volume
 
     integer(kind=it) :: ichain,ibead
-
 
     ! Uniform scaling of box dimensions
     old_hmatrix = hmatrix(:,:,ibox)
@@ -967,7 +821,7 @@ contains
     integer(kind=it),intent(in)  :: new_conf      ! old or new configuration?
     integer(kind=it),intent(out) :: ifail 
 
-   ! Dihedral / angle calculation
+    ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
     real(kind=dp),dimension(4) :: quat
     real(kind=dp)              :: dih,theta
@@ -1273,18 +1127,6 @@ contains
     sigma_sq = sigma*sigma
     overlap  = .false.
 
-!!$    ! Run up chain 
-!!$    if ( i+nexclude < nbeads ) then 
-!!$       do j = i+nexclude,nbeads
-!!$          rsep(:) = rbead(:) - Rchain(:,j,ichain)
-!!$          if ( dot_product(rsep,rsep) < sigma*sigma ) then
-!!$             ! overlap - no point going any further
-!!$             alkane_nonbonded_boltz = 0.0_dp
-!!$             return
-!!$          end if
-!!$       end do
-!!$    end if
-
     ! Run down previously placed beads in the current chain
     if ( i-nexclude > 0 ) then
        do jbead = i-nexclude,1,-1
@@ -1345,10 +1187,6 @@ contains
              rz = hmatrix(3,1,ibox)*sx + &
                   hmatrix(3,2,ibox)*sy + &
                   hmatrix(3,3,ibox)*sz
-             
-!!$                rx = rx - Lx*anint(rx*rLx)
-!!$                ry = ry - Ly*anint(ry*rLy)
-!!$                rz = rz - Lz*anint(rz*rLz)
              
              overlap = ( ( rx*rx+ry*ry+rz*rz < sigma_sq ))
                                        
@@ -1429,10 +1267,6 @@ contains
                 rz = hmatrix(3,1,ibox)*sx + &
                      hmatrix(3,2,ibox)*sy + &
                      hmatrix(3,3,ibox)*sz
-
-!!$                rx = rx - Lx*anint(rx*rLx)
-!!$                ry = ry - Ly*anint(ry*rLy)
-!!$                rz = rz - Lz*anint(rz*rLz)
 
                 overlap = overlap.or.( ( rx*rx+ry*ry+rz*rz < sigma_sq ).and.(ichain/=jchain) )
 
@@ -1647,18 +1481,6 @@ contains
                    ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
                    rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
                    
-!!$                   rx = hmatrix(1,1,ibox)*sx + &
-!!$                        hmatrix(1,2,ibox)*sy + &
-!!$                        hmatrix(1,3,ibox)*sz
-
-                                   
-!!$                   ry = hmatrix(2,1,ibox)*sx + &
-!!$                        hmatrix(2,2,ibox)*sy + &
-!!$                        hmatrix(2,3,ibox)*sz
-                                   
-!!$                   rz = hmatrix(3,1,ibox)*sx + &
-!!$                        hmatrix(3,2,ibox)*sy + &
-!!$                        hmatrix(3,3,ibox)*sz
 
                    !overlap = overlap.or.( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
                    overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
@@ -2113,10 +1935,6 @@ contains
              do jbead = 1,nbeads
                 ! Compiler need to in-line this next bit
                 rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
-                !rsep(:) = Rchain(:,jbead,jchain)-rbead(:)
-                !rsep(1) = rsep(1) - Lx*anint(rsep(1)*rLx)
-                !rsep(2) = rsep(2) - Ly*anint(rsep(2)*rLy)
-                !rsep(3) = rsep(3) - Lz*anint(rsep(3)*rLz)
                 lrange  = (dot_product(rsep,rsep)<nl_range_sq).and.(ichain/=jchain)
                 advance(k) = lcnv*transfer(lrange,myint)
                 k = k + 1
