@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                                   M   C                                     !
 !=============================================================================!
@@ -8,23 +7,6 @@
 !-----------------------------------------------------------------------------!
 ! Dummy MC module for use when compiling associated routines into a library.  !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: mc_dummy.f90,v $
-! Revision 1.3  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.2  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.1  2011/08/02 10:55:11  phseal
-! Initial version for compilation as a library
-!
-!
-!
-!=============================================================================!
 module mc
 
   use constants, only : dp,it
@@ -56,5 +38,5 @@ module mc
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
   !---------------------------------------------------------------------------!
- 
+
 end module mc

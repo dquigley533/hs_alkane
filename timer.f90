@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                            T I M E R                                        !
 !=============================================================================!
@@ -11,26 +10,6 @@
 ! run length. This module allows the code to run until some specified time    !
 ! before 120 hours is up, and then shutdown cleanly.
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: timer.f90,v $
-! Revision 1.4  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.3  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.2  2011/08/02 10:03:16  phseal
-! Modified timer routines to return an integer rather than a logical for
-! C compatibility purposes in later versions of this code.
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 module timer 
 
   use iso_c_binding
@@ -63,7 +42,7 @@ module timer
   logical,save           :: timer_initialised = .false.
 
 contains
-  
+
   subroutine timer_init() bind(c)
     !-------------------------------------------------------------------------!
     ! Initialises the timer                                                   !
@@ -76,15 +55,15 @@ contains
     integer(kind=it),dimension(8) :: info
 
     call date_and_time(dat,tim,zon,info)
-    
+
     last_time = 3600_dp*real(info(5),kind=dp)+60.0_dp*real(info(6),kind=dp) &
                + real(info(7),kind=dp)+0.001_dp*real(info(8),kind=dp)
 
     start_day  = info(3)
-    
+
     write(*,*)
     write(*,'("=====================")')
-    write(*,'("| Timer initialised |")')              
+    write(*,'("| Timer initialised |")')
     write(*,'("=====================")')
     write(*,*)
 
@@ -111,10 +90,10 @@ contains
     end if
 
     call date_and_time(dat,tim,zon,info)
-    
+
     current_time = 3600_dp*real(info(5),kind=dp)+60.0_dp*real(info(6),kind=dp) &
                    + real(info(7),kind=dp)+0.001_dp*real(info(8),kind=dp)
-    
+
     ! if the day has changed....
     if (start_day/=info(3)) then
         last_time = last_time - 86400_dp
@@ -125,7 +104,7 @@ contains
     elapsed_time = elapsed_time + current_time - last_time
     last_time    = current_time
     timer_elapsed_time = elapsed_time
-    
+
     return
 
   end function timer_elapsed_time

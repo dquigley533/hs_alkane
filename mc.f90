@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                                   M   C                                     !
 !=============================================================================!
@@ -11,73 +10,6 @@
 ! regarding selection and accept/reject mechanics. Actual moves and overlaps  !
 ! are performed within alkane.f90.                                            !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: mc.f90,v $
-! Revision 1.17  2014/05/07 16:54:03  phseal
-! Added minor changes for compatibility with ponders
-!
-! Revision 1.16  2014/05/06 14:39:29  phseal
-! Added option for use of Verlet lists instead of link cells
-!
-! Revision 1.15  2012/06/19 16:40:22  phrkao
-! changed centre of mass to first bead
-!
-! Revision 1.14  2011/11/21 16:08:49  phseal
-! Removed MS Windoze tab characters
-!
-! Revision 1.13  2011/11/15 17:43:05  phseal
-! Added printing of move counters
-!
-! Revision 1.12  2011/10/26 16:14:57  phrkao
-! made alkane_check_chain_overlap c compatible and corresponding mc.f90 calls adapted
-!
-! Revision 1.11  2011/10/16 20:41:02  phseal
-! Fixed lack of volume moves when using rigid chains
-!
-! Revision 1.10  2011/10/16 18:18:23  phseal
-! Changed the minimum length to the side of a link cell to be an input
-! parameter. Hence the second argument to box_construct_link_cells is
-! no longer present, and link_cell_length is read from the input file.
-!
-! Revision 1.9  2011/09/01 16:55:13  phrkao
-! Changed alkane_check_chain_geometry to be C compatible, had to change
-! the argument "violate" from logical to integer and subsequently changed
-! mc.f90 where this was used.
-!
-! Revision 1.8  2011/08/30 16:26:20  phseal
-! Added ifail argument to alkane_grow_chain to indicate if at any step non
-! of the ktrial segments had a viable weight and hence CBMC move should
-! have zero probability of acceptance.
-!
-! Revision 1.7  2011/08/18 17:27:00  phrkao
-! randomly had to add in i's back onto ichain and ibox
-!
-! Revision 1.6  2011/08/18 17:20:26  phrkao
-! alkane.f90 has been updated to return quaternion and bond,angle information
-! for use with lattice_switching code, bond_rotate and rotate_chain were changed.
-! Dummy variables added to mc.f90 to account for this
-!
-! Revision 1.5  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.4  2011/08/02 12:31:54  phseal
-! Removed use of optional arguments in routines which need to be called
-! by C when compiled as a library.
-!
-! Revision 1.3  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.2  2011/07/29 15:58:29  phseal
-! Added multiple simulation box support.
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 module mc
 
   use iso_c_binding
@@ -108,7 +40,7 @@ module mc
   real(kind=dp) :: mc_target_ratio = 0.5_dp     ! Target acceptance ratio
   logical       :: eq_adjust_mc    = .true.     ! Do we adjust MC to reach it
   integer(kind=it)      :: max_mc_cycles   = 500000000  ! How many cycles to perform
-         
+
   integer(kind=it)      :: mc_cycle_num = 0             ! Current cycle number
   integer(kind=it)      :: last_move    = 0             ! Most recent move type
 
@@ -128,7 +60,7 @@ module mc
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
   !---------------------------------------------------------------------------!
- 
+
 
 contains
 
@@ -150,7 +82,7 @@ contains
                           alkane_bond_rotate,alkane_translate_chain,&
                           alkane_rotate_chain,alkane_check_chain_overlap,&
                           alkane_check_chain_geometry,alkane_update_linked_lists
-    
+
     implicit none
 
     real(kind=dp) :: xi                            ! Random number on 0-1.
@@ -162,7 +94,7 @@ contains
     real(kind=dp) :: dummy_dp                      ! Dummy variable
     real(kind=dp) :: volP                          ! Vol move prob
 
-    real(kind=dp),dimension(4) :: dummy_quat       ! Dummy quarternion 
+    real(kind=dp),dimension(4) :: dummy_quat       ! Dummy quarternion
 
     integer(kind=it) :: overlap                    ! Check on overlaps
     integer(kind=it) :: violated                   ! Check on geometry
@@ -237,7 +169,7 @@ contains
 !!$
 !!$             ! Reverse the chain and regrow from the other end
 !!$             k = 1
-!!$             backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
+!!$             backup_chain(:,:) = Rchain(:,:,ichain,ibox)
 !!$             do ibead = nbeads,1,-1
 !!$                Rchain(:,k,ichain,ibox) = backup_chain(:,ibead)
 !!$                k = k + 1
@@ -252,7 +184,7 @@ contains
 !!$          end if
 !!$
 !!$          ! Store the backup chain
-!!$          backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
+!!$          backup_chain(:,:) = Rchain(:,:,ichain,ibox)
 !!$
 !!$          ! Compute the Rosenbluth factor of the old chain
 !!$          ! i.e. call grow_chain with regrow = .false.
@@ -300,7 +232,7 @@ contains
              ! reverse the chain and regrow from the other end
              k = 1
 
-             backup_chain(:,:) = Rchain(:,:,ichain,ibox)   
+             backup_chain(:,:) = Rchain(:,:,ichain,ibox)
              do ibead = nbeads,1,-1
                 Rchain(:,k,ichain,ibox) = backup_chain(:,ibead)
                 k = k + 1
@@ -315,7 +247,7 @@ contains
           end if
 
           ! Store the backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain,ibox)  
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)
 
           ! Rotate a randomly selected torsion angle along the chain
           ! TODO - this will fail for model III with continuous
@@ -324,7 +256,7 @@ contains
 
           ! Accept or reject move.
           xi = random_uniform_random()
-          if ( xi < new_boltz ) then  
+          if ( xi < new_boltz ) then
 
              ! Accept the new config
              mc_accepted_dih = mc_accepted_dih + 1
@@ -351,9 +283,9 @@ contains
           mc_attempted_trans = mc_attempted_trans + 1
 
           ! Store backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain,ibox)  
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)
 
-          ! Translate entire chain by a random vector. 
+          ! Translate entire chain by a random vector.
           ! new_boltz is the new Boltzmann factor
           call alkane_translate_chain(ichain,ibox,new_boltz)
 
@@ -381,12 +313,12 @@ contains
           !----------------------------------------------------------!
           ! Rotate a single chain about its centre of mass           !
           ! ---------------------------------------------------------!
-       else 
+       else
 
           mc_attempted_rot = mc_attempted_rot + 1
 
           ! Store backup chain
-          backup_chain(:,:) = Rchain(:,:,ichain,ibox)  
+          backup_chain(:,:) = Rchain(:,:,ichain,ibox)
 
           ! Rotate by a random angle about a random axis
           ! new_boltz holds the new Boltzmann factor
@@ -400,7 +332,7 @@ contains
              mc_accepted_rot = mc_accepted_rot + 1
              last_move = 5
 
-             ! Update linked-lists for the new chain 
+             ! Update linked-lists for the new chain
              do ibead = 1,nbeads
                 call alkane_update_linked_lists(ibead,ichain,ibox, &
                      backup_chain(:,ibead),Rchain(:,ibead,ichain,ibox))
@@ -442,7 +374,7 @@ contains
     !--------------------------------------------------------------------!
     if ( (mod(mc_cycle_num,10000)==0).and.eq_adjust_mc ) then
 
-       write(*,'("!=======================================!")') 
+       write(*,'("!=======================================!")')
        write(*,'("! Checking move acceptance ratios...    !")')
        write(*,'("!                                       !")')
 
@@ -451,7 +383,7 @@ contains
        ktrial = max(5,int(real(ktrial,kind=dp)*mc_target_ratio/acrat))
        ktrial = min(10,ktrial)
        if (mc_accepted_cbmc == 0) ktrial = 10
-       
+
        write(*,'("! Configurational bias moves   : ",I2" %   ",I5)')nint(acrat*100.0_dp),mc_attempted_cbmc
        !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
        !     mc_accepted_cbmc,mc_attempted_cbmc
@@ -504,7 +436,7 @@ contains
        mc_accepted_box   = 0 ; mc_attempted_box   = 0
        mc_accepted_cbmc  = 0 ; mc_attempted_cbmc  = 0
 
-       write(*,'("!=======================================!")') 
+       write(*,'("!=======================================!")')
        write(*,*)
 
        write(*,'("!=======================================!")')
@@ -544,7 +476,7 @@ contains
     implicit none
     logical,optional,intent(in) :: grow_new_chains
 
-    integer(kind=it) :: overlap                  ! Check on overlaps 
+    integer(kind=it) :: overlap                  ! Check on overlaps
     integer(kind=it) :: violated                 ! Check on geometry
     integer(kind=it) :: ichain,nccopy,ibox,ifail ! Loop counters etc
     real(kind=dp) :: rb_factor                   ! Rosenbluth factor for chain growth

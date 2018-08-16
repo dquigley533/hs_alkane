@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                       H  S    A  L  K  A  N  E                              !
 !=============================================================================!
@@ -8,38 +7,6 @@
 !-----------------------------------------------------------------------------!
 ! Simulation code to perform NPT simulations of hard-sphere chain alkanes.    !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: main.f90,v $
-! Revision 1.8  2012/08/09 14:50:43  phrkao
-! increased the number of decimal places being printed to final.xmols
-!
-! Revision 1.7  2011/11/21 16:09:11  phseal
-! Removed unused variable
-!
-! Revision 1.6  2011/08/08 10:57:45  phseal
-! Added signal handler for SIGTERM
-!
-! Revision 1.5  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.4  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.3  2011/08/02 10:03:16  phseal
-! Modified timer routines to return an integer rather than a logical for
-! C compatibility purposes in later versions of this code.
-!
-! Revision 1.2  2011/07/29 15:58:29  phseal
-! Added multiple simulation box support.
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 subroutine cleanexit()
   !-------------------------------------------------------------------------!
   ! Routine to handle clean shutdown of code in the event of SIGTERM being  !
@@ -86,7 +53,7 @@ program hs_alkane
   !========================================================!
   ! Timing
   integer(kind=it) :: t1,t2,rate
-  integer(kind=it) :: safe 
+  integer(kind=it) :: safe
 
   ! Loop counters / error flags
   integer(kind=it) :: ibead,ichain,ierr,ibox
@@ -160,7 +127,7 @@ program hs_alkane
   end if
 
   !------------------------------------!
-  ! Setup a signal handler for SIGTERM !   
+  ! Setup a signal handler for SIGTERM !
   ! which is usually signal no. 15.    !
   !------------------------------------!
   call signal(15,cleanexit)
@@ -204,7 +171,7 @@ program hs_alkane
 
      end if
 
-     ! Check if we should exit the program, i.e. are we within 
+     ! Check if we should exit the program, i.e. are we within
      ! time_closetime of reaching timer_qtime.
      call timer_check_runtime(safe)
      if (.not.(safe==1)) then

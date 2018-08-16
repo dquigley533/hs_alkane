@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                              I   O                                          !
 !=============================================================================!
@@ -9,48 +8,6 @@
 ! Holds routines to read the main input file, the xmol file containing        !
 ! initial coordinates, and variables relating to IO choices.                  !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: io.f90,v $
-! Revision 1.11  2014/05/06 14:39:29  phseal
-! Added option for use of Verlet lists instead of link cells
-!
-! Revision 1.10  2012/06/19 16:40:22  phrkao
-! changed centre of mass to first bead
-!
-! Revision 1.9  2011/11/21 16:08:18  phseal
-! Removed unused variables
-!
-! Revision 1.8  2011/10/19 16:20:17  phseal
-! bypass_link_cells can now be read from the input file.
-!
-! Revision 1.7  2011/10/16 18:18:23  phseal
-! Changed the minimum length to the side of a link cell to be an input
-! parameter. Hence the second argument to box_construct_link_cells is
-! no longer present, and link_cell_length is read from the input file.
-!
-! Revision 1.6  2011/08/26 15:03:30  phrkao
-! Corrected omission of chain_created = true after xmol read
-!
-! Revision 1.5  2011/08/02 13:16:32  phseal
-! Added default input file name for operating in library mode
-!
-! Revision 1.4  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.3  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.2  2011/07/29 15:58:29  phseal
-! Added multiple simulation box support.
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 module io
 
   use iso_c_binding
@@ -134,15 +91,15 @@ contains
     num_args = iargc()
 
     if (num_args<1) then
-       
+
        ! No arguments, which might mean we are operating in library mode,
        ! or we want to use the default input file hs_alkane.input
        inquire(file='hs_alkane.input',exist=lexist)
        if (lexist) then
           write(*,'("Using default input filename - hs_alkane.input")')
           file_name = 'hs_alkane.input'
-       else          
-          write(*,*) 
+       else
+          write(*,*)
           write(*,*) '                 H S _ A L K A N E          '
           write(*,*)
           write(*,*) '            Usage: hs_alkane <input file>   '
@@ -159,19 +116,19 @@ contains
        do iarg = 1, num_args
           call getarg(iarg,command_line(iarg))
        end do
-       
+
        ! find the last dot in the filename.
        last_dot = len(seedname)
        do idata = 1, len(seedname)
           if(command_line(1)(idata:idata)=='.') last_dot = idata
        end do
-       
+
        ! set the seedname.
-       seedname = command_line(1)(1:last_dot-1)  
-       
+       seedname = command_line(1)(1:last_dot-1)
+
        ! set the file name
        file_name = trim(command_line(1))
-       
+
     end if
 
     ! open it
@@ -224,9 +181,9 @@ contains
 
        filename = 'chain.xmol'
        write(boxstring,'(".",I2.2)')ibox
-       
+
        if ( nboxes > 1 ) filename = trim(filename)//boxstring
- 
+
        open(unit=25,file=trim(filename),status='old',iostat=ierr)
        if (ierr/=0) then
           write(0,'("Could not open local input file : ",A30)')filename
@@ -235,23 +192,23 @@ contains
 
        read(25,*)dumint
        if (dumint/=nchains*nbeads) stop 'Wrong number of beads in chain.xmol'
-       
+
        read(25,*)hmatrix(:,:,ibox)
        if (pbc) then
           call box_update_recipmatrix(ibox)
        else
           recip_matrix = 0.0_dp
        end if
-       
+
        do ichain = 1,nchains
           do ibead = 1,nbeads
              read(25,*)dumchar,Rchain(:,ibead,ichain,ibox)
           end do
           chain_created(ichain,ibox) = .true.
        end do
-       
+
        close(25)
-       
+
     end do ! end loop over boxes
 
   end subroutine io_read_xmol

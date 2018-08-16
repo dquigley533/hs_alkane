@@ -1,4 +1,3 @@
-#-*- mode: makefile; mode: font-lock; vc-back-end: RCS -*-
 #=============================================================================#
 #                      H   S      A   L   K   A   N   E                       #
 #=============================================================================#
@@ -7,41 +6,8 @@
 #                                                                             #
 #-----------------------------------------------------------------------------#
 # D. Quigley, University of Warwick                                           #
-#
-# $Log: Makefile,v $
-# Revision 1.8  2012/07/20 12:40:00  phrkao
-# took out / before library
-#
-# Revision 1.7  2012/07/05 12:59:56  phrkao
-# included ability to set compiler and flags from commandline in the Makefile
-#
-# Revision 1.6  2012/06/19 16:40:22  phrkao
-# changed centre of mass to first bead
-#
-# Revision 1.5  2011/09/01 16:55:13  phrkao
-# Changed alkane_check_chain_geometry to be C compatible, had to change
-# the argument "violate" from logical to integer and subsequently changed
-# mc.f90 where this was used.
-#
-# Revision 1.4  2011/08/02 12:56:47  phseal
-# Added C bindings to all procedures which should be callable externally
-# when compiled as a library.
-#
-# Revision 1.3  2011/08/02 10:55:11  phseal
-# Initial version for compilation as a library
-#
-# Revision 1.2  2011/07/29 15:58:29  phseal
-# Added multiple simulation box support.
-#
-# Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-# Initial import from prototype code.
-#
-#
-#
 #=============================================================================#
-
 SHELL = /bin/sh
-
 
 # Where you want the executable
 prefix     = $(HOME)

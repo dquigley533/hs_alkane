@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                               V  I  S                                       !
 !=============================================================================!
@@ -8,38 +7,6 @@
 !-----------------------------------------------------------------------------!
 ! Routines to create psf and dcd files of alkane chains for visualisation.    !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: vis_module.f90,v $
-! Revision 1.8  2011/11/21 14:12:45  phseal
-! Added DCD title
-!
-! Revision 1.7  2011/11/18 17:33:16  phseal
-! Checked array allocatate and deallocate in write_dcd_snapshot
-!
-! Revision 1.6  2011/11/15 17:42:14  phseal
-! Reinstated wrapping of chain COM inside box
-!
-! Revision 1.5  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.4  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.3  2011/08/02 10:02:32  phseal
-! Modified write_dcd_snapshot to read coordinates directly from the alkane
-! module, rather than as subroutine arguments.
-!
-! Revision 1.2  2011/07/29 15:58:29  phseal
-! Added multiple simulation box support.
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 module vis
 
   use constants, only : ep,dp,it
@@ -72,7 +39,7 @@ module vis
       ! of the beads can be changed once loaded into vmd.    !
       !------------------------------------------------------!
       ! D.Quigley January 2010                               !
-      !------------------------------------------------------! 
+      !------------------------------------------------------!
       use box, only : nboxes
       implicit none
       integer(kind=it),intent(in) :: nchains,nbeads
@@ -136,13 +103,12 @@ module vis
 30       format(1x,I7,1x,I7,1x,I7,1x,I7,1x,I7,1x,I7,1x,I7,1x,I7,1x)
          write(psf,30)arrbonds
 
-         ! write irrelevant stuff - chimera will check for it and
-         ! complain if it isn't there.
+         ! write irrelevant stuff 
          write(psf,'(I8,1x,"!NTHETA: angles")')0
          write(psf,'(I8,1x,"!NPHI: torsions")')0
-         write(psf,'(I8,1x,"!NIMPHI: torsions")')0    
-         write(psf,'(I8,1x,"!NDON: donors")')0 
-         write(psf,'(I8,1x,"!NACC: acceptors")')0 
+         write(psf,'(I8,1x,"!NIMPHI: torsions")')0
+         write(psf,'(I8,1x,"!NDON: donors")')0
+         write(psf,'(I8,1x,"!NACC: acceptors")')0
 
          close(psf)
          deallocate(arrbonds)
@@ -159,7 +125,7 @@ module vis
     ! linear chain of bonded beads.                        !
     !------------------------------------------------------!
     ! D.Quigley January 2010                               !
-    !------------------------------------------------------! 
+    !------------------------------------------------------!
     use box, only : nboxes
     implicit none
     integer(kind=it),intent(in) :: Nchains,Nbeads
@@ -176,7 +142,7 @@ module vis
     dcdtitle = 'DCD file written by hs_alkane'
 
     do ibox = 1,nboxes ! loop over boxes
-       
+
        if (nboxes == 1) then
           ! open the psf file
           open(unit=dcd,file='chain.dcd',status='replace',iostat=ierr,form='unformatted')
@@ -187,32 +153,32 @@ module vis
           open(unit=dcd,file=trim(filename),status='replace',iostat=ierr,form='unformatted')
           if (ierr/=0) stop 'Error opening chain dcd files - quitting'
        end if
-       
+
        ! write the dcd header - most of this will be ignored
        icntrl(1)     = 1000              ! number of snapshots in history file
        icntrl(2)     = 0
        icntrl(3)     = 100               ! gap in steps between snapshots (doesn't matter)
        icntrl(4)     = 100*1000          ! total numbe of steps (VMD ignores this)
        icntrl(5:7)   = 0
-       icntrl(8)     = 3*Nchains*Nbeads  ! Ndeg 
+       icntrl(8)     = 3*Nchains*Nbeads  ! Ndeg
        icntrl(9)     = 0                 ! no fixed atoms
        icntrl(10)    = 0
        icntrl(11)    = 1                 ! 1/0 for unit cell presence
        icntrl(12:19) = 0
        icntrl(20)    = 24                ! Charmm version number (fixes dcd format)
-       
+
        write(dcd)hdr,icntrl
        write(dcd)1,(dcdtitle(i),i=1,1)
        write(dcd)Nchains*nbeads
-       
+
        close(dcd)
-     
+
     end do ! end loop over boxes
-  
+
     return
-       
+
   end subroutine write_dcd_header
-     
+
   subroutine write_dcd_snapshot() bind(c)
     !------------------------------------------------------!
     ! Writes a snapshot of the current positions to a the  !
@@ -220,7 +186,7 @@ module vis
     ! double precision which holds the coordinates.        !
     !------------------------------------------------------!
     ! D.Quigley January 2010                               !
-    !------------------------------------------------------! 
+    !------------------------------------------------------!
     use constants, only : invPi
     use box,       only : hmatrix,pbc,recip_matrix,nboxes
     use alkane,    only : nbeads,nchains,Rchain
@@ -231,7 +197,7 @@ module vis
     real(kind=dp),dimension(3) :: unita,unitb,unitc
 
     ! charmm style cell vector array
-    real(kind=ep),dimension(6) :: xtlabc   
+    real(kind=ep),dimension(6) :: xtlabc
 
     integer(kind=it) :: ierr,j,i,ichain,ibead,ibox
 
@@ -270,25 +236,25 @@ module vis
                       recip_matrix(3,1,ibox)*oldcom(3)
           tmpcom(2) = recip_matrix(1,2,ibox)*oldcom(1) + &
                       recip_matrix(2,2,ibox)*oldcom(2) + &
-                      recip_matrix(3,2,ibox)*oldcom(3)  
+                      recip_matrix(3,2,ibox)*oldcom(3)
           tmpcom(3) = recip_matrix(1,3,ibox)*oldcom(1) + &
                       recip_matrix(2,3,ibox)*oldcom(2) + &
-                      recip_matrix(3,3,ibox)*oldcom(3) 
+                      recip_matrix(3,3,ibox)*oldcom(3)
 
-          tmpcom    = tmpcom*0.5_dp*invPi 
+          tmpcom    = tmpcom*0.5_dp*invPi
 
-          oldcom(1) = - anint(tmpcom(1)) 
-          oldcom(2) = - anint(tmpcom(2)) 
-          oldcom(3) = - anint(tmpcom(3)) 
+          oldcom(1) = - anint(tmpcom(1))
+          oldcom(2) = - anint(tmpcom(2))
+          oldcom(3) = - anint(tmpcom(3))
 
           tmpcom(1) = hmatrix(1,1,ibox)*oldcom(1) + &
                       hmatrix(1,2,ibox)*oldcom(2) + &
                       hmatrix(1,3,ibox)*oldcom(3)
-                                 
+
           tmpcom(2) = hmatrix(2,1,ibox)*oldcom(1) + &
                       hmatrix(2,2,ibox)*oldcom(2) + &
                       hmatrix(2,3,ibox)*oldcom(3)
-                                 
+
           tmpcom(3) = hmatrix(3,1,ibox)*oldcom(1) + &
                       hmatrix(3,2,ibox)*oldcom(2) + &
                       hmatrix(3,3,ibox)*oldcom(3)

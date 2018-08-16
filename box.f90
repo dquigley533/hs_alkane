@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                               B  O  X                                       !
 !=============================================================================!
@@ -7,68 +6,9 @@
 !                                                                             !
 !-----------------------------------------------------------------------------!
 ! Stores properties of the simulation 'box' (i.e. not the alkane chains) and  !
-! routines to manipulate them. Also containts routines associated with the    !
+! routines to manipulate them. Also contains routines associated with the     !
 ! operation of link cells and periodic boundary conditions.                   !
 !-----------------------------------------------------------------------------!
-!                                                                             !
-! $Log: box.f90,v $
-! Revision 1.16  2014/05/06 14:39:29  phseal
-! Added option for use of Verlet lists instead of link cells
-!
-! Revision 1.15  2012/09/19 13:01:44  phrkao
-! added ability to set pbc from C code via new subroutine box_set_pbc
-!
-! Revision 1.14  2012/09/12 12:20:27  phrkao
-! when set cell, always update the recip matrix as well
-!
-! Revision 1.13  2012/08/21 10:31:59  phrkao
-! Added alkane_set...  and box_set... routines to take the place of a separate fortran input file when using as a library from C
-!
-! Revision 1.12  2012/07/19 13:50:01  phrkao
-! added box_frac_to_cart_otherbox, for a specified hmatrix
-!
-! Revision 1.11  2012/06/19 16:40:22  phrkao
-! changed centre of mass to first bead
-!
-! Revision 1.10  2011/11/21 11:46:52  phseal
-! Fixed purging of other boxes when reallocating lcneigh
-!
-! Revision 1.9  2011/11/21 11:24:22  phseal
-! Fixed out-of-bounds errors when one box had less link cells
-!
-! Revision 1.8  2011/11/04 16:12:44  phseal
-! Added box_get_num_boxes for C integration purposes.
-!
-! Revision 1.7  2011/10/19 16:20:17  phseal
-! bypass_link_cells can now be read from the input file.
-!
-! Revision 1.6  2011/10/16 18:18:23  phseal
-! Changed the minimum length to the side of a link cell to be an input
-! parameter. Hence the second argument to box_construct_link_cells is
-! no longer present, and link_cell_length is read from the input file.
-!
-! Revision 1.5  2011/08/02 12:56:47  phseal
-! Added C bindings to all procedures which should be callable externally
-! when compiled as a library.
-!
-! Revision 1.4  2011/08/02 12:27:18  phseal
-! Updated all integers to use the integer type in constants.f90 where
-! applicable. This allows the integer type it to be set to a C compatible
-! type via the instrinsic iso_c_bindings module.
-!
-! Revision 1.3  2011/08/02 10:04:18  phseal
-! Added routines to manipulate inactive boxes from outside of the box and
-! alkane module. Updates overlap counting routines to return only the
-! total number of overlaps found rather than lists of overlapping atoms.
-!
-! Revision 1.2  2011/07/29 15:58:29  phseal
-! Added multiple simulation box support.
-!
-! Revision 1.1.1.1  2011/02/02 11:48:36  phseal
-! Initial import from prototype code.
-!
-!
-!=============================================================================!
 module box
 
   use constants, only : dp,it
@@ -91,13 +31,13 @@ module box
 
   public :: box_get_cell, box_set_cell  ! Manipulate hmatrix externally
   public :: box_set_isotropic           ! Set isotropic externally
-  public :: box_get_num_boxes           ! Query number of boxes in use  
+  public :: box_get_num_boxes           ! Query number of boxes in use
   public :: box_set_num_boxes           ! Set the number of boxes externally
   public :: box_set_link_cell_length    ! Set the link_cell_length
   public :: box_set_bypass_link_cells   ! Set bypass_link_cells
   public :: box_set_use_verlet_list     ! Set use verlet list
   public :: box_set_pbc                 ! Set the periodic boundary conditions
-  
+
 
 
   public :: box_cart_to_frac            ! Convert absolute coords to fractional
@@ -143,7 +83,7 @@ module box
   real(kind=dp),save :: link_cell_length   = 1.5   ! Minimum link cell length in each dimension
 
   real(kind=dp),allocatable,dimension(:,:,:),save :: hmatrix       ! Matrix of cell vectors
-  real(kind=dp),allocatable,dimension(:,:,:),save :: recip_matrix  ! Reciprocal lattice 
+  real(kind=dp),allocatable,dimension(:,:,:),save :: recip_matrix  ! Reciprocal lattice
 
   logical,save       :: isotropic = .false. ! isotropic volume moves
   real(kind=dp),save :: pressure  = 6.0     ! external pressure
@@ -164,13 +104,13 @@ module box
   logical :: box_initialised = .false.
 
 contains
-  
+
   subroutine box_initialise() bind(c)
     !------------------------------------------------------------------------------!
     ! Allocated memory for the basic properties of each simulation box.            !
     !------------------------------------------------------------------------------!
     ! D.Quigley July 2011                                                          !
-    !------------------------------------------------------------------------------!   
+    !------------------------------------------------------------------------------!
     implicit none
     integer(kind=it),dimension(2) :: ierr
     integer(kind=it) :: ibox
@@ -182,7 +122,7 @@ contains
 
     ! Set all boxes the same if reading via this mechanism
     do ibox = 1,nboxes
-       
+
        hmatrix(:,1,ibox) = CellA(:)
        hmatrix(:,2,ibox) = CellB(:)
        hmatrix(:,3,ibox) = CellC(:)
@@ -192,7 +132,7 @@ contains
        else
           recip_matrix = 0.0_dp
        end if
-       
+
     end do
 
     ! Linked lists
@@ -220,7 +160,7 @@ contains
     ! Allocated memory for the basic properties of each simulation box.            !
     !------------------------------------------------------------------------------!
     ! D.Quigley July 2011                                                          !
-    !------------------------------------------------------------------------------!   
+    !------------------------------------------------------------------------------!
     implicit none
 
     deallocate(hmatrix,recip_matrix)
@@ -237,7 +177,7 @@ contains
     ! Computes the determinant of a 3x3 matrix.                                    !
     !------------------------------------------------------------------------------!
     ! D.Quigley September 2006                                                     !
-    !------------------------------------------------------------------------------!     
+    !------------------------------------------------------------------------------!
     implicit none
     integer(kind=it),intent(in) :: ibox
     real(kind=dp) :: det
@@ -260,7 +200,7 @@ contains
     ! Calculates the matrix of reciprocal lattive vectors from the hmatrix         !
     !------------------------------------------------------------------------------!
     ! D.Quigley September 2006                                                     !
-    !------------------------------------------------------------------------------! 
+    !------------------------------------------------------------------------------!
     use constants, only : Pi
     implicit none
     integer(kind=it),intent(in) :: ibox
@@ -278,7 +218,7 @@ contains
     recip_matrix(3,1,ibox)=hmatrix(1,2,ibox)*hmatrix(2,3,ibox)-hmatrix(1,3,ibox)*hmatrix(2,2,ibox)
     recip_matrix(3,2,ibox)=hmatrix(1,3,ibox)*hmatrix(2,1,ibox)-hmatrix(1,1,ibox)*hmatrix(2,3,ibox)
     recip_matrix(3,3,ibox)=hmatrix(1,1,ibox)*hmatrix(2,2,ibox)-hmatrix(1,2,ibox)*hmatrix(2,1,ibox)
-    
+
     ! Calculte cell volume
     vol =hmatrix(1,1,ibox)*recip_matrix(1,1,ibox) + &
          hmatrix(1,2,ibox)*recip_matrix(1,2,ibox) + &
@@ -321,29 +261,29 @@ contains
          recip_matrix(3,1,ibox)*dr(3)
     sy = recip_matrix(1,2,ibox)*dr(1) + &
          recip_matrix(2,2,ibox)*dr(2) + &
-         recip_matrix(3,2,ibox)*dr(3)  
+         recip_matrix(3,2,ibox)*dr(3)
     sz = recip_matrix(1,3,ibox)*dr(1) + &
          recip_matrix(2,3,ibox)*dr(2) + &
-         recip_matrix(3,3,ibox)*dr(3) 
+         recip_matrix(3,3,ibox)*dr(3)
 
-    sx = sx*0.5_dp*invPi 
+    sx = sx*0.5_dp*invPi
     sy = sy*0.5_dp*invPi
-    sz = sz*0.5_dp*invPi 
+    sz = sz*0.5_dp*invPi
 
     ! apply boundary conditions
     sx = sx - floor(sx+0.5_dp,kind=dp)
     sy = sy - floor(sy+0.5_dp,kind=dp)
     sz = sz - floor(sz+0.5_dp,kind=dp)
-    
+
     ! scale back up
     dr(1) = hmatrix(1,1,ibox)*sx + &
             hmatrix(1,2,ibox)*sy + &
             hmatrix(1,3,ibox)*sz
-                       
+
     dr(2) = hmatrix(2,1,ibox)*sx + &
             hmatrix(2,2,ibox)*sy + &
             hmatrix(2,3,ibox)*sz
-                       
+
     dr(3) = hmatrix(3,1,ibox)*sx + &
             hmatrix(3,2,ibox)*sy + &
             hmatrix(3,3,ibox)*sz
@@ -353,7 +293,7 @@ contains
 !!$    dr(3) = dr(3) - Lz*anint(dr(3)*rLz)
 
     box_minimum_image = dr(:)
-    
+
     return
 
   end function box_minimum_image
@@ -471,9 +411,9 @@ contains
        ! Decide which cells are neighbours of each other.
        do iz = 1,ncellz(jbox)
           do iy = 1,ncelly(jbox)
-             do ix = 1,ncellx(jbox)       
+             do ix = 1,ncellx(jbox)
 
-                icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix           
+                icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix
 
                 jn = 1
                 do jz = iz-1,iz+1
@@ -482,9 +422,9 @@ contains
 
                          kx = mod(jx,ncellx(jbox)) ; if (kx==0) kx=ncellx(jbox)
                          ky = mod(jy,ncelly(jbox)) ; if (ky==0) ky=ncelly(jbox)
-                         kz = mod(jz,ncellz(jbox)) ; if (kz==0) kz=ncellz(jbox)                    
+                         kz = mod(jz,ncellz(jbox)) ; if (kz==0) kz=ncellz(jbox)
 
-                         jcell = (kz-1)*ncellx(jbox)*ncelly(jbox) + (ky-1)*ncellx(jbox) + kx    
+                         jcell = (kz-1)*ncellx(jbox)*ncelly(jbox) + (ky-1)*ncellx(jbox) + kx
 
                          lcneigh(jn,icell,jbox) = jcell
 
@@ -700,14 +640,14 @@ contains
                     recip_matrix(3,1,ibox)*in_vector(3)
     out_vector(2) = recip_matrix(1,2,ibox)*in_vector(1) + &
                     recip_matrix(2,2,ibox)*in_vector(2) + &
-                    recip_matrix(3,2,ibox)*in_vector(3)  
+                    recip_matrix(3,2,ibox)*in_vector(3)
     out_vector(3) = recip_matrix(1,3,ibox)*in_vector(1) + &
                     recip_matrix(2,3,ibox)*in_vector(2) + &
-                    recip_matrix(3,3,ibox)*in_vector(3) 
+                    recip_matrix(3,3,ibox)*in_vector(3)
 
-    out_vector(1) = out_vector(1)*0.5_dp*invPi 
+    out_vector(1) = out_vector(1)*0.5_dp*invPi
     out_vector(2) = out_vector(2)*0.5_dp*invPi
-    out_vector(3) = out_vector(3)*0.5_dp*invPi 
+    out_vector(3) = out_vector(3)*0.5_dp*invPi
 
     return
 
@@ -731,11 +671,11 @@ contains
     out_vector(1) = hmatrix(1,1,ibox)*in_vector(1) + &
                     hmatrix(1,2,ibox)*in_vector(2) + &
                     hmatrix(1,3,ibox)*in_vector(3)
-                       
+
     out_vector(2) = hmatrix(2,1,ibox)*in_vector(1) + &
                     hmatrix(2,2,ibox)*in_vector(2) + &
                     hmatrix(2,3,ibox)*in_vector(3)
-                       
+
     out_vector(3) = hmatrix(3,1,ibox)*in_vector(1) + &
                     hmatrix(3,2,ibox)*in_vector(2) + &
                     hmatrix(3,3,ibox)*in_vector(3)
@@ -763,11 +703,11 @@ contains
     out_vector(1) = hmatrix_loc(1,1)*in_vector(1) + &
                     hmatrix_loc(1,2)*in_vector(2) + &
                     hmatrix_loc(1,3)*in_vector(3)
-                       
+
     out_vector(2) = hmatrix_loc(2,1)*in_vector(1) + &
                     hmatrix_loc(2,2)*in_vector(2) + &
                     hmatrix_loc(2,3)*in_vector(3)
-                       
+
     out_vector(3) = hmatrix_loc(3,1)*in_vector(1) + &
                     hmatrix_loc(3,2)*in_vector(2) + &
                     hmatrix_loc(3,3)*in_vector(3)
@@ -777,6 +717,6 @@ contains
   end subroutine box_frac_to_cart_otherbox
 
 
-  
+
 
 end module box

@@ -1,4 +1,3 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true ; vc-back-end: RCS -*-
 !=============================================================================!
 !                            A  L  K  A  N  E                                 !
 !=============================================================================!
@@ -29,7 +28,7 @@ module alkane
   public :: alkane_init                       ! Initialise this module
   public :: alkane_destroy                    ! Shutdown this module
   public :: alkane_grow_chain                 ! Grow/regrow chain (CBMC)
-  public :: alkane_translate_chain            ! Trial chain translation 
+  public :: alkane_translate_chain            ! Trial chain translation
   public :: alkane_rotate_chain               ! Trial chain rotation
   public :: alkane_box_resize                 ! Trial box move
   public :: alkane_bond_rotate                ! Trial internal torsion move
@@ -48,7 +47,7 @@ module alkane
   public :: alkane_get_dv_max,alkane_set_dv_max  ! Manipulate dv_max externally
   public :: alkane_get_dh_max,alkane_set_dh_max  ! Manipulate dh_max externally
   public :: alkane_get_ktrial,alkane_set_ktrial  ! Manipulate ktrial externally
-  public :: alkane_get_axis_max,alkane_set_axis_max 
+  public :: alkane_get_axis_max,alkane_set_axis_max
   public :: alkane_get_max_regrow,alkane_set_max_regrow
 
   public :: alkane_get_nchains                   ! Query number of chain per box
@@ -114,7 +113,7 @@ module alkane
   integer(kind=it),save   :: model_type    = 4    ! default model type
   integer(kind=it),save   :: torsion_type  = 1    ! default torsion type
   integer(kind=it),save   :: nexclude             ! exclusion length
-  
+
   ! Chain coordinates and flag for initial configuration
   real(kind=dp),allocatable,dimension(:,:,:,:),save :: Rchain
   logical,allocatable,dimension(:,:),save           :: chain_created
@@ -177,7 +176,7 @@ contains
     allocate(startinlist(1:nbeads*nchains,1:nboxes),stat=ierr(2))
     allocate(endinlist(1:nbeads*nchains,1:nboxes)  ,stat=ierr(3))
     if (any(ierr/=0)) stop 'Error allocating neighbour list arrays'
-  
+
     return
 
   end subroutine alkane_init
@@ -190,7 +189,7 @@ contains
     !-------------------------------------------------------------------------!
     use box, only : use_link_cells
     implicit none
-    
+
     integer(kind=it),dimension(2) :: ierr = 0
 
     deallocate(Rchain,chain_created,list,startinlist,endinlist,stat=ierr(1))
@@ -221,14 +220,14 @@ contains
     dr(3) = 2.0_dp*random_uniform_random() - 1.0_dp
 
     dr = dr*mc_dr_max
-    
+
     ! translate the chain
     do ibead = 1,nbeads
        Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + dr(:)
     end do
 
     tboltz    = alkane_chain_inter_boltz(ichain,ibox)
-    new_boltz = tboltz 
+    new_boltz = tboltz
 
     return
 
@@ -254,10 +253,10 @@ contains
     else if (axis == 1)then
       call alkane_axis_rotate_chain(ichain,ibox,new_boltz,quat)
     endif
-    
+
 
   contains
-   
+
 
     subroutine alkane_rotate_chain_fort(ichain,ibox,new_boltz,quat) !bind(c)
       !-------------------------------------------------------------------------!
@@ -269,7 +268,7 @@ contains
       ! D.Quigley January 2010                                                  !
       !-------------------------------------------------------------------------!
       use random, only     : random_uniform_random
-      use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
+      use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v
       implicit none
       integer(kind=it),intent(in)             :: ichain,ibox
       real(kind=dp),intent(out)               :: new_boltz
@@ -290,7 +289,7 @@ contains
 
       call quat_axis_angle_to_quat(axis,theta,quat)
 
-      !first bead 
+      !first bead
       first(:) = Rchain(:,1,ichain,ibox)
 
       !move so first bead is at the origin, rotate, move back
@@ -316,7 +315,7 @@ contains
       ! D.Quigley January 2010                                                  !
       !-------------------------------------------------------------------------!
       use random, only     : random_uniform_random
-      use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v 
+      use quaternion, only : quat_axis_angle_to_quat,quat_conjugate_q_with_v
       implicit none
       integer(kind=it),intent(in)             :: ichain,ibox
       real(kind=dp),intent(out)               :: new_boltz
@@ -336,7 +335,7 @@ contains
 
       call quat_axis_angle_to_quat(axis,theta,quat)
 
-      !first bead 
+      !first bead
       first(:) = Rchain(:,1,ichain,ibox)
 
       !move so first bead is at the origin, rotate, move back
@@ -345,7 +344,7 @@ contains
          Rchain(:,ibead,ichain,ibox) = quat_conjugate_q_with_v(quat,Rchain(:,ibead,ichain,ibox))
          Rchain(:,ibead,ichain,ibox) = Rchain(:,ibead,ichain,ibox) + first(:)
       end do
-      
+
       new_boltz = alkane_chain_inter_boltz(ichain,ibox)
 
       return
@@ -390,19 +389,19 @@ contains
           ibead = 1
           first(:) =  Rchain(:,ibead,ichain,ibox)
 
-          
-          ! Compute fractional first bead position using the current recip_matrix          
+
+          ! Compute fractional first bead position using the current recip_matrix
           frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
                          recip_matrix(2,1,ibox)*first(2) + &
                          recip_matrix(3,1,ibox)*first(3)
           frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
                          recip_matrix(2,2,ibox)*first(2) + &
-                         recip_matrix(3,2,ibox)*first(3)  
+                         recip_matrix(3,2,ibox)*first(3)
           frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
                          recip_matrix(2,3,ibox)*first(2) + &
-                         recip_matrix(3,3,ibox)*first(3) 
+                         recip_matrix(3,3,ibox)*first(3)
 
-          frac_first = frac_first*0.5_dp*invPi 
+          frac_first = frac_first*0.5_dp*invPi
 
 
           ! Scale to the previous cell
@@ -452,7 +451,7 @@ contains
 
        else
 
-          ! Tweak a random sub-diagonal element         
+          ! Tweak a random sub-diagonal element
           x = random_uniform_random()
           idim = int(x*3.0_dp)+1
           idim = min(idim,3)
@@ -469,7 +468,7 @@ contains
           hmatrix(:,:,ibox) = new_hmatrix(:,:)
           new_volume        = box_compute_volume(ibox)
           delta_vol         = new_volume - old_volume
-          
+
 
        end if
 
@@ -478,19 +477,19 @@ contains
           first(:) = 0.0_dp
           ibead = 1
           first(:) =  Rchain(:,ibead,ichain,ibox)
-          
-          ! Compute fractional first bead position using the current recip_matrix          
+
+          ! Compute fractional first bead position using the current recip_matrix
           frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
                           recip_matrix(2,1,ibox)*first(2) + &
                           recip_matrix(3,1,ibox)*first(3)
           frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
                           recip_matrix(2,2,ibox)*first(2) + &
-                          recip_matrix(3,2,ibox)*first(3)  
+                          recip_matrix(3,2,ibox)*first(3)
           frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
                           recip_matrix(2,3,ibox)*first(2) + &
-                          recip_matrix(3,3,ibox)*first(3) 
+                          recip_matrix(3,3,ibox)*first(3)
 
-          frac_first = frac_first*0.5_dp*invPi 
+          frac_first = frac_first*0.5_dp*invPi
 
           ! Scale to the new cell
           first_chain(1) = hmatrix(1,1,ibox)*frac_first(1) + &
@@ -567,7 +566,7 @@ contains
     new_hmatrix(:,1) = old_hmatrix(:,1)*scaleA
     new_hmatrix(:,2) = old_hmatrix(:,2)*scaleB
     new_hmatrix(:,3) = old_hmatrix(:,3)*scaleC
-    
+
     hmatrix(:,:,ibox)  = new_hmatrix(:,:)
 
     do ichain = 1,nchains
@@ -575,28 +574,28 @@ contains
        ibead = 1
        first(:) = Rchain(:,ibead,ichain,ibox)
 
-       ! Compute fractional com position using the current recip_matrix          
+       ! Compute fractional com position using the current recip_matrix
        frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
                    recip_matrix(2,1,ibox)*first(2) + &
                    recip_matrix(3,1,ibox)*first(3)
        frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
                    recip_matrix(2,2,ibox)*first(2) + &
-                   recip_matrix(3,2,ibox)*first(3)  
+                   recip_matrix(3,2,ibox)*first(3)
        frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
                    recip_matrix(2,3,ibox)*first(2) + &
-                   recip_matrix(3,3,ibox)*first(3) 
+                   recip_matrix(3,3,ibox)*first(3)
 
-       frac_first = frac_first*0.5_dp*invPi 
+       frac_first = frac_first*0.5_dp*invPi
 
        ! Scale to the new cell
        first_chain(1) = hmatrix(1,1,ibox)*frac_first(1) + &
                         hmatrix(1,2,ibox)*frac_first(2) + &
                         hmatrix(1,3,ibox)*frac_first(3)
-                                
+
        first_chain(2) = hmatrix(2,1,ibox)*frac_first(1) + &
                         hmatrix(2,2,ibox)*frac_first(2) + &
                         hmatrix(2,3,ibox)*frac_first(3)
-                                
+
        first_chain(3) = hmatrix(3,1,ibox)*frac_first(1) + &
                         hmatrix(3,2,ibox)*frac_first(2) + &
                         hmatrix(3,3,ibox)*frac_first(3)
@@ -671,7 +670,7 @@ contains
     if ( (model_type==4).and. doflips ) then
        xi = random_uniform_random()
        if ( xi < 0.5_dp ) then ! flip between basins
-          angle = sign(2.0_dp*Pi/3.0_dp,angle) + angle 
+          angle = sign(2.0_dp*Pi/3.0_dp,angle) + angle
        end if
     end if
 
@@ -770,15 +769,15 @@ contains
              !print*,"rejecting a new dihedral of ",angle*180.0_dp/Pi
              return
           end if
-          
+
        case default
           alkane_dihedral_boltz = 0.0_dp
-             
+
     end select
 
 
   contains
-          
+
     function cross_product(a,b)
       !-------------------------------------------------------------------------!
       ! Does exactly what is says on the tin.                                   !
@@ -817,9 +816,9 @@ contains
     implicit none
 
     integer(kind=it),intent(in)  :: ichain,ibox   ! chain number to grow/regrow
-    real(kind=ep),intent(out)    :: rb_factor     ! Rosenbluth factor for chain 
+    real(kind=ep),intent(out)    :: rb_factor     ! Rosenbluth factor for chain
     integer(kind=it),intent(in)  :: new_conf      ! old or new configuration?
-    integer(kind=it),intent(out) :: ifail 
+    integer(kind=it),intent(out) :: ifail
 
     ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
@@ -878,7 +877,7 @@ contains
     end if
 
     ! Loop over beads
-    rb_factor = 1_ep       
+    rb_factor = 1_ep
     do ib = first_bead,nbeads
 
        !write(0,'("alkane : Loop at bead number ", I5)')ib
@@ -913,14 +912,14 @@ contains
              rtrial(:,j) = Rchain(:,1,ichain,ibox) + L*random_unit_vector()
              wtrial(j)   = alkane_nonbonded_boltz(2,ichain,ibox,rtrial(:,j))
              !print*,wtrial(j)
-             wsum = wsum + wtrial(j) 
+             wsum = wsum + wtrial(j)
              !write(0,'(I5,3F15.6)')ib,rtrial(:,j)
           end do
           !stop
 
           rb_factor = rb_factor*real(wsum,kind=ep)
           if (new_conf==1) then
-             call select_next_segment(n,ifail)         
+             call select_next_segment(n,ifail)
              if (ifail/=0) return ! Rosenbluth factor is zero
              Rchain(:,2,ichain,ibox) = rtrial(:,n)
           end if
@@ -952,20 +951,20 @@ contains
              ! Rotate onto end of r12
              tmpvect(:) = (/L,0.0_dp,0.0_dp/)
              call quat_get_minimum_arc_q(tmpvect,r12,quat)
-             rtrial(:,j) = quat_conjugate_q_with_v(quat,rtrial(:,j))      
+             rtrial(:,j) = quat_conjugate_q_with_v(quat,rtrial(:,j))
              rtrial(:,j) = Rchain(:,1,ichain,ibox) + rtrial(:,j)
 
              wtrial(j)   = alkane_nonbonded_boltz(3,ichain,ibox,rtrial(:,j))
-             wsum = wsum + wtrial(j) 
+             wsum = wsum + wtrial(j)
 
              !write(0,'(I5,3F15.6)')ib,rtrial(:,j)
 
           end do
 
           rb_factor = rb_factor*real(wsum,kind=ep)
-          
+
           if (new_conf==1) then
-             call select_next_segment(n,ifail)         
+             call select_next_segment(n,ifail)
              if (ifail/=0) return ! Rosenbluth factor is zero
              Rchain(:,3,ichain,ibox) = rtrial(:,n)
           end if
@@ -1018,7 +1017,7 @@ contains
              !call alkane_check_dihedral(r12,r23,r34)
 
              wtrial(j)   = alkane_nonbonded_boltz(ib,ichain,ibox,rtrial(:,j))
-             wsum = wsum + wtrial(j) 
+             wsum = wsum + wtrial(j)
 
              !write(0,'(I5,3F15.6)')ib,rtrial(:,j)
 
@@ -1027,7 +1026,7 @@ contains
           rb_factor = rb_factor*real(wsum,kind=ep)
 
           if (new_conf==1) then
-             call select_next_segment(n,ifail)         
+             call select_next_segment(n,ifail)
              if (ifail/=0) return ! Rosenbluth factor is zero
              Rchain(:,ib,ichain,ibox) = rtrial(:,n)
           end if
@@ -1065,7 +1064,7 @@ contains
       sump = 0.0_dp
       zeta = random_uniform_random()
 
-      ! Trap divide by zero in case where none of the trial segments 
+      ! Trap divide by zero in case where none of the trial segments
       ! have a non-zero weight
       if ( wsum < tiny(1.0_dp) ) then
          ifail = 1
@@ -1148,69 +1147,69 @@ contains
           do ll = startinlist((ichain-1)*nbeads+i,ibox),endinlist((ichain-1)*nbeads+i,ibox)
 
              jchain = list(ll,ibox)/nbeads + 1
-             jbead  = list(ll,ibox) - (jchain-1)*nbeads 
+             jbead  = list(ll,ibox) - (jchain-1)*nbeads
 
              ! The compiler needs to inline this, use -ipo on Intel
              !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
              rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
              ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
              rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
-             
+
              sx = recip_matrix(1,1,ibox)*rx + &
                   recip_matrix(2,1,ibox)*ry + &
                   recip_matrix(3,1,ibox)*rz
              sy = recip_matrix(1,2,ibox)*rx + &
                   recip_matrix(2,2,ibox)*ry + &
-                  recip_matrix(3,2,ibox)*rz  
+                  recip_matrix(3,2,ibox)*rz
              sz = recip_matrix(1,3,ibox)*rx + &
                   recip_matrix(2,3,ibox)*ry + &
-                  recip_matrix(3,3,ibox)*rz 
-             
-             sx = sx*0.5_dp*invPi 
+                  recip_matrix(3,3,ibox)*rz
+
+             sx = sx*0.5_dp*invPi
              sy = sy*0.5_dp*invPi
-             sz = sz*0.5_dp*invPi 
+             sz = sz*0.5_dp*invPi
 
              ! apply boundary conditions
              sx = sx - floor(sx+0.5_dp,kind=dp)
              sy = sy - floor(sy+0.5_dp,kind=dp)
              sz = sz - floor(sz+0.5_dp,kind=dp)
-             
+
              ! scale back up
              rx = hmatrix(1,1,ibox)*sx + &
                   hmatrix(1,2,ibox)*sy + &
                   hmatrix(1,3,ibox)*sz
-             
+
              ry = hmatrix(2,1,ibox)*sx + &
                   hmatrix(2,2,ibox)*sy + &
                   hmatrix(2,3,ibox)*sz
-             
+
              rz = hmatrix(3,1,ibox)*sx + &
                   hmatrix(3,2,ibox)*sy + &
                   hmatrix(3,3,ibox)*sz
-             
+
              overlap = ( ( rx*rx+ry*ry+rz*rz < sigma_sq ))
-                                       
+
              if ( overlap ) then
                 !print*,'overlap found in alkane_nonbonded_boltz'
                 alkane_nonbonded_boltz = 0.0_dp
                 return
              end if
           end do
-         
+
        else if (use_link_cells) then
-          
+
           ! compute fractional coordinates sbead from rbead
           sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
                      recip_matrix(2,1,ibox)*rbead(2) + &
                      recip_matrix(3,1,ibox)*rbead(3)
           sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
                      recip_matrix(2,2,ibox)*rbead(2) + &
-                     recip_matrix(3,2,ibox)*rbead(3)  
+                     recip_matrix(3,2,ibox)*rbead(3)
           sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
                      recip_matrix(2,3,ibox)*rbead(2) + &
-                     recip_matrix(3,3,ibox)*rbead(3) 
+                     recip_matrix(3,3,ibox)*rbead(3)
 
-          sbead = sbead*0.5_dp*invPi 
+          sbead = sbead*0.5_dp*invPi
 
           ! link cell containing rbead
           ix = floor(sbead(1)/lcellx(ibox))
@@ -1241,14 +1240,14 @@ contains
                      recip_matrix(3,1,ibox)*rz
                 sy = recip_matrix(1,2,ibox)*rx + &
                      recip_matrix(2,2,ibox)*ry + &
-                     recip_matrix(3,2,ibox)*rz  
+                     recip_matrix(3,2,ibox)*rz
                 sz = recip_matrix(1,3,ibox)*rx + &
                      recip_matrix(2,3,ibox)*ry + &
-                     recip_matrix(3,3,ibox)*rz 
+                     recip_matrix(3,3,ibox)*rz
 
-                sx = sx*0.5_dp*invPi 
+                sx = sx*0.5_dp*invPi
                 sy = sy*0.5_dp*invPi
-                sz = sz*0.5_dp*invPi 
+                sz = sz*0.5_dp*invPi
 
                 ! apply boundary conditions
                 sx = sx - floor(sx+0.5_dp,kind=dp)
@@ -1259,11 +1258,11 @@ contains
                 rx = hmatrix(1,1,ibox)*sx + &
                      hmatrix(1,2,ibox)*sy + &
                      hmatrix(1,3,ibox)*sz
-                                
+
                 ry = hmatrix(2,1,ibox)*sx + &
                      hmatrix(2,2,ibox)*sy + &
                      hmatrix(2,3,ibox)*sz
-                                
+
                 rz = hmatrix(3,1,ibox)*sx + &
                      hmatrix(3,2,ibox)*sy + &
                      hmatrix(3,3,ibox)*sz
@@ -1272,7 +1271,7 @@ contains
 
                 tmpint  = linked_list(1,jbead,jchain,ibox)
                 jchain  = linked_list(2,jbead,jchain,ibox)
-                jbead   = tmpint              
+                jbead   = tmpint
 
              end do
              if ( overlap ) then
@@ -1355,7 +1354,7 @@ contains
     iz = 1
     do ix = 1,3
        do iy = 1,3
-          hcache(iz) = hmatrix(ix,iy,ibox) 
+          hcache(iz) = hmatrix(ix,iy,ibox)
           iz = iz + 1
        end do
     end do
@@ -1368,43 +1367,43 @@ contains
           do ibead = 1,nbeads
              rbead(:) = Rchain(:,ibead,ichain,ibox)
              do ll = startinlist((ichain-1)*nbeads+ibead,ibox),endinlist((ichain-1)*nbeads+ibead,ibox)
-                
+
                 jchain = list(ll,ibox)/nbeads + 1
-                jbead  = list(ll,ibox) - (jchain-1)*nbeads 
-                
+                jbead  = list(ll,ibox) - (jchain-1)*nbeads
+
                 ! The compiler needs to inline this, use -ipo on Intel
                 !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
-                 
+
                 rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
                 ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
                 rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
-                
+
                 sx = recip_matrix(1,1,ibox)*rx + &
                      recip_matrix(2,1,ibox)*ry + &
                      recip_matrix(3,1,ibox)*rz
                 sy = recip_matrix(1,2,ibox)*rx + &
                      recip_matrix(2,2,ibox)*ry + &
-                     recip_matrix(3,2,ibox)*rz  
+                     recip_matrix(3,2,ibox)*rz
                 sz = recip_matrix(1,3,ibox)*rx + &
                      recip_matrix(2,3,ibox)*ry + &
-                     recip_matrix(3,3,ibox)*rz 
-                
-                sx = sx*0.5_dp*invPi 
+                     recip_matrix(3,3,ibox)*rz
+
+                sx = sx*0.5_dp*invPi
                 sy = sy*0.5_dp*invPi
-                sz = sz*0.5_dp*invPi 
-                
+                sz = sz*0.5_dp*invPi
+
                 ! apply boundary conditions
                 sx = sx - floor(sx+0.5_dp,kind=dp)
                 sy = sy - floor(sy+0.5_dp,kind=dp)
                 sz = sz - floor(sz+0.5_dp,kind=dp)
-                
+
                 ! scale back up
                 rx = hcache(1)*sx + hcache(2)*sy + hcache(3)*sz
                 ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
                 rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
-                                
+
                 overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq) )
-                
+
 !                overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
                 if ( overlap ) then
                    !print*,'overlap found in alkane_chain_inter_boltz',ibead,ichain,jbead,jchain
@@ -1412,7 +1411,7 @@ contains
                    return
                 end if
              end do
-             
+
           end do
 
        else if ( use_link_cells ) then
@@ -1427,12 +1426,12 @@ contains
                         recip_matrix(3,1,ibox)*rbead(3)
              sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
                         recip_matrix(2,2,ibox)*rbead(2) + &
-                        recip_matrix(3,2,ibox)*rbead(3)  
+                        recip_matrix(3,2,ibox)*rbead(3)
              sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
                         recip_matrix(2,3,ibox)*rbead(2) + &
-                        recip_matrix(3,3,ibox)*rbead(3) 
+                        recip_matrix(3,3,ibox)*rbead(3)
 
-             sbead = sbead*0.5_dp*invPi 
+             sbead = sbead*0.5_dp*invPi
 
              ! link cell containing rbead
              ix = floor(sbead(1)/lcellx(ibox))
@@ -1462,14 +1461,14 @@ contains
                         recip_matrix(3,1,ibox)*rz
                    sy = recip_matrix(1,2,ibox)*rx + &
                         recip_matrix(2,2,ibox)*ry + &
-                        recip_matrix(3,2,ibox)*rz  
+                        recip_matrix(3,2,ibox)*rz
                    sz = recip_matrix(1,3,ibox)*rx + &
                         recip_matrix(2,3,ibox)*ry + &
-                        recip_matrix(3,3,ibox)*rz 
+                        recip_matrix(3,3,ibox)*rz
 
-                   sx = sx*0.5_dp*invPi 
+                   sx = sx*0.5_dp*invPi
                    sy = sy*0.5_dp*invPi
-                   sz = sz*0.5_dp*invPi 
+                   sz = sz*0.5_dp*invPi
 
                    ! apply boundary conditions
                    sx = sx - floor(sx+0.5_dp,kind=dp)
@@ -1480,7 +1479,7 @@ contains
                    rx = hcache(1)*sx + hcache(2)*sy + hcache(3)*sz
                    ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
                    rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
-                   
+
 
                    !overlap = overlap.or.( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
                    overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
@@ -1491,7 +1490,7 @@ contains
 
                    tmpint  = linked_list(1,jbead,jchain,ibox)
                    jchain  = linked_list(2,jbead,jchain,ibox)
-                   jbead   = tmpint              
+                   jbead   = tmpint
 
                 end do
                 !if ( overlap ) then
@@ -1606,7 +1605,7 @@ contains
     return
 
   end function alkane_random_dihedral
-    
+
   subroutine alkane_check_dihedral(b1,b2,b3,angle) bind(c)
     !-------------------------------------------------------------------------!
     ! Computes the dihedral angle formed as that between the two planes       !
@@ -1628,12 +1627,12 @@ contains
     arg1 = L*dot_product(b1,t1)
     arg2 =   dot_product(t2,t1)
 
-    angle = atan2(arg1,arg2)*180_dp/Pi 
+    angle = atan2(arg1,arg2)*180_dp/Pi
 
     ! convect to be consistent with the angle-origin define by the model
     angle = -sign(180.0_dp-abs(angle),angle)
 
-    !write(0,'("Measured dihedral angle as : ",F15.6)')angle 
+    !write(0,'("Measured dihedral angle as : ",F15.6)')angle
 
   contains
 
@@ -1668,15 +1667,15 @@ contains
     real(kind=dp) :: test,acc,acc_link
     integer(kind=it) :: ichain,num_chains_overlapping,num_chains_overlapping_link
     integer(kind=it),intent(out) :: overlap
-    
+
     !write(*,*)"check chain ibox=",ibox
 
     if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
-    
-    ! We take one of two paths through this routine.   
+
+    ! We take one of two paths through this routine.
     if (.not.use_link_cells) then
-       
-       ! Just check for overlaps 
+
+       ! Just check for overlaps
        overlap = 0
        acc = 1.0_dp
        do ichain = 1,nchains
@@ -1686,15 +1685,15 @@ contains
              ! write(0,'("Chain ",I5", overlaps with another chain")')ichain
           end if
        end do
-       
+
        if (acc<tiny(1.0_dp)) then
           !write(0,'("Stopping")')
           !stop
           overlap = 1
        end if
-       
+
     else
-    
+
        ! Check for overlaps using link cells
        overlap = 0
        num_chains_overlapping_link = 0
@@ -1707,7 +1706,7 @@ contains
              num_chains_overlapping_link = num_chains_overlapping_link + 1
           end if
        end do
-        
+
        ! Temporarily disable link cells
        use_link_cells = .false.
 
@@ -1765,8 +1764,8 @@ contains
     implicit none
     integer(kind=it),intent(in)  :: ichain
     integer(kind=it),intent(in)  :: ibox
-    integer(kind=it),intent(out) :: violated 
-    
+    integer(kind=it),intent(out) :: violated
+
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
     integer(kind=it) :: ibead,jbead
     real(kind=dp) :: boltzf,angle
@@ -1839,7 +1838,7 @@ contains
           ! DQ - this should only be a warning, as rounding errors often trigger this for dihedral
           ! angles slightly outside the allowed range when operations are performed in a different
           ! order to how they are generated.
-          ! violated = 1 
+          ! violated = 1
        end if
 
     end do
@@ -1870,10 +1869,10 @@ contains
        write(0,'("Other chains may be affected")')
        return
     else
-       violated = 0   
+       violated = 0
     end if
-   
-   
+
+
     return
 
   end subroutine alkane_check_chain_geometry
@@ -1893,7 +1892,7 @@ contains
     integer(kind=it) :: myint,logint,ibead,jbead,ichain,jchain,k,ierr,m
     integer(kind=it) :: t1,t2,rate
     logical :: lrange
-    real(kind=dp) :: nl_range_sq 
+    real(kind=dp) :: nl_range_sq
     real(kind=dp),dimension(3) :: rbead,rsep
 
     integer(kind=it),allocatable,dimension(:) :: advance
@@ -1918,7 +1917,7 @@ contains
        firstpass = .false.
 
     end if
-    
+
     allocate(advance(1:nchains*nbeads),stat=ierr)
     if (ierr/=0) stop 'Error allocating advance array'
 
@@ -1982,7 +1981,7 @@ contains
     integer(kind=it),intent(in) :: ibox
     integer(kind=it) :: ichain,ibead,icell,ix,iy,iz,ierr
     integer(kind=it) :: jbead,jchain
-    real(kind=dp)    :: rlcellx,rlcelly,rlcellz 
+    real(kind=dp)    :: rlcellx,rlcelly,rlcellz
     real(kind=dp),dimension(3) :: rbead,sbead
 
     logical :: lrebuild_all_boxes = .false.
@@ -2029,38 +2028,38 @@ contains
        if ( ncellx(jbox)*ncelly(jbox)*ncellz(jbox) == 0 ) cycle
 
        head_of_cell(:,:,jbox) = 0
-       
+
        rlcellx = 1.0_dp/lcellx(jbox)
        rlcelly = 1.0_dp/lcelly(jbox)
        rlcellz = 1.0_dp/lcellz(jbox)
-       
+
        do ichain = 1,nchains
           do ibead = 1,nbeads
-             
+
              rbead(:) = Rchain(:,ibead,ichain,jbox)
-             
+
              ! compute fractional coordinates sbead from rbead
              sbead(1) = recip_matrix(1,1,jbox)*rbead(1) + &
                         recip_matrix(2,1,jbox)*rbead(2) + &
                         recip_matrix(3,1,jbox)*rbead(3)
              sbead(2) = recip_matrix(1,2,jbox)*rbead(1) + &
                         recip_matrix(2,2,jbox)*rbead(2) + &
-                        recip_matrix(3,2,jbox)*rbead(3)  
+                        recip_matrix(3,2,jbox)*rbead(3)
              sbead(3) = recip_matrix(1,3,jbox)*rbead(1) + &
                         recip_matrix(2,3,jbox)*rbead(2) + &
-                        recip_matrix(3,3,jbox)*rbead(3) 
+                        recip_matrix(3,3,jbox)*rbead(3)
 
-             sbead = sbead*0.5_dp*invPi 
-             
+             sbead = sbead*0.5_dp*invPi
+
              ! which link cell does this particle belong to
              ix = floor(sbead(1)*rlcellx)
              iy = floor(sbead(2)*rlcelly)
              iz = floor(sbead(3)*rlcellz)
-             
+
              ix = modulo(ix,ncellx(jbox)) + 1
              iy = modulo(iy,ncelly(jbox)) + 1
              iz = modulo(iz,ncellz(jbox)) + 1
-             
+
              icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix
 
              ! Bead and chain index for old head of cell
@@ -2074,9 +2073,9 @@ contains
              linked_list(2,ibead,ichain,jbox) = jchain
 
              ! ..and becomes the new head of cell
-             head_of_cell(1,icell,jbox) = ibead 
-             head_of_cell(2,icell,jbox) = ichain 
-          
+             head_of_cell(1,icell,jbox) = ibead
+             head_of_cell(2,icell,jbox) = ichain
+
              ! jbead, jchain points backward to ibead,ichain
              ! zero'th elements will be populated here for
              ! first bead added, and ignored.
@@ -2086,7 +2085,7 @@ contains
 
           end do
        end do
-       
+
     end do ! end loop over boxes
 
     !call system_clock(count=t2,count_rate=rate)
@@ -2125,12 +2124,12 @@ contains
                recip_matrix(3,1,ibox)*old_pos(3)
     sbead(2) = recip_matrix(1,2,ibox)*old_pos(1) + &
                recip_matrix(2,2,ibox)*old_pos(2) + &
-               recip_matrix(3,2,ibox)*old_pos(3)  
+               recip_matrix(3,2,ibox)*old_pos(3)
     sbead(3) = recip_matrix(1,3,ibox)*old_pos(1) + &
                recip_matrix(2,3,ibox)*old_pos(2) + &
-               recip_matrix(3,3,ibox)*old_pos(3) 
+               recip_matrix(3,3,ibox)*old_pos(3)
 
-    sbead = sbead*0.5_dp*invPi 
+    sbead = sbead*0.5_dp*invPi
 
     ! Compute link cell number for old and new positions
     ix = floor(sbead(1)/lcellx(ibox))
@@ -2149,12 +2148,12 @@ contains
                recip_matrix(3,1,ibox)*new_pos(3)
     sbead(2) = recip_matrix(1,2,ibox)*new_pos(1) + &
                recip_matrix(2,2,ibox)*new_pos(2) + &
-               recip_matrix(3,2,ibox)*new_pos(3)  
+               recip_matrix(3,2,ibox)*new_pos(3)
     sbead(3) = recip_matrix(1,3,ibox)*new_pos(1) + &
                recip_matrix(2,3,ibox)*new_pos(2) + &
-               recip_matrix(3,3,ibox)*new_pos(3) 
+               recip_matrix(3,3,ibox)*new_pos(3)
 
-    sbead = sbead*0.5_dp*invPi 
+    sbead = sbead*0.5_dp*invPi
 
 
     ix = floor(sbead(1)/lcellx(ibox))
@@ -2200,7 +2199,7 @@ contains
        !   ------             -----       !
        !  hoc->i->k->..      hoc->k->..   !
        !----------------------------------!
-       
+
        ! k used to be pointed to by i
        kbead  = linked_list(1,ibead,ichain,ibox)
        kchain = linked_list(2,ibead,ichain,ibox)
@@ -2214,7 +2213,7 @@ contains
        linked_list(4,kbead,kchain,ibox) = 0
 
     else
-       
+
        !-------------------------------!
        !    Before          After      !
        !    ------          -----      !
@@ -2233,7 +2232,7 @@ contains
        linked_list(4,kbead,kchain,ibox) = jchain
 
 
-!!$       do 
+!!$       do
 !!$
 !!$          if ( (linked_list(1,jbead,jchain)==ibead).and.(linked_list(2,jbead,jchain)==ichain) ) then
 !!$
@@ -2246,7 +2245,7 @@ contains
 !!$
 !!$          tmpint  = linked_list(1,jbead,jchain)
 !!$          jchain  = linked_list(2,jbead,jchain)
-!!$          jbead   = tmpint    
+!!$          jbead   = tmpint
 !!$
 !!$          if (jchain==0) then
 !!$             write(0,'("Warning : Rebuild of link cell lists forced")')
@@ -2277,7 +2276,7 @@ contains
 
     ! jbead, jchain points backward to ibead,ichain
     linked_list(3,jbead,jchain,ibox) = ibead
-    linked_list(4,jbead,jchain,ibox) = ichain 
+    linked_list(4,jbead,jchain,ibox) = ichain
 
 
     !call system_clock(count=t2,count_rate=rate)
@@ -2326,14 +2325,14 @@ contains
 
        if (boltzf<tiny(1.0_dp)) then
           noverlap = noverlap + 1  ! count this as an overlap
-          !poverlap(1,noverlap) = ibead    ! Store the outer atoms of this torsion angle 
+          !poverlap(1,noverlap) = ibead    ! Store the outer atoms of this torsion angle
           !poverlap(2,noverlap) = ibead+3  ! ..as being those which overlap.
        end if
 
     end do
 
     !=======================================================!
-    ! Check for other overlaps, discounting excluded pairs. ! 
+    ! Check for other overlaps, discounting excluded pairs. !
     !=======================================================!
     do ibead = 1,nbeads-nexclude
        do jbead = ibead+nexclude,nbeads
@@ -2343,7 +2342,7 @@ contains
           if ( dot_product(r12,r12) < sigma*sigma ) then
              noverlap = noverlap + 1  ! count this as an overlap
              !poverlap(1,noverlap) = ibead  ! Store the two beads which overlap
-             !poverlap(2,noverlap) = jbead  
+             !poverlap(2,noverlap) = jbead
           end if
        end do
     end do
@@ -2412,12 +2411,12 @@ contains
                         recip_matrix(3,1,ibox)*rbead(3)
              sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
                         recip_matrix(2,2,ibox)*rbead(2) + &
-                        recip_matrix(3,2,ibox)*rbead(3)  
+                        recip_matrix(3,2,ibox)*rbead(3)
              sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
                         recip_matrix(2,3,ibox)*rbead(2) + &
-                        recip_matrix(3,3,ibox)*rbead(3) 
+                        recip_matrix(3,3,ibox)*rbead(3)
 
-             sbead = sbead*0.5_dp*invPi 
+             sbead = sbead*0.5_dp*invPi
 
              ! link cell containing rbead
              ix = floor(sbead(1)/lcellx(ibox))
@@ -2447,14 +2446,14 @@ contains
                         recip_matrix(3,1,ibox)*rz
                    sy = recip_matrix(1,2,ibox)*rx + &
                         recip_matrix(2,2,ibox)*ry + &
-                        recip_matrix(3,2,ibox)*rz  
+                        recip_matrix(3,2,ibox)*rz
                    sz = recip_matrix(1,3,ibox)*rx + &
                         recip_matrix(2,3,ibox)*ry + &
-                        recip_matrix(3,3,ibox)*rz 
+                        recip_matrix(3,3,ibox)*rz
 
-                   sx = sx*0.5_dp*invPi 
+                   sx = sx*0.5_dp*invPi
                    sy = sy*0.5_dp*invPi
-                   sz = sz*0.5_dp*invPi 
+                   sz = sz*0.5_dp*invPi
 
                    ! apply boundary conditions
                    sx = sx - floor(sx+0.5_dp,kind=dp)
@@ -2465,11 +2464,11 @@ contains
                    rx = hmatrix(1,1,ibox)*sx + &
                         hmatrix(1,2,ibox)*sy + &
                         hmatrix(1,3,ibox)*sz
-                                   
+
                    ry = hmatrix(2,1,ibox)*sx + &
                         hmatrix(2,2,ibox)*sy + &
                         hmatrix(2,3,ibox)*sz
-                                   
+
                    rz = hmatrix(3,1,ibox)*sx + &
                         hmatrix(3,2,ibox)*sy + &
                         hmatrix(3,3,ibox)*sz
@@ -2484,7 +2483,7 @@ contains
 
                    tmpint  = linked_list(1,jbead,jchain,ibox)
                    jchain  = linked_list(2,jbead,jchain,ibox)
-                   jbead   = tmpint              
+                   jbead   = tmpint
 
                 end do
 
@@ -2722,7 +2721,7 @@ contains
     dum_axis = mc_axis_max
 
     return
-   
+
   end subroutine alkane_get_axis_max
 
   subroutine alkane_set_axis_max(dum_axis) bind(c)
@@ -2738,7 +2737,7 @@ contains
     mc_axis_max = dum_axis
 
     return
-   
+
   end subroutine alkane_set_axis_max
 
 
@@ -2773,7 +2772,7 @@ contains
     return
 
   end subroutine alkane_set_max_regrow
- 
+
   subroutine alkane_get_nchains(dumchains) bind(c)
     !-------------------------------------------------------------------------!
     ! Queries the number of chains per box in use by this module.             !
@@ -2786,7 +2785,7 @@ contains
     dumchains = nchains
 
     return
-    
+
   end subroutine alkane_get_nchains
 
   subroutine alkane_set_nchains(dumchains) bind(c)
@@ -2801,7 +2800,7 @@ contains
     nchains = dumchains
 
     return
-    
+
   end subroutine alkane_set_nchains
 
   subroutine alkane_get_nbeads(dumbeads) bind(c)
@@ -2816,7 +2815,7 @@ contains
     dumbeads = nbeads
 
     return
-    
+
   end subroutine alkane_get_nbeads
 
   subroutine alkane_set_nbeads(dumbeads) bind(c)
@@ -2828,12 +2827,12 @@ contains
     implicit none
     integer(kind=it),intent(in) :: dumbeads
 
-    nbeads = dumbeads 
+    nbeads = dumbeads
 
     return
-    
+
   end subroutine alkane_set_nbeads
-  
+
 
   subroutine alkane_set_chain(ichain,ibox,r) bind(c)
     !-------------------------------------------------------------------------!
@@ -2861,7 +2860,7 @@ contains
     integer(kind=it),intent(in) :: ichain,ibox
     real(kind=dp),dimension(1:3,1:nbeads),intent(out) :: r
 
-    r(:,:) = Rchain(:,:,ichain,ibox) 
+    r(:,:) = Rchain(:,:,ichain,ibox)
 
     return
 
@@ -2906,28 +2905,28 @@ contains
        ibead = 1
        first(:) = Rchain(:,ibead,ichain,ibox)
 
-       ! Compute fractional first bead position using the current recip_matrix          
+       ! Compute fractional first bead position using the current recip_matrix
        frac_first(1) = recip_matrix(1,1,ibox)*first(1) + &
                        recip_matrix(2,1,ibox)*first(2) + &
                        recip_matrix(3,1,ibox)*first(3)
        frac_first(2) = recip_matrix(1,2,ibox)*first(1) + &
                        recip_matrix(2,2,ibox)*first(2) + &
-                       recip_matrix(3,2,ibox)*first(3)  
+                       recip_matrix(3,2,ibox)*first(3)
        frac_first(3) = recip_matrix(1,3,ibox)*first(1) + &
                        recip_matrix(2,3,ibox)*first(2) + &
-                       recip_matrix(3,3,ibox)*first(3) 
+                       recip_matrix(3,3,ibox)*first(3)
 
-       frac_first = frac_first*0.5_dp*invPi 
+       frac_first = frac_first*0.5_dp*invPi
 
        ! Scale to the new cell
        first_chain(1) = hmatrix(1,1,ibox)*frac_first(1) + &
                         hmatrix(1,2,ibox)*frac_first(2) + &
                         hmatrix(1,3,ibox)*frac_first(3)
-                                
+
        first_chain(2) = hmatrix(2,1,ibox)*frac_first(1) + &
                         hmatrix(2,2,ibox)*frac_first(2) + &
                         hmatrix(2,3,ibox)*frac_first(3)
-                                
+
        first_chain(3) = hmatrix(3,1,ibox)*frac_first(1) + &
                         hmatrix(3,2,ibox)*frac_first(2) + &
                         hmatrix(3,3,ibox)*frac_first(3)
