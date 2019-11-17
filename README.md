@@ -1,5 +1,5 @@
 # hs_alkane
-Fortran2003 code (with C and Python bindings) implementing hard-sphere alkane models as described in the following papers from
+Fortran2003 code (with C bindings) implementing hard-sphere alkane models as described in the following papers from
 the Monson group at the University of Massachusetts.
 
 * [A. P. Malanoski and P. A. Monson, *J. Chem. Phys.* 110, 664 (1999).](https://aip.scitation.org/doi/10.1063/1.478123)
