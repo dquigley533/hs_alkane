@@ -77,7 +77,7 @@ module vis
          k = 1
          do ichain = 1,nchains
             do j = 1,nbeads
-               write(psf,10)k,"BULK",ichain,"UNK ","C","C",0.0,1.0
+               write(psf,10)k,"BULK",ichain,"UNK ","C   ","C    ",0.0,1.0
                k = k + 1
             end do
          end do
