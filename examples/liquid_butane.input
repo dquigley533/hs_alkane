@@ -1,0 +1,42 @@
+!----------------------------------------------------------------!
+!          Example input file Hard-Sphere alkane code            !
+!----------------------------------------------------------------!
+! D.Quigley - University of Warwick                              !
+!----------------------------------------------------------------!
+! Generates a random initial configuration within a low density
+! 10x10x10 box and then simulates at constant pressure to reach 
+! actual liquid density after equilibration. 
+
+!------------------------!
+!  System definition     !
+!------------------------!
+&system 
+nchains       = 250          ! Number of alkane molecules
+nbeads        = 4            ! Number of beads per molecule
+CellA         = 10.0,0.0,0.0 ! First cell vector
+CellB         = 0.0,10.0,0.0 ! Second cell vector
+CellC         = 0.0,0.0,10.0 ! Third cell vector
+sigma         = 1.0          ! Beads radius
+L             = 0.4          ! Bond length
+model_type    = 4            ! Model number
+pbc           = .true.       ! Use periodic boundary conditions
+rigid         = .false.      ! Keep chains totally rigid
+isotropic     = .true.       ! Force only isotropic volume moves
+/
+!-------------------------!
+!   Thermal Parameters    !
+!-------------------------!
+&thermal
+pressure    = 20           ! Pressure in units of kT/sigma^3
+/
+!-------------------------!
+!  Book-keeping           !
+!-------------------------!
+&bookkeeping
+max_mc_cycles   = 250000
+file_output_int = 25
+traj_output_int = 5000
+timer_qtime = 432000
+timer_closetime = 3600
+/
+
