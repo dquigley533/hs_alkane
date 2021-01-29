@@ -1,0 +1,41 @@
+!----------------------------------------------------------------!
+!          Example input file Hard-Sphere alkane code            !
+!----------------------------------------------------------------!
+! D.Quigley - University of Warwick                              !
+!----------------------------------------------------------------!
+! Simulates butane phase I using a hard sphere alkane model 
+! with fixed bond lengths/angles and a hard-well torsion
+! potential.
+
+!------------------------!
+!  System definition     !
+!------------------------!
+&system 
+nchains       = 192         ! Number of alkane molecules
+nbeads        = 4           ! Number of beads per molecule
+sigma         = 1.0         ! Beads radius
+L             = 0.4         ! Bond length
+model_type    = 4           ! Model number
+pbc           = .true.      ! Use perioic boundary conditions
+read_xmol     = .true.      ! Read structure from chain.xmol
+rigid         = .false.     ! Keep chains rigid (no dihedral moves)
+isotropic     = .false.     ! Only allow isotropic volume moves
+bypass_link_cells = .true.  ! This system is too small for link cells
+/
+!-------------------------!
+!   Thermal Parameters    !
+!-------------------------!
+&thermal
+pressure    = 50            ! Pressure in units of kT/sigma^3
+/
+!-------------------------!
+!  Book-keeping           !
+!-------------------------!
+&bookkeeping
+max_mc_cycles   = 2500000
+file_output_int = 25
+traj_output_int = 5000
+timer_qtime     = 432000
+timer_closetime = 3600
+/
+
