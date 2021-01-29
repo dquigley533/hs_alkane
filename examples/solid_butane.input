@@ -10,7 +10,7 @@
 !------------------------!
 &system 
 nboxes            = 1            ! Number of simulation boxes
-nchains           = 256          ! Number of alkane molecules
+nchains           = 250          ! Number of alkane molecules
 nbeads            = 4            ! Number of beads per molecule
 CellA             = 5.0,0.0,0.0  ! Box dimension in x
 CellB             = 0.0,5.0,0.0  ! Box dimension in y
