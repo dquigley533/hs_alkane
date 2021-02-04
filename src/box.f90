@@ -115,6 +115,13 @@ contains
     integer(kind=it),dimension(2) :: ierr
     integer(kind=it) :: ibox
 
+    if (box_initialised) then
+       deallocate(ncellx,ncelly,ncellz)
+       deallocate(lcellx,lcelly,lcellz)
+       deallocate(hmatrix,recip_matrix)
+       box_initialised = .false.
+    end if
+    
     ! Allocate cell vectors and reciprocal lattice
     allocate(hmatrix(1:3,1:3,1:nboxes),stat=ierr(1))
     allocate(recip_matrix(1:3,1:3,1:nboxes),stat=ierr(2))
@@ -147,7 +154,8 @@ contains
 
     write(*,*)
     write(*,'("|=======================================|")')
-    write(*,'("| Initialised ",I3," simulation box(es)      |")')nboxes
+    write(*,'("| Initialised ",I3," simulation box(es)    |")')nboxes
+    write(*,'("| Cell vectors have been reset.         |")')
     write(*,'("|=======================================|")')
     write(*,*)
 
@@ -453,7 +461,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(out) :: dumhmatrix
 
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
@@ -488,8 +496,12 @@ contains
     ! S. Bridgwater August 2012                                          !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dumnb
+    integer(kind=it),value,intent(in) :: dumnb
 
+    if (box_initialised) then
+       stop 'Error - cannot set number of boxes after calling box_initialise'
+    end if
+    
     nboxes = dumnb
 
     return
@@ -606,7 +618,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(in) :: dumhmatrix
 
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
@@ -615,6 +627,7 @@ contains
 
     call box_update_recipmatrix(ibox)
 
+    
     return
 
   end subroutine box_set_cell

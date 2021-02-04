@@ -29,8 +29,25 @@ module quaternion
   public :: c_wrap_quat_conjugate_q_with_v
 
 
-  contains
+contains
 
+!!$     subroutine quat_minimum_arc(v1,d1,v2,d2,quat,dq) bind(c,name='quat_minimum_arc')
+!!$      !-------------------------------------------------------------------------!
+!!$      ! Numpy friendly version of quat_get_minimum_arc_q                        !
+!!$      !-------------------------------------------------------------------------!
+!!$      ! D.Quigley February 2021                                                 !
+!!$      !-------------------------------------------------------------------------!
+!!$      implicit none
+!!$      integer(kind=it),intent(in) :: d1,d2,dq
+!!$      real(kind=dp),dimension(3),intent(in)  :: v1,v2
+!!$      real(kind=dp),dimension(4),intent(out) :: quat
+!!$      
+!!$      call quat_get_minimum_arc_q(v1,v2,quat)
+!!$
+!!$      return
+!!$      
+!!$    end subroutine quat_minimum_arc
+      
     subroutine quat_get_minimum_arc_q(v1,v2,quat) bind(c,name='quat_get_minimum_arc')
       !-------------------------------------------------------------------------!
       ! Returns the normalised quaternion required to rotate v1 onto v2         !
@@ -73,7 +90,7 @@ module quaternion
       implicit none
 
       real(kind=dp),dimension(3),intent(in)  :: axis
-      real(kind=dp)             ,intent(in)  :: angle
+      real(kind=dp),value       ,intent(in)  :: angle
       real(kind=dp),dimension(4),intent(out) :: quat
       real(kind=dp) :: sh,ch
 
@@ -103,7 +120,7 @@ module quaternion
       implicit none
       real(kind=dp),dimension(4),intent(in)  :: a,b
       real(kind=dp),dimension(4),intent(out) :: c
-      integer(kind=it),intent(in) :: normalise
+      integer(kind=it),value,intent(in) :: normalise
       logical :: dumnorm
 
       if (normalise==1) then

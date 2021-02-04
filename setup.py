@@ -19,7 +19,9 @@ def configuration():
                   'src/mc_dummy.f90',
                   'src/io.f90']
     
-    config.add_library('alkane', sources=alkane_src)
+    config.add_library('alkane', sources=alkane_src,
+                       extra_f90_compile_args=['-fbounds-check','-fbacktrace']
+                       )
 
     config.add_extension('_alkane',
         sources = ['src/alkane.i'],
