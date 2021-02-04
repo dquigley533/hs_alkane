@@ -31,8 +31,8 @@ module timer
   !---------------------------------------------------------------------------!
   public :: timer_qtime
   public :: timer_closetime
-  real(kind=dp),save :: timer_qtime = 432000         ! Queue length
-  real(kind=dp),save :: timer_closetime = 3600       ! Time taken to shutdown
+  real(kind=dp),bind(c),save :: timer_qtime = 432000         ! Queue length
+  real(kind=dp),bind(c),save :: timer_closetime = 3600       ! Time taken to shutdown
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   V a r i a b l e s                    !
@@ -138,5 +138,21 @@ contains
 
   end subroutine timer_check_runtime
 
+  integer(kind=it) function timer_check_continuation() bind (c)
+    !-------------------------------------------------------------------------!
+    ! Alternative to above for wrapping with Python                           !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley Feb 2021                                                      !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it) :: safe
+
+    call timer_check_runtime(safe)
+    timer_check_continuation = safe
+
+    return
+    
+  end function timer_check_continuation
+    
 
 end module timer

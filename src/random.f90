@@ -30,7 +30,7 @@ module Random
 
 contains
 
-  subroutine Random_set_random_seed(seed) bind(c)
+  subroutine random_set_random_seed(seed) bind(c)
     !=========================================================================!
     ! Set internal random number generator seed as per GNU fortran manual.    !
     ! Use seed = 0 to initialise the RNG in its default state, otherwise      !
@@ -39,9 +39,10 @@ contains
     ! D. Quigley, August 2018                                                 !
     !=========================================================================!
     implicit none
-    integer(kind=it), intent(in) :: seed
+    integer(kind=it),intent(in),value :: seed
     integer(kind=it) :: i, n, clock, ierr
     integer,dimension(:),allocatable :: seed_array
+
 
     ! If the RNG hasn't already been seeded...
     if (.not.random_initialised) then

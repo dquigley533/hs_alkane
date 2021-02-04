@@ -34,7 +34,7 @@ hs_alkane : $(OBJECTS)
 
 	$(LD) -o $(bindir)/hs_alkane $(OBJECTS) $(FFLAGS) $(LIBS) 
 
-# Library - should make clean && make if building this after the stand-along f90 code
+# Library - should make clean && make if building this after the stand-alone f90 code
 library: $(LIBOBJ)
 	$(F90) $(LIBOBJ) -shared -o $(libdir)/libalkane.so $(FFLAGS) $(LIBS) 
 
