@@ -95,6 +95,7 @@ cell_matrix = np.array([[ 7.120546, 0.000000,  0.000000],
 
 
 alk.box_set_cell(1, cell_matrix)
+alk.box_update_recipmatrix(1)
 
 print(alk.box_get_cell(1))
 
@@ -113,7 +114,18 @@ pos2 = alk.box_cart_to_frac(1,pos2c)
 print("pos1c converted to Fractional coords : ",pos1)
 print("pos2c converted to Fractional coords : ",pos2)
 
+minv = alk.box_minimum_image(1, pos1c, pos2c)
+print("Minimum image vector between pos1 and pos2 :",minv)
 
+alk.box_set_pbc(0)
+minv = alk.box_minimum_image(1, pos1c, pos2c)
+print("Direct vector between pos1 and pos2        :",minv)
+alk.box_set_pbc(1)
 
+vol = alk.box_compute_volume(1)
+print("Volume of simulation box : ",vol)
+
+alk.box_set_bypass_link_cells(0)
+alk.box_construct_link_cells(ibox=1)
 
 

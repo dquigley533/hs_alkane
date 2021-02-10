@@ -187,7 +187,7 @@ contains
     ! D.Quigley September 2006                                                     !
     !------------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp) :: det
 
     Det =       hmatrix(1,1,ibox)*(hmatrix(2,2,ibox)*hmatrix(3,3,ibox) - &
@@ -211,7 +211,7 @@ contains
     !------------------------------------------------------------------------------!
     use constants, only : Pi
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp) :: vol
 
     ! invert hmatrix to get recip_matrix
@@ -227,7 +227,7 @@ contains
     recip_matrix(3,2,ibox)=hmatrix(1,3,ibox)*hmatrix(2,1,ibox)-hmatrix(1,1,ibox)*hmatrix(2,3,ibox)
     recip_matrix(3,3,ibox)=hmatrix(1,1,ibox)*hmatrix(2,2,ibox)-hmatrix(1,2,ibox)*hmatrix(2,1,ibox)
 
-    ! Calculte cell volume
+    ! Calculate cell volume
     vol =hmatrix(1,1,ibox)*recip_matrix(1,1,ibox) + &
          hmatrix(1,2,ibox)*recip_matrix(1,2,ibox) + &
          hmatrix(1,3,ibox)*recip_matrix(1,3,ibox)
@@ -238,6 +238,19 @@ contains
     return
 
   end subroutine box_update_recipmatrix
+
+  subroutine box_minimum_image_wrap(ibox,r1,r2,minv) bind(c,name='box_minimum_image')
+    
+    implicit none
+    integer(kind=it),value,intent(in) :: ibox
+    real(kind=dp),dimension(3),intent(in)  :: r1, r2
+    real(kind=dp),dimension(3),intent(out) :: minv
+    
+    minv = box_minimum_image(r1,r2,ibox)
+    
+    return
+
+  end subroutine box_minimum_image_wrap
 
 
   function box_minimum_image(r1,r2,ibox)
@@ -332,7 +345,7 @@ contains
     ! D.Quigley February 2010                                                 !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp) :: Lx,Ly,Lz
 
     integer(kind=it) :: ix,iy,iz,jx,jy,jz,icell,jcell,jbox
@@ -513,7 +526,7 @@ contains
     ! S. Bridgwater August 2012                                                 !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dumiso
+    integer(kind=it),value,intent(in) :: dumiso
 
     if (dumiso .eq. 0) then
        isotropic = .false.
@@ -533,7 +546,7 @@ contains
     ! S. Bridgwater August 2012                                          !
     !-------------------------------------------------------------------------!
     implicit none
-    real(kind=dp),intent(in) :: dumll
+    real(kind=dp),value,intent(in) :: dumll
 
     link_cell_length = dumll
 
@@ -549,7 +562,7 @@ contains
     ! S. Bridgwater August 2012                                          !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dumll
+    integer(kind=it),value,intent(in) :: dumll
 
     if (dumll .eq. 0) then
        bypass_link_cells = .false.
@@ -569,7 +582,7 @@ contains
     ! D. Quigley May 2014                                                     !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dumll
+    integer(kind=it),value,intent(in) :: dumll
 
     if (dumll .eq. 0) then
        use_verlet_list = .false.
@@ -590,7 +603,7 @@ contains
     ! S. Bridgwater August 2012                                          !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it), intent(in) :: dumpbc
+    integer(kind=it),value, intent(in) :: dumpbc
 
     if (dumpbc .eq. 0) then
        pbc = .false.
