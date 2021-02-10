@@ -97,3 +97,23 @@ cell_matrix = np.array([[ 7.120546, 0.000000,  0.000000],
 alk.box_set_cell(1, cell_matrix)
 
 print(alk.box_get_cell(1))
+
+pos1 = np.array([0.2,0.2,0.2],dtype=np.float64)
+pos2 = np.array([0.8,0.8,0.8],dtype=np.float64)
+
+pos1c = alk.box_frac_to_cart(1, pos1)
+pos2c = alk.box_frac_to_cart(1, pos2)
+
+print("pos1 converted to Cartesian coords : ",pos1c)
+print("pos2 converted to Cartesian coords : ",pos2c)
+
+pos1 = alk.box_cart_to_frac(1,pos1c)
+pos2 = alk.box_cart_to_frac(1,pos2c)
+
+print("pos1c converted to Fractional coords : ",pos1)
+print("pos2c converted to Fractional coords : ",pos2)
+
+
+
+
+

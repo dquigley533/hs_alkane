@@ -250,9 +250,9 @@ contains
     use constants, only : invPi
     implicit none
     real(kind=dp),dimension(3),intent(in) :: r1,r2
-    integer(kind=it),intent(in) :: ibox
-    real(kind=dp),dimension(3)  :: box_minimum_image
-    real(kind=dp),dimension(3)  :: dr
+    integer(kind=it),value,intent(in) :: ibox
+    real(kind=dp),dimension(3)        :: box_minimum_image
+    real(kind=dp),dimension(3)        :: dr
     real(kind=dp) :: sx,sy,sz
 
     dr(1) = r2(1) - r1(1)
@@ -498,10 +498,7 @@ contains
     implicit none
     integer(kind=it),value,intent(in) :: dumnb
 
-    if (box_initialised) then
-       stop 'Error - cannot set number of boxes after calling box_initialise'
-    end if
-    
+    call box_initialise()    
     nboxes = dumnb
 
     return
@@ -644,7 +641,7 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp),dimension(3),intent(in)  :: in_vector
     real(kind=dp),dimension(3),intent(out) :: out_vector
 
@@ -677,7 +674,7 @@ contains
     !-------------------------------------------------------------------------!
     use constants, only : invPi
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp),dimension(3),intent(in)  :: in_vector
     real(kind=dp),dimension(3),intent(out) :: out_vector
 

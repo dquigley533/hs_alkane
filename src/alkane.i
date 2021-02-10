@@ -36,6 +36,8 @@ from recognising the module name....
 /* Map array array onto arguments used in the C interface */
 
 /* Vectors */
+%apply(double IN_ARRAY1[ANY]) {(double vector1[3])};
+%apply(double IN_ARRAY1[ANY]) {(double vector2[3])};
 %apply(double IN_ARRAY1[ANY]) {(double unit_vector1[3])};
 %apply(double IN_ARRAY1[ANY]) {(double unit_vector2[3])};
 %apply(double IN_ARRAY1[ANY]) {(double rotation_axis[3])};
