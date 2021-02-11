@@ -24,10 +24,15 @@ from recognising the module name....
 #include "random.h"
 #include "quaternion.h"
 #include "box.h"
+#include "alkane.h"
 %}
+
+/* Standard typemaps */
+%include "typemaps.i"
 
 /* Numpy array typemap */
 %include "numpy.i"
+
 
 %init %{
   import_array();
@@ -53,12 +58,19 @@ from recognising the module name....
 %apply(double ARGOUT_ARRAY1[ANY]){(double quat_product[4])};
 %apply(double ARGOUT_ARRAY1[ANY]){(double quat_inverse[4])};
 
-/* Number of boxes */
-%apply(int ARGOUT_ARRAY1[ANY]){(int num_replicas[1])};
+/* integers */
+%apply int *OUTPUT {int *num_replicas_out};
+%apply int *OUTPUT {int *nchains};
+%apply int *OUTPUT {int *nbeads};
+%apply int *OUTPUT {int *ifail};
+
+/* doubles */
+%apply double *OUTPUT {double *rbfactor};
 
 /* Matrices of cell vectors */
 %apply(double IN_ARRAY2[ANY][ANY]) {(double cell_matrix[3][3])};
 %apply(double ARGOUT_ARRAY2[ANY][ANY]) {(double outmat[3][3])};
+
 
 
 //%apply( int DIM1, double* IN_ARRAY1, int DIM1, double* IN_ARRAY1, int DIM1, double* ARGOUT_ARRAY1 ) {(int d1, double *v1, int d2, double *v2, int dq, double *quat)};
@@ -290,9 +302,364 @@ from recognising the module name....
 %enddef
 %feature("docstring", qt_cnj_str) quat_conjugate_q_with_v;
 
+%feature("autodoc", "box_set_num_boxes(num_replicas)") box_set_num_boxes;
+%define bx_snb_str
+"
+    Sets the number of simulation boxes/replicas to be created
+    and simulated. The default number of boxes is 1 and in most
+    cases this should not need to be changed. 
+    
+    Multiple boxes may be required if implementing advanced
+    sampling schemes involving multiple replicas. If so the
+    number of boxes must be set before the simulation box and
+    associated data structures are initialised. It cannot be
+    changed during the simulation without generating
+    udefined behaviour.
+
+    Parameters
+    ----------
+    
+    num_boxes  : number of boxes/replicas to use
+
+"
+%enddef
+%feature("docstring", bx_snb_str) box_set_num_boxes;
+
+%feature("autodoc", "box_get_num_boxes()") box_get_num_boxes;
+%define bx_gnb_str
+"
+    Queries that the number of simulation boxes/replicas that
+    are in use currently. This should not change during a simulation.
+
+    Returns
+    ----------
+    
+    num_boxes  : integer, number of boxes in use
+
+"
+%enddef
+%feature("docstring", bx_gnb_str) box_get_num_boxes;
+
+%feature("autodoc", "box_initialise()") box_initialise;
+%define bx_init_str
+"
+    Allocates memory for the simulation box(es).
+    
+    If an initial set of cell vectors have been specified via a
+    call to io_read_input() then these will be used to populate
+    these data structures. Alternatively, io_real_xmol() or
+    box_set_cell() can be called after box_initialise() can to
+    specify the initial cell vectors for simulation.
+    
+    Note that cell vectors are not required if periodic boundary
+    conditions are not in use - see box_set_pbc. The default is 
+    that periodic boundary conditions *will* be used.
+
+"
+%enddef
+%feature("docstring", bx_init_str) box_initialise;
+
+%feature("autodoc", "box_destroy()") box_destroy;
+%define bx_dsty_str
+"
+    Releases memory used for the simulation box(es).
+    
+    This should only be required if needing to reinitialise
+    the simulation box(es) for a new simulation.
+
+"
+%enddef
+%feature("docstring", bx_dsty_str) box_destroy;
+
+%feature("autodoc", "box_set_cell(ibox,cell_matrix)") box_set_cell;
+%define bx_scl_str
+"
+    Sets the cell matrix containing the three vectors
+    which define the 3D simulation cell of box/replica ibox.
+    
+    The hs_alkane library adopts the convention that the first
+    cell vector always lies along the x-axis, and the second cell 
+    vector lies in the x-y plane. 
+    
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica to set
+                   cell vectors for.
+    
+    cell_matrix  : Numpy array compatible with that returned
+                   by the get_cell() method of an ASE atoms 
+                   object.
+
+"
+%enddef
+%feature("docstring", bx_scl_str) box_set_cell;
+
+%feature("autodoc", "box_get_cell(ibox)") box_set_cell;
+%define bx_gcl_str
+"
+    Gets the cell matrix containing the three vectorsw
+    which define the 3D simulation cell of box/replica ibox.
+    
+    The hs_alkane library adopts the convention that the first
+    cell vector always lies along the x-axis, and the second cell 
+    vector lies in the x-y plane. 
+    
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica to get
+                   cell vectors from.
+                   
+    Returns
+    -------
+    
+    cell_matrix  : Numpy array compatible with that returned
+                   by the get_cell() method of an ASE atoms 
+                   object.    
+
+"
+%enddef
+%feature("docstring", bx_gcl_str) box_get_cell;
+
+%feature("autodoc", "box_cart_to_frac(ibox, vector)") box_cart_to_frac;
+%define bx_ctf_str
+"
+    Converts a vector in Cartesian coordinates to one expressed
+    in terms of fractional coordinates of box/replica ibox. 
+    
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica to use
+                   for conversion into fractional coordinates.
+                   
+    vector       : Numpy array, input Cartesian vector.
+                   
+    Returns
+    -------
+    
+    out_vector   : Numpy array, output fractional vector. 
+    
+
+"
+%enddef
+%feature("docstring", bx_ctf_str) box_cart_to_frac;
+
+%feature("autodoc", "box_frac_to_cart(ibox, vector)") box_frac_to_cart;
+%define bx_ftc_str
+"
+    Converts a vector in expressed as fraction coordinates of
+    box/replica ibox into the same vector in Cartesian coordinates.
+    
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica in which
+                   input fractional coordinates are expressed.
+                   
+    vector       : Numpy array, input fraction vector.
+                   
+    Returns
+    -------
+    
+    out_vector   : Numpy array, output Cartesian vector. 
+    
+
+"
+%enddef
+%feature("docstring", bx_ftc_str) box_frac_to_cart;
+
+%feature("autodoc", "box_minimum_image(ibox, vector1, vector2)") box_minimum_image;
+%define bx_mic_str
+"
+    Finds the shortest periodic image of vector2 - vector1, i.e.
+    for two position vectors finds the shortest vector which connects
+    the first to the second accross a periodic boundary.
+    
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica which defines
+                   the periodic boundaries of interest.
+                   
+    vector1      : Numpy array, first position vector.
+    
+    vector2      : Numpy array, second position vector.
+                   
+    Returns
+    -------
+    
+    out_vector   : Numpy array, output minimum image vector. 
+    
+
+"
+%enddef
+%feature("docstring", bx_mic_str) box_minimum_image;
+
+%feature("autodoc", "box_set_pbc(flag)") box_set_pbc;
+%define bx_sbc_str
+"
+    Can be used to set an internal variable which overrides use
+    of periodic boundary conditions when calculating distances
+    between position vectors in the simulation. 
+    
+    Should be called with flag=0 at the start of a simulation
+    after box_initialise() if an open system simulation is required.
+    Otherwise periodic boundary conditions will be used by default.
+    
+    Parameters
+    ----------
+    
+    flag         : Integer (1 or 0) indicating if periodic
+                   boundaries should be applied to the calculation
+                   of distances between position vectors.  
+                   
+"
+%enddef
+%feature("docstring", bx_sbc_str) box_set_pbc;
+
+%feature("autodoc", "box_compute_volume(ibox))") box_compute_volume;
+%define bx_cvl_str
+"
+    Calculates the volume of the simulation cell for the specified
+    simulation box/replica.
+    
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica.
+    
+    Returns
+    -------
+    
+    volume       : Volume of simulation box/replica ibox. 
+                   
+"
+%enddef
+%feature("docstring", bx_cvl_str) box_compute_volume;
+
+%feature("autodoc", "box_set_use_verlet_list(flag)") box_set_use_verlet_list;
+%define bx_svl_str
+"
+    If link cells are not in use then this flag can be used to
+    force use of Verlet neighbour lists when computing distances
+    between position vectors in the simulation box(es).
+    
+    * CURRENTLY NON FUNCTIONAL *
+    
+    Parameters
+    ----------
+    
+    flag         : Integer (1 or 0) indicating if Verlet lists
+                   should be used in the case where link cells
+                   are bypassed.
+    
+"
+%enddef
+%feature("docstring", bx_svl_str) box_set_use_verlet_list;
+
+%feature("autodoc", "box_set_link_cell_length(length)") box_set_link_cell_length;
+%define bx_sll_str
+"
+    Sets the minimum size of a link cell in any direction in any
+    simulation box. Smaller values increase the number of link
+    cells and hence reduce the computational cost of finding
+    distances between beads. 
+    
+    Link cells must be sufficiently large that all relevant
+    interactions between bead i and bead j are captured within
+    the 27 link cells enclosing and adjacent to that containing
+    bead i. For hard sphere this means that the minimum link
+    cell size in any direction must be at least a hard sphere
+    diameter.
+    
+    The default mimimum length is 1.5 units which is appropriate
+    for a bead radius of 1 provided the simulation cell angles
+    remain within sensible limits, i.e. 60 to 120 degrees. 
+    
+    Smaller values may improve performance for simulation cells
+    which are guaranteed to remain near cuboidal.
+    
+    Note that the subsequent use of link cells assume that any
+    distortion/shinkage/expansion of the simulation box(es)
+    will not invalidate this parameter.
+
+    Parameters
+    ----------
+    
+    length       : Minimum length of link cells in any direction.
+    
+"
+%enddef
+%feature("docstring", bx_sll_str) box_set_link_cell_length;
+
+%feature("autodoc", "box_construct_link_cells(ibox)") box_construct_link_cells;
+%define bx_clc_str
+"
+    Constructs and populates the link cell data structure for
+    box/replica ibox. Should be called after populating 
+    the initial cell_matrix of box/replica ibox.
+    
+    Subsequent use of link cells assumes that any
+    distortion/shinkage/expansion of the simulation box(es)
+    will not invalidate the ability of the link cell
+    data structure to capture all relevant interactions
+    between pairs of beads.   
+
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica.
+    
+"
+%enddef
+%feature("docstring", bx_clc_str) box_construct_link_cells;
+
+%feature("autodoc", "box_destroy_link_cells(ibox)") box_destroy_link_cells;
+%define bx_dlc_str
+"
+    Releases memory used for the link cell data structure.
+    
+    This should only be required if needing to reinitialise
+    the link cell structure for a new simulation. 
+
+    Parameters
+    ----------
+    
+    ibox         : Index (1-based) of the box/replica.
+    
+"
+%enddef
+%feature("docstring", bx_dlc_str) box_destroy_link_cells;
+
+%feature("autodoc", "box_set_bypass_link_cells(flag)") box_set_bypass_link_cells;
+%define bx_blc_str
+"
+    Sets a flag whic instructs the hs_alkane library to bypass
+    use of link cells and calculate all pairwise interactions
+    directly using the minimum image convention.
+    
+    This can be useful if expecting the simulation cell/size
+    to change significantly during simulation, or is the system
+    is too small to make efficient use of link cells.
+    
+    The default is that links cells *will* be used.
+
+    Parameters
+    ----------
+    
+    flag         : Integer (1 or 0) indicating if link cells
+                   should be bypassed.
+    
+"
+%enddef
+%feature("docstring", bx_blc_str) box_set_bypass_link_cells;
+
 
 /* This will be parsed to generate the wrapper */
 %include "timer.h"
 %include "random.h"
 %include "quaternion.h"
 %include "box.h"
+%include "alkane.h"

@@ -75,7 +75,7 @@ print(unit_vector1)
 #######################
 #  Testing box module #
 #######################
-num_replicas = alk.box_get_num_boxes()[0]
+num_replicas = alk.box_get_num_boxes()
 print("Number of replicas : ",num_replicas)
 
 #alk.box_set_num_boxes(2)
@@ -128,4 +128,29 @@ print("Volume of simulation box : ",vol)
 alk.box_set_bypass_link_cells(0)
 alk.box_construct_link_cells(ibox=1)
 
+alk.box_set_pbc(0)
 
+############################
+#  Testing alkane module  #
+###########################
+nchains = alk.alkane_get_nchains()
+print("Number of chains : ",nchains)
+
+nchains = 1
+alk.alkane_set_nchains(nchains)
+nchains = alk.alkane_get_nchains()
+print("Number of chains : ",nchains)
+
+nbeads = alk.alkane_get_nbeads()
+print("Number of beads per chain : ",nbeads)
+nbeads = 120
+alk.alkane_set_nbeads(nbeads)
+nbeads = alk.alkane_get_nbeads()
+print("Number of beads per chain : ",nbeads)
+
+alk.alkane_init()
+
+# Grow a chain from scratch using CBMC
+rbfactor, ifail = alk.alkane_grow_chain(1, 1, new_conf=1)
+print("Rosenbluth factor : ",rbfactor)
+print("ifail : ",ifail)

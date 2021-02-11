@@ -59,7 +59,7 @@ module alkane
   public :: alkane_set_chain                     ! Update coordinates of a single chain
 
   public :: alkane_change_box                    ! Updates the matrix of cell vectors
-                                                 ! and scales chain C.O.M.s with it.
+                                                 ! and scales chain positions with it.
 
   !---------------------------------------------------------------------------!
   !                        P u b l i c   V a r i a b l e s                    !
@@ -815,10 +815,10 @@ contains
                            quat_axis_angle_to_quat
     implicit none
 
-    integer(kind=it),intent(in)  :: ichain,ibox   ! chain number to grow/regrow
-    real(kind=ep),intent(out)    :: rb_factor     ! Rosenbluth factor for chain
-    integer(kind=it),intent(in)  :: new_conf      ! old or new configuration?
-    integer(kind=it),intent(out) :: ifail
+    integer(kind=it),value,intent(in) :: ichain,ibox   ! chain number to grow/regrow
+    real(kind=ep),intent(out)         :: rb_factor     ! Rosenbluth factor for chain
+    integer(kind=it),value,intent(in) :: new_conf      ! old or new configuration?
+    integer(kind=it),intent(out)      :: ifail
 
     ! Dihedral / angle calculation
     real(kind=dp),dimension(3) :: r12,r23,r34,tmpvect,axis
@@ -2795,7 +2795,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dumchains
+    integer(kind=it),value,intent(in) :: dumchains
 
     nchains = dumchains
 
@@ -2825,7 +2825,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dumbeads
+    integer(kind=it),value,intent(in) :: dumbeads
 
     nbeads = dumbeads
 
