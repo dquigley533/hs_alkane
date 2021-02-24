@@ -97,6 +97,9 @@ cell_matrix = np.array([[ 7.120546, 0.000000,  0.000000],
 alk.box_set_cell(1, cell_matrix)
 alk.box_update_recipmatrix(1)
 
+
+#cell_matrix = np.array([[11,12,13],[21,22,23],[31,32,33]], dtype=np.float64)
+alk.box_set_cell(1, cell_matrix)
 print(alk.box_get_cell(1))
 
 pos1 = np.array([0.2,0.2,0.2],dtype=np.float64)
@@ -143,14 +146,81 @@ print("Number of chains : ",nchains)
 
 nbeads = alk.alkane_get_nbeads()
 print("Number of beads per chain : ",nbeads)
-nbeads = 120
+nbeads = 4
 alk.alkane_set_nbeads(nbeads)
 nbeads = alk.alkane_get_nbeads()
 print("Number of beads per chain : ",nbeads)
 
-alk.alkane_init()
+alk.alkane_init()  # Inconsistent init vs initialise in box
 
 # Grow a chain from scratch using CBMC
-rbfactor, ifail = alk.alkane_grow_chain(1, 1, new_conf=1)
+ifail = 1
+while ifail != 0:
+    rbfactor, ifail = alk.alkane_grow_chain(1, 1, new_conf=1)
+
 print("Rosenbluth factor : ",rbfactor)
 print("ifail : ",ifail)
+
+# Build initial linked lists for this initial config
+alk.alkane_construct_linked_lists(ibox=1)
+
+# Numpy array which refers to chain coordinates
+mychain = alk.alkane_get_chain(1,1)
+print(mychain)
+print()
+
+orig_chain = mychain.copy()
+
+# Trial move - translation
+backup_chain = mychain.copy()
+Pacc = alk.alkane_translate_chain(1,1)
+print("Acceptance probability for move : ", Pacc)
+print(mychain)
+print()
+print(mychain-backup_chain)
+
+# Trial move - rotation
+backup_chain = mychain.copy()
+Pacc, quaternion = alk.alkane_rotate_chain(1,1,bond=1)
+print("Acceptance probability for move : ", Pacc)
+print(mychain)
+print()
+print(mychain-backup_chain)
+
+# Trial move - torsion
+backup_chain = mychain.copy()
+Pacc, idihedral, angle = alk.alkane_bond_rotate(1,1,allow_flip=1)
+print("Rotated dihedral bond no. ",idihedral," by ", angle, "radians")
+print("Acceptance probability for move : ", Pacc)
+print(mychain)
+print()
+
+# Check for chain overlaps
+overlap = alk.alkane_check_chain_overlap(1)
+if overlap!=0:
+    print("Overlap between chains!")
+
+
+# Check chain geometry
+violated = alk.alkane_check_chain_geometry(1,1)
+if violated != 0:
+    print ("Geometry of chain ",1," in box ",1," violates constraints")
+
+mychain[1][1] += 0.1
+
+violated = alk.alkane_check_chain_geometry(1,1)
+if violated != 0:
+    print ("Geometry of chain ",1," in box ",1," violates constraints")
+
+mychain[1][1] -= 0.1
+
+violated = alk.alkane_check_chain_geometry(1,1)
+if violated != 0:
+    print ("Geometry of chain ",1," in box ",1," violates constraints")
+
+# Test link cell update
+for ibead, bead in enumerate(mychain):
+    print("Updating linked lists for bead ",ibead)
+    alk.alkane_update_linked_lists(ibead+1,1,1,orig_chain[ibead],bead)
+    
+alk.alkane_destroy()

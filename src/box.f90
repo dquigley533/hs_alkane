@@ -11,6 +11,7 @@
 !-----------------------------------------------------------------------------!
 module box
 
+  use iso_c_binding
   use constants, only : dp,it
   implicit none
 
@@ -82,8 +83,8 @@ module box
 
   real(kind=dp),save :: link_cell_length   = 1.5   ! Minimum link cell length in each dimension
 
-  real(kind=dp),allocatable,dimension(:,:,:),save :: hmatrix       ! Matrix of cell vectors
-  real(kind=dp),allocatable,dimension(:,:,:),save :: recip_matrix  ! Reciprocal lattice
+  real(kind=dp),allocatable,dimension(:,:,:),target,save :: hmatrix       ! Matrix of cell vectors
+  real(kind=dp),allocatable,dimension(:,:,:),target,save :: recip_matrix  ! Reciprocal lattice
 
   logical,save       :: isotropic = .false. ! isotropic volume moves
   real(kind=dp),save :: pressure  = 6.0     ! external pressure
@@ -388,8 +389,10 @@ contains
     if (ierr/=0) stop 'Error allocating temporary ncells array in alkane_construct_linked_lists'
     do jbox = 1,nboxes
        ncells(jbox) = ncellx(jbox)*ncelly(jbox)*ncellz(jbox)
-    end do
 
+       write(*,'("Created ",I2," x",I2," x",I2," grid of link cells for box ",I2)')ncellx(jbox),ncelly(jbox),ncellz(jbox),jbox
+       
+    end do
 
     maxcells = maxval(ncells,1)
     deallocate(ncells,stat=ierr)
@@ -466,7 +469,7 @@ contains
 
   end subroutine box_construct_link_cells
 
-  subroutine box_get_cell(ibox,dumhmatrix) bind(c)
+  subroutine box_get_cell(ibox, d1, d2, dumhmatrix) bind(c)
     !-------------------------------------------------------------------------!
     ! Queries the current matrix of cell vectors for box ibox, and returns    !
     ! via the dummy 3x3 matrix dumhmatrix.                                    !
@@ -475,11 +478,15 @@ contains
     !-------------------------------------------------------------------------!
     implicit none
     integer(kind=it),value,intent(in) :: ibox
-    real(kind=dp),dimension(3,3),intent(out) :: dumhmatrix
-
+    !real(kind=dp),dimension(3,3),intent(out) :: dumhmatrix
+    integer(c_int),intent(out) :: d1, d2
+    type(c_ptr),intent(out) :: dumhmatrix
+        
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
 
-    dumhmatrix = hmatrix(:,:,ibox)
+    d1 = 3
+    d2 = 3
+    dumhmatrix = c_loc(hmatrix(1,1,ibox))
 
     return
 
@@ -634,6 +641,10 @@ contains
     if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
 
     hmatrix(:,:,ibox) = dumhmatrix
+    
+    !write(*,'("First cell vector  : ",3F15.6)')hmatrix(:,1,ibox)
+    !write(*,'("Second cell vector : ",3F15.6)')hmatrix(:,2,ibox)   
+    !write(*,'("Third cell vector  : ",3F15.6)')hmatrix(:,3,ibox)
 
     call box_update_recipmatrix(ibox)
 

@@ -10,7 +10,8 @@ void box_destroy();
 
 /* Set/get the matrix of cell vectors */
 void box_set_cell(int ibox, double cell_matrix[3][3]);
-void box_get_cell(int ibox, double outmat[3][3]);
+/* void box_get_cell(int ibox, double outmat[3][3]); */
+void box_get_cell(int ibox, int *d1, int *d2, double **outmat_ptr);
 
 /* Convert between absolute and fractional coordinates */
 void box_cart_to_frac(int ibox, double vector[3], double vec_out[3]);

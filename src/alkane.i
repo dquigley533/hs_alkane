@@ -49,6 +49,9 @@ from recognising the module name....
 %apply(double IN_ARRAY1[ANY]) {(double vector[3])};
 %apply(double ARGOUT_ARRAY1[ANY]) {(double vec_out[3])};
 
+%apply(double IN_ARRAY1[ANY]) {(double old_pos[3])};
+%apply(double IN_ARRAY1[ANY]) {(double new_pos[3])};
+
 
 /* Quaternions */
 %apply(double ARGOUT_ARRAY1[ANY]){(double quat[4])};
@@ -63,15 +66,29 @@ from recognising the module name....
 %apply int *OUTPUT {int *nchains};
 %apply int *OUTPUT {int *nbeads};
 %apply int *OUTPUT {int *ifail};
+%apply int *OUTPUT {int *ia};
+%apply int *OUTPUT {int *overlap};
+%apply int *OUTPUT {int *violated};
 
 /* doubles */
 %apply double *OUTPUT {double *rbfactor};
+%apply double *OUTPUT {double *boltz_out};
+%apply double *OUTPUT {double *angle};
 
 /* Matrices of cell vectors */
 %apply(double IN_ARRAY2[ANY][ANY]) {(double cell_matrix[3][3])};
-%apply(double ARGOUT_ARRAY2[ANY][ANY]) {(double outmat[3][3])};
+/*%apply(double ARGOUT_ARRAY2[ANY][ANY]) {(double outmat[3][3])};*/
+%apply(int* DIM1, int* DIM2, double** ARGOUTVIEW_ARRAY2) {(int *d1, int *d2, double **outmat_ptr)};
 
 
+
+/* Chains */
+%apply(int* DIM1, int* DIM2, double** ARGOUTVIEW_ARRAY2) {(int *nbeads_out,int *d_out, double **rchain_ptr)};
+
+
+
+
+/*%apply(double ARGOUT_ARRAY2[ANY][ANY]) {double rchain[3][]}; */
 
 //%apply( int DIM1, double* IN_ARRAY1, int DIM1, double* IN_ARRAY1, int DIM1, double* ARGOUT_ARRAY1 ) {(int d1, double *v1, int d2, double *v2, int dq, double *quat)};
 
@@ -398,7 +415,7 @@ from recognising the module name....
 %feature("autodoc", "box_get_cell(ibox)") box_set_cell;
 %define bx_gcl_str
 "
-    Gets the cell matrix containing the three vectorsw
+    Gets the cell matrix containing the three vectors
     which define the 3D simulation cell of box/replica ibox.
     
     The hs_alkane library adopts the convention that the first

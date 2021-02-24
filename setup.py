@@ -24,7 +24,12 @@ def configuration():
                        )
 
     config.add_extension('_alkane',
-        sources = ['src/alkane.i'],
+        sources = ['src/alkane.i',
+                   'include/timer.h',
+                   'include/random.h',
+                   'include/box.h',
+                   'include/quaternion.h',
+                   'include/alkane.h'],
         libraries = ['alkane'],
         include_dirs = ['./include'],
         depends = ['src/alkane.i'],

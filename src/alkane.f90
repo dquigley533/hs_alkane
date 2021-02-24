@@ -115,8 +115,8 @@ module alkane
   integer(kind=it),save   :: nexclude             ! exclusion length
 
   ! Chain coordinates and flag for initial configuration
-  real(kind=dp),allocatable,dimension(:,:,:,:),save :: Rchain
-  logical,allocatable,dimension(:,:),save           :: chain_created
+  real(kind=dp),allocatable,dimension(:,:,:,:),target,save :: Rchain
+  logical,allocatable,dimension(:,:),save                  :: chain_created
 
   ! Intermolecular neighbour list (if applicable)
   integer(kind=it),allocatable,dimension(:,:),save :: list,startinlist,endinlist
@@ -208,10 +208,10 @@ contains
     !-------------------------------------------------------------------------!
     use random, only : random_uniform_random
     implicit none
-    integer(kind=it),intent(in)  :: ichain,ibox
-    real(kind=dp),intent(out)    :: new_boltz
-    real(kind=dp),dimension(3)   :: dr
-    real(kind=dp)                :: tboltz
+    integer(kind=it),value,intent(in) :: ichain,ibox
+    real(kind=dp),intent(out)         :: new_boltz
+    real(kind=dp),dimension(3)        :: dr
+    real(kind=dp)                     :: tboltz
     integer(kind=it) :: ibead
 
     ! generate random move
@@ -234,7 +234,7 @@ contains
 
   end subroutine alkane_translate_chain
 
- subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat,axis) bind(c)
+ subroutine alkane_rotate_chain(ichain,ibox,new_boltz,quat,bond) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is rotated     !
     ! about the first bead. The new Boltzmann factor after the trial move     !
@@ -242,15 +242,16 @@ contains
     ! Changed from rotation about Centre of Mass to about first bead          !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in)             :: ichain,ibox
+    integer(kind=it),value,intent(in)       :: ichain,ibox
     real(kind=dp),intent(out)               :: new_boltz
     real(kind=dp),dimension(4),intent(out)  :: quat
-    integer(kind=it),intent(in)             :: axis   ! 1 if use long axis 0 normal
+    integer(kind=it),value,intent(in)       :: bond
 
 
-    if(axis == 0) then
+    if(bond == 0) then
       call alkane_rotate_chain_fort(ichain,ibox,new_boltz,quat)
-    else if (axis == 1)then
+    else 
+       ! Rotate chain around axis of first bond in chan
       call alkane_axis_rotate_chain(ichain,ibox,new_boltz,quat)
     endif
 
@@ -327,8 +328,9 @@ contains
 
       if(nbeads < 2) return
 
-      !generate rotation axis, along the molecule (first bead minus second bead)
-      axis(:) = Rchain(:,1,ichain,ibox) - Rchain(:,2,ichain,ibox)
+      ! generate rotation axis, along the molecule (second bead minus second bead)
+      axis(:) = Rchain(:,2,ichain,ibox) - Rchain(:,1,ichain,ibox)
+      axis(:) = axis(:)/sqrt(dot_product(axis,axis))
 
       ! generate random rotation angle
       theta = (2.0_dp*random_uniform_random() - 1.0_dp) * mc_axis_max
@@ -630,8 +632,8 @@ contains
     use random,           only : random_uniform_random
     use quaternion,       only : quat_axis_angle_to_quat,quat_conjugate_q_with_v
     implicit none
-    integer(kind=it),intent(in) :: ichain,ibox
-    integer(kind=it),intent(in) :: allow_flip
+    integer(kind=it),value,intent(in) :: ichain,ibox
+    integer(kind=it),value,intent(in) :: allow_flip
     real(kind=dp),intent(out)   :: new_boltz
 
     real(kind=dp),dimension(3)  :: axis,r12,r23,r34
@@ -849,14 +851,14 @@ contains
     ! Set bead from which to (re)grow
     if ( .not.chain_created(ichain,ibox) ) then
        first_bead = 1  ! grow whole chain from scratch
-       !write(0,'("alkane : Creating new chain from first bead")')
+       write(*,'("alkane : Creating new chain from first bead")')
     elseif (new_conf==0) then
        first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
        if (first_bead>max_regrow) first_bead = max_regrow
        first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
        !write(0,'("alkane : Regrowing an old chain from bead", I5)')first_bead
     elseif (new_conf==1) then
-       !write(0,'("alkane : Growing   an new chain from bead", I5)')first_bead
+       write(*,'("alkane : Growing   an new chain from bead", I5)')first_bead
     end if
 
     allocate(wset(first_bead:nbeads),stat=ierr)
@@ -880,14 +882,14 @@ contains
     rb_factor = 1_ep
     do ib = first_bead,nbeads
 
-       !write(0,'("alkane : Loop at bead number ", I5)')ib
+       write(*,'("alkane : Loop at bead number ", I5)')ib
 
        !======================================================!
        ! First bead                                           !
        !======================================================!
        if ( ib==1 ) then
 
-          !write(0,'("alkane : At first bead")')
+          write(*,'("alkane : At first bead")')
           if (new_conf==1) then
              Rchain(1,1,ichain,ibox) = random_uniform_random()
              Rchain(2,1,ichain,ibox) = random_uniform_random()
@@ -897,14 +899,14 @@ contains
 
           rb_factor = real(alkane_nonbonded_boltz(1,ichain,ibox,Rchain(:,1,ichain,ibox)),kind=ep)
 
-          !write(0,'(I5,3F15.6)')ib,Rchain(:,ib,ichain,ibox)
+          !write(*,'(I5,3F15.6)')ib,Rchain(:,ib,ichain,ibox)
 
        !======================================================!
        ! Second bead                                          !
        !======================================================!
        elseif ( ib==2 ) then
 
-          !write(0,'("alkane : At second bead")')
+          write(*,'("alkane : At second bead")')
 
           wsum = wset(ib)
           do j = jl,ktrial
@@ -931,7 +933,7 @@ contains
        !======================================================!
        elseif ( ib==3 ) then
 
-          !write(0,'("alkane : At third bead")')
+          write(*,'("alkane : At third bead")')
 
           r12 = Rchain(:,2,ichain,ibox) - Rchain(:,1,ichain,ibox)
           wsum = wset(ib)
@@ -977,7 +979,7 @@ contains
           ! Fourth and subsequent beads                          !
           !======================================================!
 
-         ! write(0,'("alkane : At fourth bead")')
+          write(*,'("alkane : At fourth bead")')
 
           r12  = Rchain(:,ib-2,ichain,ibox) - Rchain(:,ib-3,ichain,ibox)
           r23  = Rchain(:,ib-1,ichain,ibox) - Rchain(:,ib-2,ichain,ibox)
@@ -1663,15 +1665,19 @@ contains
     !-------------------------------------------------------------------------!
     use box, only : use_link_cells
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp) :: test,acc,acc_link
     integer(kind=it) :: ichain,num_chains_overlapping,num_chains_overlapping_link
     integer(kind=it),intent(out) :: overlap
 
     !write(*,*)"check chain ibox=",ibox
 
-    if (nchains < 2) stop 'Called alkane_check_chain_overlap with one chain'
-
+    if (nchains < 2) then
+       overlap = 0
+       write(0,'("Called alkane_check_chain_overlap in system with only one chain!")')
+       return
+    end if
+       
     ! We take one of two paths through this routine.
     if (.not.use_link_cells) then
 
@@ -1762,8 +1768,8 @@ contains
     use constants, only : Pi
     use box
     implicit none
-    integer(kind=it),intent(in)  :: ichain
-    integer(kind=it),intent(in)  :: ibox
+    integer(kind=it),value,intent(in)  :: ichain
+    integer(kind=it),value,intent(in)  :: ibox
     integer(kind=it),intent(out) :: violated
 
     real(kind=dp),dimension(3) :: rsep,r12,r23,r34
@@ -1887,7 +1893,7 @@ contains
     !-------------------------------------------------------------------------!
     use box
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
 
     integer(kind=it) :: myint,logint,ibead,jbead,ichain,jchain,k,ierr,m
     integer(kind=it) :: t1,t2,rate
@@ -1978,7 +1984,7 @@ contains
     use box,       only : ncellx,ncelly,ncellz,lcellx,lcelly,lcellz,use_link_cells, &
                           recip_matrix,nboxes,maxcells
     implicit none
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     integer(kind=it) :: ichain,ibead,icell,ix,iy,iz,ierr
     integer(kind=it) :: jbead,jchain
     real(kind=dp)    :: rlcellx,rlcelly,rlcellz
@@ -2062,6 +2068,8 @@ contains
 
              icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix
 
+             write(*,'("Bead ",I3," on chain ",I3," is in link cell ",I3)')ibead,ichain,icell
+
              ! Bead and chain index for old head of cell
              ! (both zero if this is first atom to be added)
              jbead  = head_of_cell(1,icell,jbox)
@@ -2108,7 +2116,7 @@ contains
     use box,       only : ncellx,ncelly,ncellz,lcellx,lcelly,lcellz, &
                           use_link_cells,recip_matrix
     implicit none
-    integer(kind=it),intent(in) :: ibead,ichain,ibox
+    integer(kind=it),value,intent(in) :: ibead,ichain,ibox
     real(kind=dp),dimension(3),intent(in) :: old_pos,new_pos
     real(kind=dp),dimension(3) :: sbead
     integer(kind=it) :: ix,iy,iz,ncell,ocell,jchain,jbead
@@ -2117,6 +2125,7 @@ contains
 
 
     if (.not.use_link_cells) return
+    !if (nchains==1) return
 
     ! Compute sbead from old_pos
     sbead(1) = recip_matrix(1,1,ibox)*old_pos(1) + &
@@ -2169,6 +2178,8 @@ contains
     ! ...nothing to see here
     if (ocell==ncell) return
 
+!    write(0,'("Bead moved from cell ",I2," to ",I2)')ocell,ncell
+
     !call system_clock(count=t1)
 
     ! remove from old cell
@@ -2183,7 +2194,7 @@ contains
 !!$       end do
 !!$    end do
 
-!!$    write(0,'("Moving bead ",2I5," from link cell ",I5," to ",I5)')ibead,ichain,ocell,ncell
+     write(0,'("Moving bead ",2I5," from link cell ",I5," to ",I5)')ibead,ichain,ocell,ncell
 
     !-----------------------------------!
     ! Remove from old cell linked lists !
@@ -2849,8 +2860,30 @@ contains
     return
 
   end subroutine alkane_set_chain
+  
+  subroutine alkane_get_chain_wrap(ichain,ibox,nbeads_out,d_out,r_ptr) bind(c,name='alkane_get_chain')
 
-  subroutine alkane_get_chain(ichain,ibox,r) bind(c)
+    implicit none
+    integer,value,intent(in) :: ichain, ibox
+    integer,intent(out)      :: d_out,nbeads_out
+    !real(kind=dp),dimension(1:3,1:nbeads),intent(out) :: r
+    type(c_ptr),intent(out)  :: r_ptr
+    integer :: ibead
+    
+    d_out = 3
+    nbeads_out = nbeads
+
+    do ibead = 1,nbeads
+       write(*,'(3F15.6)')Rchain(:,ibead,ichain,ibox)
+    end do
+    
+    r_ptr = c_loc(Rchain(1,1,ichain,ibox))
+
+    return
+
+  end subroutine alkane_get_chain_wrap
+
+  subroutine alkane_get_chain(ichain,ibox,r) 
     !-------------------------------------------------------------------------!
     ! Returns the coordinates of a single chain in box ibox.                  !
     !-------------------------------------------------------------------------!
