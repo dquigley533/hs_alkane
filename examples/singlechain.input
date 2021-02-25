@@ -31,8 +31,8 @@ pressure    = 6.0            ! Pressure in units of kT/sigma^3
 !  Book-keeping           !
 !-------------------------!
 &bookkeeping
-max_mc_cycles   = 50000      ! Max number of sweeps
-file_output_int = 10000      ! Interal between output
+max_mc_cycles   = 1000       ! Max number of sweeps
+file_output_int = 10         ! Interal between output
 traj_output_int = 50         ! Trajectory interval
 /
 

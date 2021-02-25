@@ -32,9 +32,9 @@ pressure    = 50            ! Pressure in units of kT/sigma^3
 !  Book-keeping           !
 !-------------------------!
 &bookkeeping
-max_mc_cycles   = 2500000
-file_output_int = 25
-traj_output_int = 5000
+max_mc_cycles   = 10000
+file_output_int = 100
+traj_output_int = 100
 timer_qtime     = 432000
 timer_closetime = 3600
 /
