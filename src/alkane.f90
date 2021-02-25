@@ -2582,7 +2582,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    real(kind=dp),intent(in) :: dum_dr
+    real(kind=dp),value,intent(in) :: dum_dr
 
     mc_dr_max = dum_dr
 
@@ -2614,7 +2614,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    real(kind=dp),intent(in) :: dum_dt
+    real(kind=dp),value,intent(in) :: dum_dt
 
     mc_dt_max = dum_dt
 
@@ -2646,7 +2646,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    real(kind=dp),intent(in) :: dum_dv
+    real(kind=dp),value,intent(in) :: dum_dv
 
     mc_dv_max = dum_dv
 
@@ -2678,7 +2678,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    real(kind=dp),intent(in) :: dum_dh
+    real(kind=dp),value,intent(in) :: dum_dh
 
     mc_dh_max = dum_dh
 
@@ -2710,7 +2710,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dum_kt
+    integer(kind=it),value,intent(in) :: dum_kt
 
     ktrial = dum_kt
 
@@ -2743,7 +2743,7 @@ contains
     ! S. Bridgwater Apr 2014                                                  !
     !-------------------------------------------------------------------------!
     implicit none
-    real(kind=dp),intent(in) :: dum_axis
+    real(kind=dp),value,intent(in) :: dum_axis
 
     mc_axis_max = dum_axis
 
@@ -2776,7 +2776,7 @@ contains
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: dum_max_regrow
+    integer(kind=it),value,intent(in) :: dum_max_regrow
 
     max_regrow = dum_max_regrow
 

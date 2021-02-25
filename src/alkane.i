@@ -69,11 +69,19 @@ from recognising the module name....
 %apply int *OUTPUT {int *ia};
 %apply int *OUTPUT {int *overlap};
 %apply int *OUTPUT {int *violated};
+%apply int *OUTPUT {int *dum_ktrial};
+%apply int *OUTPUT {int *dum_max_regrow};
+
 
 /* doubles */
 %apply double *OUTPUT {double *rbfactor};
 %apply double *OUTPUT {double *boltz_out};
 %apply double *OUTPUT {double *angle};
+%apply double *OUTPUT {double *dum_dr};
+%apply double *OUTPUT {double *dum_dt};
+%apply double *OUTPUT {double *dum_axis};
+%apply double *OUTPUT {double *dum_dv};
+
 
 /* Matrices of cell vectors */
 %apply(double IN_ARRAY2[ANY][ANY]) {(double cell_matrix[3][3])};
