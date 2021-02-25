@@ -80,6 +80,7 @@ from recognising the module name....
 %apply double *OUTPUT {double *angle};
 %apply double *OUTPUT {double *dum_dr};
 %apply double *OUTPUT {double *dum_dt};
+%apply double *OUTPUT {double *dum_dh};
 %apply double *OUTPUT {double *dum_axis};
 %apply double *OUTPUT {double *dum_dv};
 

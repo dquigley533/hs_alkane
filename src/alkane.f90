@@ -144,7 +144,7 @@ module alkane
 
 contains
 
-  subroutine alkane_init() bind(c)
+  subroutine alkane_init() bind(c,name='alkane_initialise')
     !-------------------------------------------------------------------------!
     ! Initialises the alkane module                                           !
     !-------------------------------------------------------------------------!
