@@ -65,6 +65,8 @@ program hs_alkane
   ! external signal handling subroutine
   external :: cleanexit
 
+  io_standalone = .true.
+
   !--------------------------!
   ! Set timer module going   !
   !--------------------------!

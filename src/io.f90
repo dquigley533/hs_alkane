@@ -31,12 +31,15 @@ module io
   public :: read_xmol                                 ! Flag to read xmol
   public :: file_output_int                           ! Sample interval
   public :: traj_output_int                           ! Trajectory interval
+  public :: io_standalone                             ! Not running as library?
 
   logical :: read_xmol = .false.   ! are we reading an xmol
 
   ! Sampling and snapshot intervals
   integer(kind=it) :: file_output_int = 25
   integer(kind=it) :: traj_output_int = 250
+
+  logical,save :: io_standalone = .false.
 
   !---------------------------------------------------------------------------
   !                      P r i v a t e   V a r i a b l e s                    !
@@ -186,8 +189,12 @@ contains
 
        open(unit=25,file=trim(filename),status='old',iostat=ierr)
        if (ierr/=0) then
-          write(0,'("Could not open local input file : ",A30)')filename
-          stop 'Error setting initial coords from xmol'
+          write(0,'("Error : Could not open local input file : ",A30)')filename
+          if (io_standalone) then
+             stop
+          else
+             return
+          end if
        end if
 
        read(25,*)dumint

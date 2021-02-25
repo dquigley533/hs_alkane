@@ -42,7 +42,7 @@ module vis
       !------------------------------------------------------!
       use box, only : nboxes
       implicit none
-      integer(kind=it),intent(in) :: nchains,nbeads
+      integer(kind=it),value,intent(in) :: nchains,nbeads
 
       integer,allocatable,dimension(:) :: arrbonds
 
@@ -128,7 +128,7 @@ module vis
     !------------------------------------------------------!
     use box, only : nboxes
     implicit none
-    integer(kind=it),intent(in) :: Nchains,Nbeads
+    integer(kind=it),value,intent(in) :: Nchains,Nbeads
 
     ! arrays for header
     integer,dimension(20) :: icntrl

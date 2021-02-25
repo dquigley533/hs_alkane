@@ -25,6 +25,7 @@ from recognising the module name....
 #include "quaternion.h"
 #include "box.h"
 #include "alkane.h"
+#include "vis_module.h"
 %}
 
 /* Standard typemaps */
@@ -689,3 +690,4 @@ from recognising the module name....
 %include "quaternion.h"
 %include "box.h"
 %include "alkane.h"
+%include "vis_module.h"
