@@ -373,9 +373,9 @@ contains
     use random,   only : random_uniform_random
     implicit none
 
-    real(kind=dp),intent(in)     :: pressure
-    integer(kind=it),intent(in)  :: ibox
-    integer(kind=it),intent(in)  :: reset
+    real(kind=dp),value,intent(in)     :: pressure
+    integer(kind=it),value,intent(in)  :: ibox
+    integer(kind=it),value,intent(in)  :: reset
     real(kind=dp),intent(out)    :: acc_prob
     real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3),save :: old_hmatrix,new_hmatrix,delta_hmatrix
@@ -539,11 +539,10 @@ contains
   subroutine alkane_box_scale(ibox,scaleA,scaleB,scaleC)  bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the size (and possibly shape) of   !
-    ! the simulation box is altered by a random amount. The ratio  of new/old !
-    ! Boltmann factors (i.e. the acceptance probability) is returned as       !
-    ! new_boltz. The first bead position of each chain in fractional          !
-    ! coordinates is constant during the move. Note that any torsional        !
-    ! potential does not enter into the acceptance criteria.                  !
+    ! the simulation box is altered by a random amount. The first bead        !
+    ! position of each chain in fractional coordinates is constant during the !
+    ! move. Note that any torsional potential does not enter into the         !
+    ! acceptance criteria.                                                    !
     !-------------------------------------------------------------------------!
     ! D.Quigley February 2010                                                 !
     !-------------------------------------------------------------------------!
@@ -553,8 +552,8 @@ contains
     use random,   only : random_uniform_random
     implicit none
 
-    integer(kind=it),intent(in)  :: ibox
-    real(kind=dp),intent(in)     :: scaleA,scaleB,scaleC
+    integer(kind=it),value,intent(in)  :: ibox
+    real(kind=dp),value,intent(in)     :: scaleA,scaleB,scaleC
     real(kind=dp),dimension(3)   :: first,frac_first,first_chain,delta_first
     real(kind=dp),dimension(3,3) :: old_hmatrix,new_hmatrix
     real(kind=dp) :: old_volume
@@ -2915,7 +2914,7 @@ contains
     use random,   only : random_uniform_random
     implicit none
 
-    integer(kind=it),intent(in) :: ibox
+    integer(kind=it),value,intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(in)     :: delta_H
 
 !    real(kind=dp),dimension(3)   :: oldcom,comchain,tmpcom

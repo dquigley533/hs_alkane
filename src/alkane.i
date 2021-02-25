@@ -85,6 +85,7 @@ from recognising the module name....
 
 /* Matrices of cell vectors */
 %apply(double IN_ARRAY2[ANY][ANY]) {(double cell_matrix[3][3])};
+%apply(double IN_ARRAY2[ANY][ANY]) {(double delta_H[3][3])};
 /*%apply(double ARGOUT_ARRAY2[ANY][ANY]) {(double outmat[3][3])};*/
 %apply(int* DIM1, int* DIM2, double** ARGOUTVIEW_ARRAY2) {(int *d1, int *d2, double **outmat_ptr)};
 
