@@ -855,7 +855,9 @@ contains
        first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
        if (first_bead>max_regrow) first_bead = max_regrow
        first_bead = nbeads - max_regrow + first_bead                          ! integer between (nbeads-max_regrow + 1) and nbeads
+       ifail = 0
        !write(0,'("alkane : Regrowing an old chain from bead", I5)')first_bead
+
     elseif (new_conf==1) then
        write(*,'("alkane : Growing   an new chain from bead", I5)')first_bead
     end if
@@ -881,14 +883,14 @@ contains
     rb_factor = 1_ep
     do ib = first_bead,nbeads
 
-       write(*,'("alkane : Loop at bead number ", I5)')ib
+       !write(*,'("alkane : Loop at bead number ", I5)')ib
 
        !======================================================!
        ! First bead                                           !
        !======================================================!
        if ( ib==1 ) then
 
-          write(*,'("alkane : At first bead")')
+          !write(*,'("alkane : At first bead")')
           if (new_conf==1) then
              Rchain(1,1,ichain,ibox) = random_uniform_random()
              Rchain(2,1,ichain,ibox) = random_uniform_random()
@@ -905,7 +907,7 @@ contains
        !======================================================!
        elseif ( ib==2 ) then
 
-          write(*,'("alkane : At second bead")')
+          !write(*,'("alkane : At second bead")')
 
           wsum = wset(ib)
           do j = jl,ktrial
@@ -932,7 +934,7 @@ contains
        !======================================================!
        elseif ( ib==3 ) then
 
-          write(*,'("alkane : At third bead")')
+          !write(*,'("alkane : At third bead")')
 
           r12 = Rchain(:,2,ichain,ibox) - Rchain(:,1,ichain,ibox)
           wsum = wset(ib)
