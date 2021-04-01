@@ -850,7 +850,7 @@ contains
     ! Set bead from which to (re)grow
     if ( .not.chain_created(ichain,ibox) ) then
        first_bead = 1  ! grow whole chain from scratch
-       write(*,'("alkane : Creating new chain from first bead")')
+       !write(*,'("alkane : Creating new chain from first bead")')
     elseif (new_conf==0) then
        first_bead = int(random_uniform_random()*real(max_regrow,kind=dp)) + 1 ! integer between 1 and max_regrow
        if (first_bead>max_regrow) first_bead = max_regrow
@@ -859,7 +859,7 @@ contains
        !write(0,'("alkane : Regrowing an old chain from bead", I5)')first_bead
 
     elseif (new_conf==1) then
-       write(*,'("alkane : Growing   an new chain from bead", I5)')first_bead
+       !write(*,'("alkane : Growing new chain from bead", I5)')first_bead
     end if
 
     allocate(wset(first_bead:nbeads),stat=ierr)
@@ -980,7 +980,7 @@ contains
           ! Fourth and subsequent beads                          !
           !======================================================!
 
-          write(*,'("alkane : At fourth bead")')
+          !write(*,'("alkane : At fourth bead")')
 
           r12  = Rchain(:,ib-2,ichain,ibox) - Rchain(:,ib-3,ichain,ibox)
           r23  = Rchain(:,ib-1,ichain,ibox) - Rchain(:,ib-2,ichain,ibox)
@@ -2874,9 +2874,9 @@ contains
     d_out = 3
     nbeads_out = nbeads
 
-    do ibead = 1,nbeads
-       write(*,'(3F15.6)')Rchain(:,ibead,ichain,ibox)
-    end do
+    !do ibead = 1,nbeads
+    !   write(*,'(3F15.6)')Rchain(:,ibead,ichain,ibox)
+    !end do
     
     r_ptr = c_loc(Rchain(1,1,ichain,ibox))
 

@@ -26,6 +26,7 @@ from recognising the module name....
 #include "box.h"
 #include "alkane.h"
 #include "vis_module.h"
+#include "io.h"
 %}
 
 /* Standard typemaps */
@@ -692,3 +693,4 @@ from recognising the module name....
 %include "box.h"
 %include "alkane.h"
 %include "vis_module.h"
+%include "io.h"
