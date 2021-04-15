@@ -155,6 +155,14 @@ contains
 
     integer(kind=it),dimension(3) :: ierr = 0
 
+
+    if (allocated(Rchain)) deallocate(Rchain)
+    if (allocated(chain_created)) deallocate(chain_created)
+    if (allocated(list)) deallocate(list)
+    if (allocated(startinlist)) deallocate(startinlist)
+    if (allocated(endinlist)) deallocate(endinlist)
+    
+    
     ! Allocate chain position array
     allocate(Rchain(1:3,1:nbeads,1:nchains,1:nboxes),stat=ierr(1))
     if (any(ierr/=0)) stop 'Error allocating memory in alkane module'
@@ -177,6 +185,15 @@ contains
     allocate(endinlist(1:nbeads*nchains,1:nboxes)  ,stat=ierr(3))
     if (any(ierr/=0)) stop 'Error allocating neighbour list arrays'
 
+    write(*,*)
+    write(*,'("|=======================================|")')
+    write(*,'("| Initialised ",I5," chains              |")')Nchains
+    write(*,'("| Beads per chain : ",I5,"               |")')Nbeads
+    write(*,'("| Bead positions have been reset.       |")')
+    write(*,'("|=======================================|")')
+    write(*,*)
+
+    
     return
 
   end subroutine alkane_init
@@ -2069,7 +2086,7 @@ contains
 
              icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix
 
-             write(*,'("Bead ",I3," on chain ",I3," is in link cell ",I3)')ibead,ichain,icell
+             !write(*,'("Bead ",I3," on chain ",I3," is in link cell ",I3)')ibead,ichain,icell
 
              ! Bead and chain index for old head of cell
              ! (both zero if this is first atom to be added)

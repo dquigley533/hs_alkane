@@ -171,8 +171,10 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2011                                                  !
     !-------------------------------------------------------------------------!
-    use alkane, only : Rchain,nchains,nbeads,chain_created
-    use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes
+    use alkane, only : Rchain,nchains,nbeads,chain_created, &
+                       alkane_construct_linked_lists
+    use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes, &
+                       box_construct_link_cells
     implicit none
 
     integer(kind=it) :: ierr,ichain,ibead,dumint,ibox
@@ -215,6 +217,12 @@ contains
        end do
 
        close(25)
+
+       ! Update data structures which depend on cell vectors and positions
+       call box_update_recipmatrix(ibox)
+       call box_construct_link_cells(ibox)
+       call alkane_construct_linked_lists(ibox)
+       
 
     end do ! end loop over boxes
 

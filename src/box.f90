@@ -405,7 +405,7 @@ contains
        write(*,*)"hmatrix", hmatrix
        write(*,*)"dot prods",Lx,Ly,Lz,"link cell length",link_cell_length
        use_link_cells = .false.
-       stop
+       !stop
        return
     end if
 
