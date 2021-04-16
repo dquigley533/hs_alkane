@@ -268,7 +268,7 @@ contains
     if(bond == 0) then
       call alkane_rotate_chain_fort(ichain,ibox,new_boltz,quat)
     else 
-       ! Rotate chain around axis of first bond in chan
+       ! Rotate chain around axis of first bond in chain
       call alkane_axis_rotate_chain(ichain,ibox,new_boltz,quat)
     endif
 
@@ -1166,8 +1166,8 @@ contains
 
           do ll = startinlist((ichain-1)*nbeads+i,ibox),endinlist((ichain-1)*nbeads+i,ibox)
 
-             jchain = list(ll,ibox)/nbeads + 1
-             jbead  = list(ll,ibox) - (jchain-1)*nbeads
+             jchain = (list(ll,ibox)-1)/nbeads + 1
+             jbead  = mod(list(ll,ibox)-1,nbeads) + 1 
 
              ! The compiler needs to inline this, use -ipo on Intel
              !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
@@ -1386,10 +1386,15 @@ contains
 
           do ibead = 1,nbeads
              rbead(:) = Rchain(:,ibead,ichain,ibox)
+
+             !write(0,'("Checking neighbours of bead ",I5," on chain ",I5)')ibead, ichain
+             
              do ll = startinlist((ichain-1)*nbeads+ibead,ibox),endinlist((ichain-1)*nbeads+ibead,ibox)
 
-                jchain = list(ll,ibox)/nbeads + 1
-                jbead  = list(ll,ibox) - (jchain-1)*nbeads
+                !write(0,'("Bead ",I5," is a neighbour.")')list(ll,ibox)
+                
+                jchain = (list(ll,ibox)-1)/nbeads + 1
+                jbead  = mod(list(ll,ibox)-1,nbeads) + 1 
 
                 ! The compiler needs to inline this, use -ipo on Intel
                 !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
@@ -1918,14 +1923,27 @@ contains
     logical :: lrange
     real(kind=dp) :: nl_range_sq
     real(kind=dp),dimension(3) :: rbead,rsep
+    real(kind=dp),dimension(3) :: Labc
 
     integer(kind=it),allocatable,dimension(:) :: advance
     logical,save  :: firstpass = .true.
     integer(kind=it),save  :: lcnv
 
     ! This number should be adjustable
-    nl_range_sq = (4.0_dp*sigma)**2
+    nl_range_sq = (2.0_dp*sigma)**2
 
+    ! Lengths of the three cell vectors
+    Labc(1) = sqrt(dot_product(hmatrix(:,1,ibox),hmatrix(:,1,ibox)))
+    Labc(2) = sqrt(dot_product(hmatrix(:,2,ibox),hmatrix(:,2,ibox)))
+    Labc(3) = sqrt(dot_product(hmatrix(:,3,ibox),hmatrix(:,3,ibox)))
+
+    if ( any(Labc< 2.0*sqrt(nl_range_sq)) ) then
+       write(0,'("System is too small for neighbour list range of ",F15.6)')sqrt(nl_range_sq)
+       use_verlet_list   = .false.
+       return
+    end if
+       
+    
     if ( firstpass ) then
 
        ! Establish the manner in which the present compiler
