@@ -124,6 +124,7 @@ module alkane
   ! Linked list arrays (if applicable) See F&S for details
   integer(kind=it),allocatable,dimension(:,:,:) ,save  :: head_of_cell
   integer(kind=it),allocatable,dimension(:,:,:,:),save :: linked_list
+  integer(kind=it),allocatable,dimension(:,:,:),save :: linkcell
   logical,save       :: rigid     = .false.      ! Chains are inflexible
 
   ! CBMC parameters
@@ -136,6 +137,12 @@ module alkane
   real(kind=dp),save :: mc_dv_max = 0.003_dp    ! Maximum volume change
   real(kind=dp),save :: mc_dh_max = 0.06_dp     ! Maximum dihedral change
   real(kind=dp),save :: mc_axis_max = 3.14_dp   ! Maximal rotation about axis
+
+  ! Linked list constants
+  integer(kind=it),parameter :: HOC_LIST_EMPTY = -5
+  integer(kind=it),parameter :: HOC_BACKPOINT = -6
+  integer(kind=it),parameter :: LIST_END = -7
+  
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
@@ -231,6 +238,12 @@ contains
     real(kind=dp)                     :: tboltz
     integer(kind=it) :: ibead
 
+
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     ! generate random move
     dr(1) = 2.0_dp*random_uniform_random() - 1.0_dp
     dr(2) = 2.0_dp*random_uniform_random() - 1.0_dp
@@ -264,6 +277,11 @@ contains
     real(kind=dp),dimension(4),intent(out)  :: quat
     integer(kind=it),value,intent(in)       :: bond
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
 
     if(bond == 0) then
       call alkane_rotate_chain_fort(ichain,ibox,new_boltz,quat)
@@ -663,6 +681,11 @@ contains
 
     logical :: doflips = .true.
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     if (allow_flip==1) then
       doflips=.true.
     else if (allow_flip==0) then
@@ -857,6 +880,12 @@ contains
     ! Bead from which to start growth
     integer(kind=it),save :: first_bead
 
+
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     ! Allocate memory for trial segments
     allocate(rtrial(1:3,1:ktrial),stat=ierr)
     if ( ierr/=0 ) stop 'Error allocating Rtrial'
@@ -1247,7 +1276,7 @@ contains
              jcell   = lcneigh(ni,icell,ibox)
              jbead   = head_of_cell(1,jcell,ibox)
              jchain  = head_of_cell(2,jcell,ibox)
-             do while ( jchain.ne.0 )
+             do while ( jchain.ne.LIST_END )
 
                 !rsep(:) = box_minimum_image(Rchain(:,jbead,jchain),rbead(:))
 
@@ -1368,6 +1397,11 @@ contains
     real(kind=dp) :: alkane_chain_inter_boltz
     logical       :: overlap
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     sigma_sq = sigma*sigma
     overlap  = .false.
 
@@ -1474,7 +1508,7 @@ contains
                 jcell   = lcneigh(ni,icell,ibox)
                 jbead   = head_of_cell(1,jcell,ibox)
                 jchain  = head_of_cell(2,jcell,ibox)
-                do while ( jchain.ne.0 )
+                do while ( jchain.ne.LIST_END )
 
                    !rsep(:) = box_minimum_image(Rchain(:,jbead,jchain),rbead(:))
                    rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
@@ -1800,6 +1834,11 @@ contains
     real(kind=dp) :: boltzf,angle
 
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     violated = 0 ! No problems found yet
 
     !==============================================!
@@ -2051,8 +2090,14 @@ contains
 
     ! Allocate linked_list array itself
     if ( .not.allocated(linked_list) ) then
-       allocate(linked_list(1:4,0:nbeads,0:nchains,1:nboxes),stat=ierr)
+       allocate(linked_list(1:4,1:nbeads,1:nchains,1:nboxes),stat=ierr)
        if (ierr/=0) stop 'Error allocating linked_lists'
+    end if
+
+    ! Allocate list membership array
+    if ( .not.allocated(linkcell) ) then
+       allocate(linkcell(1:nbeads,1:nchains,1:nboxes),stat=ierr)
+       if (ierr/=0) stop 'Error allocating linkcell array'
     end if
 
     if ( lrebuild_all_boxes ) then
@@ -2069,7 +2114,7 @@ contains
        ! been set for jbox, i.e. at initialisation.
        if ( ncellx(jbox)*ncelly(jbox)*ncellz(jbox) == 0 ) cycle
 
-       head_of_cell(:,:,jbox) = 0
+       head_of_cell(:,:,jbox) = LIST_END  ! Nobody home yet
 
        rlcellx = 1.0_dp/lcellx(jbox)
        rlcelly = 1.0_dp/lcelly(jbox)
@@ -2104,15 +2149,22 @@ contains
 
              icell = (iz-1)*ncellx(jbox)*ncelly(jbox) + (iy-1)*ncellx(jbox) + ix
 
+             linkcell(ibead,ichain,jbox) = icell
+             
              !write(*,'("Bead ",I3," on chain ",I3," is in link cell ",I3)')ibead,ichain,icell
 
              ! Bead and chain index for old head of cell
-             ! (both zero if this is first atom to be added)
+             ! (both LIST_END if this is the first bead added)
              jbead  = head_of_cell(1,icell,jbox)
              jchain = head_of_cell(2,icell,jbox)
 
+!!$             if (jbead/=LIST_END) then
+!!$                write(0,'("Adding ",2I5," to link cell ",I5)')ibead,ichain,icell
+!!$                write(0,'("Previous head of cell was ",2I5)')jbead,jchain
+!!$             end if
+
              ! This bead points forward to the old head of cell,
-             ! or to zero if it's the first bead to be added
+             ! or to LIST_END if it's the first bead to be added
              linked_list(1,ibead,ichain,jbox) = jbead
              linked_list(2,ibead,ichain,jbox) = jchain
 
@@ -2120,15 +2172,88 @@ contains
              head_of_cell(1,icell,jbox) = ibead
              head_of_cell(2,icell,jbox) = ichain
 
-             ! jbead, jchain points backward to ibead,ichain
-             ! zero'th elements will be populated here for
-             ! first bead added, and ignored.
-             linked_list(3,jbead,jchain,jbox) = ibead
-             linked_list(4,jbead,jchain,jbox) = ichain
+             ! .. so it doesn't point backward to anything
+             linked_list(3,ibead,ichain,jbox) = HOC_BACKPOINT
+             linked_list(4,ibead,ichain,jbox) = HOC_BACKPOINT
+             
+             
+             ! Backpointing. First bead to be added points forward
+             ! to LIST_END (taken care of above) and can't point
+             ! backward because it's the head of cell.
+             if (jbead/=LIST_END) then
+                linked_list(3,jbead,jchain,jbox) = ibead
+                linked_list(4,jbead,jchain,jbox) = ichain
+             end if
 
+             ! jbead, jchain points backward to ibead,ichain
+             !if (.not.( (jbead==0).or.(jchain==0 ) ) ) then
+             !   linked_list(3,jbead,jchain,jbox) = ibead
+             !   linked_list(3,jbead,jchain,jbox) = ibead  <--
+             !end if
+             
 
           end do
        end do
+
+
+       ! Sanity
+!!$       do icell = 1,maxcells
+!!$
+!!$          write(0,*)
+!!$          write(0,'("Link cell ",I5," sanity check")')icell
+!!$          write(0,'("====================================")')
+!!$          
+!!$          ibead  = head_of_cell(1,icell,jbox)
+!!$          ichain = head_of_cell(2,icell,jbox)
+!!$
+!!$          if (ibead == LIST_END) then
+!!$             write(0,'("Link cell ",I5," is empty")')icell
+!!$             cycle
+!!$          end if
+!!$
+!!$          write(0,'("Head of cell is ",2I5)')ibead,ichain
+!!$
+!!$          if ( linked_list(3,ibead,ichain,jbox) /= HOC_BACKPOINT ) then
+!!$             write(0,'("First bead does not point backward to HOC_BACKPOINT")')
+!!$          end if
+!!$          if ( linked_list(4,ibead,ichain,jbox) /= HOC_BACKPOINT ) then
+!!$                write(0,'("First bead does not point backward to HOC_BACKPOINT")')      
+!!$          end if
+!!$          
+!!$          jbead  = 0
+!!$          jchain = 0
+!!$          
+!!$          
+!!$          do while (jbead /= LIST_END)
+!!$
+!!$             jbead   = linked_list(1,ibead,ichain,jbox)
+!!$             jchain  = linked_list(2,ibead,ichain,jbox)
+!!$
+!!$             write(0,'("Next bead is ",2I5)')jbead,jchain
+!!$
+!!$             if (jbead /= LIST_END) then
+!!$             
+!!$                if ( linked_list(3,jbead,jchain,jbox) /= ibead  ) then
+!!$                   write(0,'("Bead does not point backward to prevous link entry")')
+!!$                end if
+!!$                if ( linked_list(4,jbead,jchain,jbox) /= ichain ) then
+!!$                   write(0,'("Bead does not point backward to prevous link entry")')
+!!$                end if
+!!$
+!!$                ibead = jbead
+!!$                ichain = jchain
+!!$
+!!$              else
+!!$
+!!$                 write(0,'("Reached end of list for cell ",I5)')icell
+!!$
+!!$              end if
+!!$             
+!!$          end do
+!!$             
+!!$          
+!!$       end do
+       
 
     end do ! end loop over boxes
 
@@ -2161,32 +2286,40 @@ contains
 
 
     if (.not.use_link_cells) return
+
+    if ( (ichain==0).or.(ibead==0) ) then
+       write(0,'("ERROR - called with bead/chain index of 0.")')
+       write(0,'("Beads/chains are indexed from 1 upwards.")')
+    end if
+
     !if (nchains==1) return
 
     ! Compute sbead from old_pos
-    sbead(1) = recip_matrix(1,1,ibox)*old_pos(1) + &
-               recip_matrix(2,1,ibox)*old_pos(2) + &
-               recip_matrix(3,1,ibox)*old_pos(3)
-    sbead(2) = recip_matrix(1,2,ibox)*old_pos(1) + &
-               recip_matrix(2,2,ibox)*old_pos(2) + &
-               recip_matrix(3,2,ibox)*old_pos(3)
-    sbead(3) = recip_matrix(1,3,ibox)*old_pos(1) + &
-               recip_matrix(2,3,ibox)*old_pos(2) + &
-               recip_matrix(3,3,ibox)*old_pos(3)
+!!$    sbead(1) = recip_matrix(1,1,ibox)*old_pos(1) + &
+!!$               recip_matrix(2,1,ibox)*old_pos(2) + &
+!!$               recip_matrix(3,1,ibox)*old_pos(3)
+!!$    sbead(2) = recip_matrix(1,2,ibox)*old_pos(1) + &
+!!$               recip_matrix(2,2,ibox)*old_pos(2) + &
+!!$               recip_matrix(3,2,ibox)*old_pos(3)
+!!$    sbead(3) = recip_matrix(1,3,ibox)*old_pos(1) + &
+!!$               recip_matrix(2,3,ibox)*old_pos(2) + &
+!!$               recip_matrix(3,3,ibox)*old_pos(3)
+!!$
+!!$    sbead = sbead*0.5_dp*invPi
+!!$
+!!$    ! Compute link cell number for old and new positions
+!!$    ix = floor(sbead(1)/lcellx(ibox))
+!!$    iy = floor(sbead(2)/lcelly(ibox))
+!!$    iz = floor(sbead(3)/lcellz(ibox))
+!!$
+!!$    ix = modulo(ix,ncellx(ibox)) + 1
+!!$    iy = modulo(iy,ncelly(ibox)) + 1
+!!$    iz = modulo(iz,ncellz(ibox)) + 1
+!!$
+!!$    ocell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
 
-    sbead = sbead*0.5_dp*invPi
-
-    ! Compute link cell number for old and new positions
-    ix = floor(sbead(1)/lcellx(ibox))
-    iy = floor(sbead(2)/lcelly(ibox))
-    iz = floor(sbead(3)/lcellz(ibox))
-
-    ix = modulo(ix,ncellx(ibox)) + 1
-    iy = modulo(iy,ncelly(ibox)) + 1
-    iz = modulo(iz,ncellz(ibox)) + 1
-
-    ocell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
-
+    ocell = linkcell(ibead,ichain,ibox)
+    
     ! Compute sbead from new_pos
     sbead(1) = recip_matrix(1,1,ibox)*new_pos(1) + &
                recip_matrix(2,1,ibox)*new_pos(2) + &
@@ -2214,6 +2347,10 @@ contains
     ! ...nothing to see here
     if (ocell==ncell) return
 
+    !Sanity
+
+    
+
 !    write(0,'("Bead moved from cell ",I2," to ",I2)')ocell,ncell
 
     !call system_clock(count=t1)
@@ -2230,13 +2367,16 @@ contains
 !!$       end do
 !!$    end do
 
-     write(0,'("Moving bead ",2I5," from link cell ",I5," to ",I5)')ibead,ichain,ocell,ncell
+!!$     write(0,'("Moving bead ",2I5," from link cell ",I5," to ",I5)')ibead,ichain,ocell,ncell
 
     !-----------------------------------!
     ! Remove from old cell linked lists !
     !-----------------------------------!
     jbead   = head_of_cell(1,ocell,ibox)
     jchain  = head_of_cell(2,ocell,ibox)
+
+    !write(0,'("Head of old cell is ",2I5)')jbead,jchain
+    
     if ( (jbead==ibead).and.(jchain==ichain) ) then
 
        ! ibead,ichain was the old head of cell
@@ -2255,10 +2395,16 @@ contains
        head_of_cell(1,ocell,ibox) = kbead
        head_of_cell(2,ocell,ibox) = kchain
 
-       ! k points backward to nothing
-       linked_list(3,kbead,kchain,ibox) = 0
-       linked_list(4,kbead,kchain,ibox) = 0
+       if (kbead/=LIST_END) then ! If cell isn't empty
 
+          ! k points backward to nothing
+          linked_list(3,kbead,kchain,ibox) = HOC_BACKPOINT
+          linked_list(4,kbead,kchain,ibox) = HOC_BACKPOINT
+
+       end if
+
+!!$       write(0,'("Removing old head of cell from cell ",I5)')ocell
+          
     else
 
        !-------------------------------!
@@ -2272,12 +2418,23 @@ contains
        jbead  = linked_list(3,ibead,ichain,ibox)
        jchain = linked_list(4,ibead,ichain,ibox)
 
+!!$       if ( (kbead < 1).or.(jbead<1) ) then
+!!$          write(0,'("DEBUG - something bad happened!")')
+!!$          write(0,'("Removing ",2I5," from cell ",I5)')ibead,ichain,ocell
+!!$          write(0,'("Previously pointed to   : ",2I5)')kbead,kchain
+!!$          write(0,'("Previously pointed from : ",2I5)')jbead,jchain
+!!$       end if
+       
        linked_list(1,jbead,jchain,ibox) = kbead
        linked_list(2,jbead,jchain,ibox) = kchain
 
-       linked_list(3,kbead,kchain,ibox) = jbead
-       linked_list(4,kbead,kchain,ibox) = jchain
-
+       ! Only point back from kbead if jbead isn't the
+       ! now last entry in the linked list
+       if ( kbead /= LIST_END ) then
+          linked_list(3,kbead,kchain,ibox) = jbead
+          linked_list(4,kbead,kchain,ibox) = jchain
+       end if
+          
 
 !!$       do
 !!$
@@ -2316,16 +2473,19 @@ contains
     jbead  = head_of_cell(1,ncell,ibox)
     jchain = head_of_cell(2,ncell,ibox)
 
-    ! add ibead,icheain to new cell as head of cell
-    linked_list(1:2,ibead,ichain,ibox) = head_of_cell(:,ncell,ibox)
-    linked_list(3:4,ibead,ichain,ibox) = 0
+    ! add ibead,ichain to new cell as head of cell
+    linked_list(1:2,ibead,ichain,ibox) = (/jbead,jchain/)
+    linked_list(3:4,ibead,ichain,ibox) = (/HOC_BACKPOINT,HOC_BACKPOINT/)
     head_of_cell(:,ncell,ibox) = (/ibead,ichain/)
 
     ! jbead, jchain points backward to ibead,ichain
-    linked_list(3,jbead,jchain,ibox) = ibead
-    linked_list(4,jbead,jchain,ibox) = ichain
-
-
+    if (jbead/=LIST_END) then
+       linked_list(3,jbead,jchain,ibox) = ibead
+       linked_list(4,jbead,jchain,ibox) = ichain
+    end if
+    
+    linkcell(ibead,ichain,ibox) = ncell
+    
     !call system_clock(count=t2,count_rate=rate)
     !write(*,'("Linked lists updated in : ",F15.6," seconds")')real(t2-t1,kind=ep)/real(rate,kind=ep)
 
@@ -2357,6 +2517,11 @@ contains
     integer(kind=it) :: ibead,jbead
     real(kind=dp) :: boltzf
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     noverlap = 0
 
     !==================================================================!
@@ -2438,6 +2603,11 @@ contains
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     sigma_sq = sigma*sigma
 
     noverlap = 0 ! initialise
@@ -2481,7 +2651,7 @@ contains
                 jcell   = lcneigh(ni,icell,ibox)
                 jbead   = head_of_cell(1,jcell,ibox)
                 jchain  = head_of_cell(2,jcell,ibox)
-                do while ( jchain.ne.0 )
+                do while ( jchain.ne.LIST_END )
 
                    !rsep(:) = box_minimum_image(Rchain(:,jbead,jchain),rbead(:))
                    rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
@@ -2891,6 +3061,11 @@ contains
     integer(kind=it),intent(in) :: ichain,ibox
     real(kind=dp),dimension(1:3,1:nbeads),intent(in) :: r
 
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
     Rchain(:,:,ichain,ibox) = r(:,:)
 
     return
@@ -2905,6 +3080,11 @@ contains
     !real(kind=dp),dimension(1:3,1:nbeads),intent(out) :: r
     type(c_ptr),intent(out)  :: r_ptr
     integer :: ibead
+
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
     
     d_out = 3
     nbeads_out = nbeads
