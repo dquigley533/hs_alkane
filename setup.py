@@ -20,7 +20,8 @@ def configuration():
                   'src/io.f90']
     
     config.add_library('alkane', sources=alkane_src,
-                       extra_f90_compile_args=['-fbounds-check','-fbacktrace']
+#                       extra_f90_compile_args=['-g','-fbounds-check','-fbacktrace']
+                       extra_f90_compile_args=['-O3']
                        )
 
     config.add_extension('_alkane',
