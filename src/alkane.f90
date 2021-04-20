@@ -564,6 +564,7 @@ contains
 
     end if
 
+    ! Only strictly necessary if link cell grid has changed
     call box_construct_link_cells(ibox)
     call alkane_construct_linked_lists(ibox)
 
@@ -1247,30 +1248,32 @@ contains
 
        else if (use_link_cells) then
 
-          ! compute fractional coordinates sbead from rbead
-          sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
-                     recip_matrix(2,1,ibox)*rbead(2) + &
-                     recip_matrix(3,1,ibox)*rbead(3)
-          sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
-                     recip_matrix(2,2,ibox)*rbead(2) + &
-                     recip_matrix(3,2,ibox)*rbead(3)
-          sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
-                     recip_matrix(2,3,ibox)*rbead(2) + &
-                     recip_matrix(3,3,ibox)*rbead(3)
+!!$          ! compute fractional coordinates sbead from rbead
+!!$          sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
+!!$                     recip_matrix(2,1,ibox)*rbead(2) + &
+!!$                     recip_matrix(3,1,ibox)*rbead(3)
+!!$          sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
+!!$                     recip_matrix(2,2,ibox)*rbead(2) + &
+!!$                     recip_matrix(3,2,ibox)*rbead(3)
+!!$          sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
+!!$                     recip_matrix(2,3,ibox)*rbead(2) + &
+!!$                     recip_matrix(3,3,ibox)*rbead(3)
+!!$
+!!$          sbead = sbead*0.5_dp*invPi
+!!$
+!!$          ! link cell containing rbead
+!!$          ix = floor(sbead(1)/lcellx(ibox))
+!!$          iy = floor(sbead(2)/lcelly(ibox))
+!!$          iz = floor(sbead(3)/lcellz(ibox))
+!!$
+!!$          ix = modulo(ix,ncellx(ibox)) + 1
+!!$          iy = modulo(iy,ncelly(ibox)) + 1
+!!$          iz = modulo(iz,ncellz(ibox)) + 1
+!!$
+!!$          icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
 
-          sbead = sbead*0.5_dp*invPi
-
-          ! link cell containing rbead
-          ix = floor(sbead(1)/lcellx(ibox))
-          iy = floor(sbead(2)/lcelly(ibox))
-          iz = floor(sbead(3)/lcellz(ibox))
-
-          ix = modulo(ix,ncellx(ibox)) + 1
-          iy = modulo(iy,ncelly(ibox)) + 1
-          iz = modulo(iz,ncellz(ibox)) + 1
-
-          icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
-
+          icell = linkcell(i,ichain,ibox)
+          
           ! loop over link cells
           do ni = 1,27
              jcell   = lcneigh(ni,icell,ibox)
@@ -1479,30 +1482,32 @@ contains
 
              rbead(:) = Rchain(:,ibead,ichain,ibox)
 
-             ! compute fractional coordinates sbead from rbead
-             sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
-                        recip_matrix(2,1,ibox)*rbead(2) + &
-                        recip_matrix(3,1,ibox)*rbead(3)
-             sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
-                        recip_matrix(2,2,ibox)*rbead(2) + &
-                        recip_matrix(3,2,ibox)*rbead(3)
-             sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
-                        recip_matrix(2,3,ibox)*rbead(2) + &
-                        recip_matrix(3,3,ibox)*rbead(3)
+!!$             ! compute fractional coordinates sbead from rbead
+!!$             sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
+!!$                        recip_matrix(2,1,ibox)*rbead(2) + &
+!!$                        recip_matrix(3,1,ibox)*rbead(3)
+!!$             sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
+!!$                        recip_matrix(2,2,ibox)*rbead(2) + &
+!!$                        recip_matrix(3,2,ibox)*rbead(3)
+!!$             sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
+!!$                        recip_matrix(2,3,ibox)*rbead(2) + &
+!!$                        recip_matrix(3,3,ibox)*rbead(3)
+!!$
+!!$             sbead = sbead*0.5_dp*invPi
+!!$
+!!$             ! link cell containing rbead
+!!$             ix = floor(sbead(1)/lcellx(ibox))
+!!$             iy = floor(sbead(2)/lcelly(ibox))
+!!$             iz = floor(sbead(3)/lcellz(ibox))
+!!$
+!!$             ix = modulo(ix,ncellx(ibox)) + 1
+!!$             iy = modulo(iy,ncelly(ibox)) + 1
+!!$             iz = modulo(iz,ncellz(ibox)) + 1
+!!$
+!!$             icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
 
-             sbead = sbead*0.5_dp*invPi
-
-             ! link cell containing rbead
-             ix = floor(sbead(1)/lcellx(ibox))
-             iy = floor(sbead(2)/lcelly(ibox))
-             iz = floor(sbead(3)/lcellz(ibox))
-
-             ix = modulo(ix,ncellx(ibox)) + 1
-             iy = modulo(iy,ncelly(ibox)) + 1
-             iz = modulo(iz,ncellz(ibox)) + 1
-
-             icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
-
+             icell = linkcell(ibead,ichain,ibox)
+             
              ! loop over link cells
              do ni = 1,27
                 jcell   = lcneigh(ni,icell,ibox)
@@ -2263,6 +2268,8 @@ contains
     return
 
   end subroutine alkane_construct_linked_lists
+
+  
 
   subroutine alkane_update_linked_lists(ibead,ichain,ibox,old_pos,new_pos) bind(c)
     !-------------------------------------------------------------------------!
@@ -3190,6 +3197,8 @@ contains
 
     ! Book keeping
     call box_update_recipmatrix(ibox)
+
+    ! These should only need to be called if the link cell grid has changed
     call box_construct_link_cells(ibox)
     call alkane_construct_linked_lists(ibox)
 

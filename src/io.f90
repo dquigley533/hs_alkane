@@ -220,6 +220,11 @@ contains
 
        ! Update data structures which depend on cell vectors and positions
        call box_update_recipmatrix(ibox)
+
+
+
+
+       ! Construct link cell and linked list data structures
        call box_construct_link_cells(ibox)
        call alkane_construct_linked_lists(ibox)
        

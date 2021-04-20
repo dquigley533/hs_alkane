@@ -81,7 +81,7 @@ module box
 
   integer(kind=it),save :: maxcells                ! Maximum number of cells per box
 
-  real(kind=dp),save :: link_cell_length   = 1.5   ! Minimum link cell length in each dimension
+  real(kind=dp),save :: link_cell_length   = 1.2   ! Minimum link cell length in each dimension
 
   real(kind=dp),allocatable,dimension(:,:,:),target,save :: hmatrix       ! Matrix of cell vectors
   real(kind=dp),allocatable,dimension(:,:,:),target,save :: recip_matrix  ! Reciprocal lattice
@@ -390,7 +390,7 @@ contains
     do jbox = 1,nboxes
        ncells(jbox) = ncellx(jbox)*ncelly(jbox)*ncellz(jbox)
 
-       write(*,'("Created ",I2," x",I2," x",I2," grid of link cells for box ",I2)')ncellx(jbox),ncelly(jbox),ncellz(jbox),jbox
+!       write(*,'("Created ",I2," x",I2," x",I2," grid of link cells for box ",I2)')ncellx(jbox),ncelly(jbox),ncellz(jbox),jbox
        
     end do
 
