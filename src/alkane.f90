@@ -488,7 +488,7 @@ contains
 
        else
 
-          ! Tweak a random sub-diagonal element
+          ! Tweak a random sub-diagonal elemparaent
           x = random_uniform_random()
           idim = int(x*3.0_dp)+1
           idim = min(idim,3)
@@ -850,7 +850,7 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
-    use box,        only : hmatrix,pbc
+    use box,        only : hmatrix !,pbc
     use constants,  only : Pi
     use random,     only : random_unit_vector,random_uniform_random
     use quaternion, only : quat_get_minimum_arc_q,quat_conjugate_q_with_v, &
@@ -1155,17 +1155,17 @@ contains
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
     use constants, only : invPi
-    use box, only :  box_minimum_image,use_link_cells,ncellx,ncelly,ncellz, &
-                     lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix, &
+    use box, only :  box_minimum_image,use_link_cells, &
+                     lcneigh,hmatrix,recip_matrix, &
                      use_verlet_list
 
     implicit none
 
     integer(kind=it),intent(in) :: i,ichain,ibox
     real(kind=dp),dimension(3),intent(in) :: rbead
-    real(kind=dp),dimension(3)  :: rsep,sbead
+    real(kind=dp),dimension(3)  :: rsep !,sbead
 
-    integer(kind=it) :: jchain,ix,iy,iz,icell,ni,jcell,jbead,tmpint,ll
+    integer(kind=it) :: jchain,icell,ni,jcell,jbead,tmpint,ll
     real(kind=dp) :: sigma_sq
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
@@ -1382,14 +1382,14 @@ contains
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
     use constants, only : invPi
-    use box,       only :  box_minimum_image,use_link_cells,ncellx,ncelly,ncellz, &
-                           lcellx,lcelly,lcellz,lcneigh,hmatrix,recip_matrix, &
+    use box,       only :  box_minimum_image,use_link_cells, &
+                           lcneigh,hmatrix,recip_matrix, &
                            use_verlet_list
     implicit none
 
     integer(kind=it),intent(in) :: ichain,ibox
     real(kind=dp),dimension(3)  :: rbead
-    real(kind=dp),dimension(3)  :: rsep,sbead
+    real(kind=dp),dimension(3)  :: rsep !,sbead
     real(kind=dp),dimension(9)  :: hcache
 
     integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,ll
@@ -3082,11 +3082,11 @@ contains
   subroutine alkane_get_chain_wrap(ichain,ibox,nbeads_out,d_out,r_ptr) bind(c,name='alkane_get_chain')
 
     implicit none
-    integer,value,intent(in) :: ichain, ibox
-    integer,intent(out)      :: d_out,nbeads_out
+    integer(kind=it),value,intent(in) :: ichain, ibox
+    integer(kind=it),intent(out)      :: d_out,nbeads_out
     !real(kind=dp),dimension(1:3,1:nbeads),intent(out) :: r
     type(c_ptr),intent(out)  :: r_ptr
-    integer :: ibead
+    !integer :: ibead
 
     if ( (ichain==0)) then
        write(0,'("ERROR - called with chain index of 0.")')

@@ -665,7 +665,7 @@ from recognising the module name....
 %feature("autodoc", "box_set_bypass_link_cells(flag)") box_set_bypass_link_cells;
 %define bx_blc_str
 "
-    Sets a flag whic instructs the hs_alkane library to bypass
+    Sets a flag which instructs the hs_alkane library to bypass
     use of link cells and calculate all pairwise interactions
     directly using the minimum image convention.
     
@@ -685,6 +685,822 @@ from recognising the module name....
 %enddef
 %feature("docstring", bx_blc_str) box_set_bypass_link_cells;
 
+%feature("autodoc", "alkane_get_nchains();") alkane_get_nchains;
+%define alk_gtnc_str
+"
+    Returns the number of chains currently in use within the simulation.
+
+
+    Returns
+    -------
+    
+    nchains      : Integer number of chains. 
+
+"
+%enddef
+%feature("docstring", alk_gtnc_str) alkane_get_nchains;
+
+%feature("autodoc", "alkane_set_nchains(nchains);") alkane_set_nchains;
+%define alk_stnc_str
+"
+
+    Sets the number of chains to use within the simulation. Subsequent
+    calls to alkane_init will allocate data structures to hold this 
+    number of chains. 
+
+    Can be modified during the simulation. This is useful for when the
+    number of chains is changing, such as when growing new random 
+    chain configurations to avoid checking for overlaps with chains
+    that have not yet been created.
+
+    Parameters
+    ----------
+
+    nchains      : Integer number of chains to use during the simulation. 
+
+
+"
+%enddef
+%feature("docstring", alk_stnc_str) alkane_set_nchains;
+
+%feature("autodoc", "alkane_get_nbeads(int_*nbeads);") alkane_get_nbeads;
+%define alk_gtnb_str
+"
+
+    Returns the number of beads per chain currently in use within the 
+    simulation.
+
+    Returns
+    -------
+    
+    nbeads      : Integer number of beads per chain 
+
+"
+%enddef
+%feature("docstring", alk_gtnb_str) alkane_get_nbeads;
+
+%feature("autodoc", "alkane_set_nbeads(nbeads);") alkane_set_nbeads;
+%define alk_stnb_str
+"
+
+    Sets the number of beans per chain to use within the simulation. 
+    Subsequent calls to alkane_init will allocate data structures to hold
+    this many beads per chain. 
+
+    Parameters
+    ----------
+
+    nbeads      : Bumber of beads per chain to use during the simulation. 
+
+"
+%enddef
+%feature("docstring", alk_stnb_str) alkane_set_nbeads;
+
+%feature("autodoc", "alkane_initialise();") alkane_initialise;
+%define alk_init_str
+"
+
+    Creates data structures to hold information on the current configuration
+    of beads/chains in all simualtion boxes/replicas. Must be called before
+    calling routines which implement trial Monte Carlo moves on the configuration.
+
+    Requires that the simulation box has been initialised via box_initialise().
+
+    This routine can be invoked multiple times within a session. Each call
+    will result in destruction of the existing data structures and their
+    contents before creating new ones. This can be used to implement
+    multiple simulations within one Python session.
+
+
+"
+%enddef
+%feature("docstring", alk_init_str) alkane_initialise;
+
+%feature("autodoc", "alkane_construct_linked_lists(int_ibox);") alkane_construct_linked_lists;
+%define alk_cnstrctll_str
+"
+    Creates and populates the linked list data structures used to 
+    accelerate computation of neighbour distances in box ibox.
+    
+    Can be invoked manually to ensure current linked lists are 
+    valid, but is normally called only by other routine which
+    change the size/shape of the simulation cell.
+
+    See alkane_update_linked_lists for single bead updates of the 
+    linked list data structures. 
+
+    Link cell data structures in the box module must be up-to-date
+    when calling this rouine. See box_construct_link_cells().
+
+    Has no effect if use of link cells has been bypassed see
+    box_set_bypass_link_cells().
+
+    Parameters
+    ----------
+
+    ibox        : Box/replica for which to construct linked lists
+
+"
+%enddef
+%feature("docstring", alk_cnstrctll_str) alkane_construct_linked_lists;
+
+%feature("autodoc", "alkane_destroy();") alkane_destroy;
+%define alk_dstry_str
+"
+    Destroys all data structures related to beads/chains in the
+    simulation cell. Acts on all boxes/replicas.
+
+    Use alkane_initialise() to both delete these data structures
+    and create new ones.
+
+"
+%enddef
+%feature("docstring", alk_dstry_str) alkane_destroy;
+
+%feature("autodoc", "alkane_grow_chain(ichain,ibox,new_conf);") alkane_grow_chain;
+%define alk_grwc_str
+"
+    Grows a new chain configuration for chain ichain in box 
+    ibox from a randomly selected bead onwards. Uses Rosenbluth
+    sampling. Primarily used for configurational bias Monte Carlo.
+
+    Invoke with new_conf=0 to compute the Rosenbluth factor for 
+    the existing chain configuration, and new_conf=0 to compute
+    the Rosenbluth factor for a new trial configuration
+
+    If the chain has not previously been assigned coordinates then
+    a new chain is grown from the first bead if new_conf=1. This 
+    can be useful in creating random initial configurations. 
+
+    If ifail is non-zero then the algorithm has failed to generate
+    a trial chain segment which has no overlaps with other beads. 
+    The number of trial attempts (ktrial) can be changed via
+    alkane_set_ktrial().
+
+    The maximum number of beads which are (re)grown by the trial
+    move is controlled via alkane_set_max_regrow().
+
+
+    Parameters
+    ----------
+
+    ichain     :  Integer (1-based) chain to grow/regrow
+    ibox       :  Integer (1-based) box/replica to use
+    new_conf   :  1 to grow new chain, 0 otherwise
+
+    Returns
+    -------
+
+    rb_factor  : Rosenbluth factor for existing/trial chain
+    ifail      : non-zero integer if chain growth failed
+
+
+"
+%enddef
+%feature("docstring", alk_grwc_str) alkane_grow_chain;
+
+%feature("autodoc", "alkane_get_chain(ichain,ibox);") alkane_get_chain;
+%define alk_gtch_str
+"
+    Returns a Numpy array containing the bead coordinates of chain 
+    ichain in box/replica ibox.
+
+    NOTE : Note the returned Numpy array is a 'view' of the internal
+    representation of coordinates. Updating the elements of the Numpy
+    array will update the coordinates inside the model. This avoids
+    making copies. i.e. 
+
+    mychain = mdl.alkane_get_chain(ichain, ibox)
+    mychain[0][2] = 3.4
+
+    will modify the z coordinate of bead zero in the chain within
+    the model.
+
+    Note also however that assigning the name of the Numpy array  
+    to a new array will *not* update the model, so
+
+    mychain = mdl.alkane_get_chain(ichain, ibox)
+    mychain = np.zeros(3,Nbeads)
+
+    will not set all coordinate for the chain to zero. Instead
+    it will replace the Numpy array holding the 'view' of the 
+    chain coordinates with another empty array not linked to 
+    the internal model data.
+
+    Parameters
+    ----------
+
+    ichain     :  Integer (1-based) chain index
+    ibox       :  Integer (1-based) box/replica index
+
+    Returns
+    -------
+    
+    chain_out  :  Numpy array with 'view' of model chain coordinates
+
+"
+%enddef
+%feature("docstring", alk_gtch_str) alkane_get_chain;
+
+%feature("autodoc", "alkane_translate_chain(ichain,ibox);") alkane_translate_chain;
+%define alk_trch_str
+"
+    Makes a trial translation move by translating an entire chain in
+    a random direction by a distance between zero and dr_max.
+
+    Returns the probability of accepting the move, which will be 1
+    if the move generates no overlaps with other beads, zero otherwise.
+    
+    See also alkane_set_dr_max() and alkane_get_dr_max().
+
+    Parameters
+    ----------
+
+    ichain     :  Integer (1-based) chain index to translate
+    ibox       :  Integer (1-based) box/replica index to use
+
+
+    Returns
+    -------
+    
+    boltz      :  Probability of accepting the trial move
+
+"
+%enddef
+%feature("docstring", alk_trch_str) alkane_translate_chain;
+
+%feature("autodoc", "alkane_rotate_chain(ichain,ibox,bond);") alkane_rotate_chain;
+%define alk_rtch_str
+"
+    Makes a trial rotation move by rotating an entire chain about
+    a random axis by an angle between zero and dt_mx.
+
+    If the input parameter bond is equal to 1 then the chain will
+    be rotated around an axis defined by the vector connecting
+    bead 0 to bead 1 on that chain. For dense packed systems of linear 
+    chains replacing some (large) fraction of standard rotation 
+    moves with moves of this type can improve sampling efficiency. 
+    In this case the random rotation is between zero and axis_max.
+
+    Returns the probability of accepting the move, which will be 1
+    if the move generates no overlaps with other beads, zero otherwise.
+    The quaternion representing the trial rotation is also returned.
+
+    See also alkane_set_dr_max() and alkane_get_dr_max() or
+             alkane_set_axis_max() and alkane_get_axis_max()
+  
+    Parameters
+    ----------
+
+    ichain     :  Integer (1-based) chain index to rotate
+    ibox       :  Integer (1-based) box/replica index to use
+    bond       :  Integer (1 or 0) rotate around first bond
+
+    Returns
+    -------
+    
+    boltz      :  Probability of accepting the trial move
+    quat       :  Quaternion representing the rotation 
+
+"
+%enddef
+%feature("docstring", alk_rtch_str) alkane_rotate_chain;
+
+%feature("autodoc", "alkane_bond_rotate(ichain,ibox,allow_flip);") alkane_bond_rotate;
+%define alk_dhmv_str
+"
+    Makes a trial move in which a randomly selected dihedral angle
+    on chain ichain in box/replica ibox is rotated by an angle
+    between zero and dh_max. Additionally, if allow_flip=1
+    there is a probabilty of 50% that an additional 
+    2Pi/3 radians is added such that the chains flips between
+    'gauche' and 'anti' conformations about this bond.
+
+    See also alkane_set_dh_max() and alkane_get_dh_max()
+
+    Parameters
+    ----------
+
+    ichain     :  Integer (1-based) chain index to use
+    ibox       :  Integer (1-based) box/replica index to use
+    allow_flip :  Integer (1 or 0) include flips between conformations
+
+    Returns
+    -------
+
+    ia         : First bead involved in the dihedral angle
+    angle      : Angle of rotation about the bond
+    boltz      : Probability of accepting the trial move
+
+"
+%enddef
+%feature("docstring", alk_dhmv_str) alkane_bond_rotate;
+
+%feature("autodoc", "alkane_check_chain_overlap(ibox);") alkane_check_chain_overlap;
+%define alk_chkov_str
+"
+    Checks if simulation box/replica ibox contains any overlaps
+    between beads. Both inter and intra-chain overlaps are
+    detected. As specified by the choice of model, interactions
+    between beads on the same chain seperated by 1, 2 and (in 
+    some cases) 3 bonds are ignored.
+  
+    Useful as a sanity check. There should never be any overlaps
+    if all list structures are up-to-date and no moves which 
+    generate overlaps have been accepted.
+
+    Parameters
+    ----------
+
+    ibox       :  Integer (1-based) box/replica index to use
+    
+    Returns
+    -------
+
+    overlap    :  Integer (1/0) indicating if overlaps are present
+
+"
+%enddef
+%feature("docstring", alk_chkov_str) alkane_check_chain_overlap;
+
+%feature("autodoc", "alkane_check_chain_geometry(int_ichain,_int_ibox,_int_*violated);") alkane_check_chain_geometry;
+%define alk_chkgm_str
+"
+    Checks that the internal geometry of chain ichain in box/replica
+    ibox is consistent with the model bond length and bond angle  
+    constraints.
+
+    Parameters
+    ----------
+
+    ichain     :  Integer, chain to check (1-based)
+    ibox       :  Integer (1-based) box/replica index to use
+
+    Returns
+    -------
+
+    violated   :  Integer (1/0) indicatign if contraints are violated
+
+"
+%enddef
+%feature("docstring", alk_chkgm_str) alkane_check_chain_geometry;
+
+%feature("autodoc", "alkane_update_linked_lists(ibead,ichain,ibox,old_pos[3],new_pos[3]);") alkane_update_linked_lists;
+%define alk_updtll_str
+"
+    Updates the linked list data structure to account for bead ibead
+    on chain ichain in box ibox having moved from position old_pos
+    to new_pos. 
+
+    In principle this should be used after every accepted trial move
+    which changes a bead position. However for mostly static solids, 
+    the set of link cells which contains all neighbours of each bead
+    is unlikely to change and link list updates can (with caution) be
+    omitted.
+
+ 
+    Parameters
+    ----------
+
+    ibead      :  Index (1-based) of bead on ichain to update
+    ichain     :  Integer, chain on which bead resides (1-based)
+    ibox       :  Integer (1-based) box/replica index to use
+    old_pos    :  Numpy array - old x,y,z coords of bead
+    new_pos    :  Numpy array - new x,y,z coords of bead
+
+"
+%enddef
+%feature("docstring", alk_updtll_str) alkane_update_linked_lists;
+
+%feature("autodoc", "alkane_construct_neighbour_list(ibox);") alkane_construct_neighbour_list;
+%define alk_cnsctnl_str
+"
+    Creates a Verlet neighbour for all beads in simulation box/replica ibox.
+    A neighbour list can be used instead of link cells to accelerate
+    checks for overlaps between builds. See
+
+    box_set_bypass_link_cells()
+    box_set_use_verlet_list()
+
+    All neighbours of a bead within a distance of two bead diameters
+    are added into the neighbour list.
+
+    There is no automatic update of the neighbour list to account for 
+    movement of beads. This function should be called whenever 
+    neighbours are likely to have moved sufficiently that the previous
+    neighbour list has been invalidatd.
+
+ 
+    Parameters
+    ----------
+
+    ibox       :  Integer (1-based) box/replica index to construct for
+
+"
+%enddef
+%feature("docstring", alk_cnsctnl_str) alkane_construct_neighbour_list;
+
+%feature("autodoc", "alkane_get_dr_max();") alkane_get_dr_max;
+%define alk_gtdrm_str
+"
+    Queries the maximum distance a chain will be moved during a 
+    trial Monte Carlo translation.
+
+    Returns
+    -------
+    
+    dr_max     :  Maximum displacement
+
+"
+%enddef
+%feature("docstring", alk_gtdrm_str) alkane_get_dr_max;
+
+%feature("autodoc", "alkane_set_dr_max(dr_max);") alkane_set_dr_max;
+%define alk_stdrm_str
+"
+    Sets the maximum distance a chain will be moved during a 
+    trial Monte Carlo translation.
+
+    Parameters
+    ----------
+    
+    dr_max     :  Maximum displacement
+
+"
+%enddef
+%feature("docstring", alk_stdrm_str) alkane_set_dr_max;
+
+%feature("autodoc", "alkane_get_dt_max();") alkane_get_dt_max;
+%define alk_gtdtm_str
+"
+    Queries the maximum angle a chain will be rotated around
+    a random axis during a Monte Carlo trial rotation.
+
+    Returns
+    -------
+    
+    dt_max     :  Maximum rotation angle
+
+
+"
+%enddef
+%feature("docstring", alk_gtdrm_str) alkane_get_dt_max;
+
+%feature("autodoc", "alkane_set_dt_max(dt_max);") alkane_set_dt_max;
+%define alk_stdtm_str
+"
+    Sets the maximum angle a chain will be rotated around
+    a random axis during a Monte Carlo trial rotation.
+
+    Parameters
+    ----------
+    
+    dt_max     :  Maximum rotation angle
+
+
+
+"
+%enddef
+%feature("docstring", alk_stdtm_str) alkane_set_dt_max;
+
+%feature("autodoc", "alkane_get_axis_max();") alkane_get_axis_max;
+%define alk_gtaxm_str
+"
+    Queries the maximum angle a chain will be rotated around
+    an axis through its first bond vector during a Monte
+    Carlo trial rotation.
+
+    Returns
+    -------
+    
+    axis_max     :  Maximum rotation angle around bond axis
+
+"
+%enddef
+%feature("docstring", alk_gtaxm_str) alkane_get_axis_max;
+
+%feature("autodoc", "alkane_set_axis_max(axis_max);") alkane_set_axis_max;
+%define alk_staxm_str
+"
+    Sets the maximum angle a chain will be rotated around
+    an axis through its first bond vector during a Monte
+    Carlo trial rotation.
+
+    Parameters
+    ----------
+    
+    axis_max     :  Maximum rotation angle around bond axis
+
+"
+%enddef
+%feature("docstring", alk_staxm_str) alkane_set_axis_max;
+
+%feature("autodoc", "alkane_get_dh_max();") alkane_get_dh_max;
+%define alk_gtdhm_str
+"
+    Queries the maximum change in dihedral angle made during
+    a trial Monte Carlo rotation about a random bond.
+
+    Returns
+    -------
+    
+    dh_max       :  Maximum rotation angle around bond 
+
+"
+%enddef
+%feature("docstring", alk_gtdhm_str) alkane_get_dh_max;
+
+%feature("autodoc", "alkane_set_dh_max(dh_max);") alkane_set_dh_max;
+%define alk_stdhm_str
+"
+    Sets the maximum change in dihedral angle made during
+    a trial Monte Carlo rotation about a random bond.
+
+    Returns
+    -------
+    
+    dh_max       :  Maximum rotation angle around bond 
+
+"
+%enddef
+%feature("docstring", alk_stdhm_str) alkane_set_dh_max;
+
+%feature("autodoc", "alkane_get_dv_max();") alkane_get_dv_max;
+%define alk_gtdvm_str
+"
+    Queries the parameter used to determine the maximum 
+    change in the simulation cell during a trial move as
+    implemented in alkane_box_resize().
+
+    For anisotopic box moves this parameter controls the
+    maximum change in any component of a randomly selected
+    cell vector. For isotropic (pure expansion/contraction)
+    volume moves the parameter controls the maximum 
+    change in volume.
+
+    See also box_get_isotropic().
+
+    Returns
+    -------
+    
+    dv_max       :  Maximum box change parameter
+"
+%enddef
+%feature("docstring", alk_gtdvm_str) alkane_get_dv_max;
+
+%feature("autodoc", "alkane_set_dv_max(dv_max);") alkane_set_dv_max;
+%define alk_stdvm_str
+"
+    Sets the parameter used to determine the maximum 
+    change in the simulation cell during a trial move as
+    implemented in alkane_box_resize().
+
+    For anisotopic box moves this parameter controls the
+    maximum change in any component of a randomly selected
+    cell vector. For isotropic (pure expansion/contraction)
+    volume moves the parameter controls the maximum 
+    change in volume.
+
+    See also box_set_isotropic().
+
+    Parameters
+    ----------
+    
+    dv_max       :  Maximum box change parameter
+
+"
+%enddef
+%feature("docstring", alk_stdvm_str) alkane_set_dv_max;
+
+%feature("autodoc", "alkane_get_ktrial();") alkane_get_ktrial;
+%define alk_gtktr_str
+"
+    Queries the parameter which controls the number of trial
+    chain segments used at each bead when (re)growing chains
+    in alkane_grow_chain(). 
+
+    Returns
+    -------
+
+    ktrial      :   Number of trials  
+
+"
+%enddef
+%feature("docstring", alk_gtktr_str) alkane_get_ktrial;
+
+%feature("autodoc", "alkane_set_ktrial(int_ktrial);") alkane_set_ktrial;
+%define alk_stktr_str
+"
+    Sets the parameter which controls the number of trial
+    chain segments used at each bead when (re)growing chains
+    in alkane_grow_chain(). 
+
+    Parameters
+    ----------
+
+    ktrial      :   Number of trials  
+
+"
+%enddef
+%feature("docstring", alk_stktr_str) alkane_set_ktrial;
+
+%feature("autodoc", "alkane_get_max_regrow();") alkane_get_max_regrow;
+%define alk_gtmxrg_str
+"
+    Queries the maximum number of beads/segments to (re)grow 
+    during a configurational bias Monte Carlo move as 
+    implemented in alkane_grow_chain().
+
+    Returns
+    -------
+
+    max_regrow  : Maximum number of beads/segments to regrow
+
+"
+%enddef
+%feature("docstring", alk_gtmxrg_str) alkane_get_max_regrow;
+
+%feature("autodoc", "alkane_set_max_regrow(int_dum_max_regrow);") alkane_set_max_regrow;
+%define alk_stmxrg_str
+"
+    Sets the maximum number of beads/segments to (re)grow 
+    during a configurational bias Monte Carlo move as 
+    implemented in alkane_grow_chain().
+
+    Parameters
+    ----------
+
+    max_regrow  : Maximum number of beads/segments to regrow
+
+"
+%enddef
+%feature("docstring", alk_stmxrg_str) alkane_set_max_regrow;
+
+%feature("autodoc", "alkane_change_box(ibox,delta_H[3][3]);") alkane_change_box;
+%define alk_chbx_str
+"
+    Changes the matrix of simulation cell vectors in box ibox
+    by a matrix delta_H (3x3 Numpy array). Fractional positions
+    of the first bead in each chain are preserved.
+ 
+    This may lead to chain overlaps which are not tested. Note that
+    this function does not implement a trial move to be accepted
+    or rejected. It is provided for the purposes of implementing
+    higher-level sampling algorithms in the calling routine.
+
+    Parameters
+    ----------
+
+    ibox        : Simulation box/replica to change
+    delta_H     : 3x3 Numpy array - change in matrix of cell vectors
+
+"
+%enddef
+%feature("docstring", alk_chbx_str) alkane_change_box;
+
+%feature("autodoc", "alkane_box_scale(int_ibox,_double_scaleA,_double_scaleB,_double_scaleC);") alkane_box_scale;
+%define alk_bxscl_str
+"
+    Changes the matrix of simulation cell vectors in box ibox
+    by scaling the three cell vectors by the factors specified.
+    Fractional positions of the first bead in each chain are preserved.
+
+    This may lead to chain overlaps which are not tested. Note that
+    this function does not implement a trial move to be accepted
+    or rejected. It is provided for the purposes of implementing
+    higher-level sampling algorithms in the calling routine.
+
+    Parameters
+    ----------
+
+    ibox        : Simulation box/replica to change
+    scaleA      : Scaling factor for first  cell vector
+    scaleB      : Scaling factor for second cell vector
+    scaleC      : Scaling factor for third  cell vector 
+
+"
+%enddef
+%feature("docstring", alk_bxscl_str) alkane_box_scale;
+
+%feature("autodoc", "alkane_box_resize(pressure,ibox,reset);") alkane_box_resize;
+%define alk_bxrsz_str
+"
+    Implements a trial Monte Carlo move in which the size/shape
+    of simulation box is changed by a random amount controled
+    by the parameter dv_max.
+
+    For isotropic moves a random change involume between 
+    -dv_max and +dv_max is proposed. For anisotropic moves a
+    randomly selected component of cell vector is changed by
+    an amount between -dv_max and +dv_max.
+
+    Fractional positions of the first bead in each chain are
+    preserved in each case.
+
+    See also alkane_set_dv_max(), box_set_isotropic().
+   
+    If the parameter reset=1 then the most recently proposed
+    move of this kind is reversed, implementing rejection.
+
+
+    Parameters
+    ----------
+
+    Pressure     : Simulation pressure in reduced units
+    ibox         : Simulation box/replica to modify
+    reset        : Integer (0/1) reverse previous box resize move
+
+    Returns
+    -------
+
+    boltz        : Probability of accepting move
+
+"
+%enddef
+%feature("docstring", alk_bxrsz_str) alkane_box_resize;
+
+%feature("autodoc", "write_psf(nbeads,nchains);") write_psf;
+%define vis_wrtpsf_str
+"
+    Write a Protein Structure (topology) files to chain.psf. This file
+    contains bonding information and can be used in the VMD molecular
+    simulation software to definate a structure into which coordinates
+    are then read from dcd file(s). 
+ 
+    If the simulation consists of multiple boxes/replicas then one file
+    is created for each, i.e. chain.psf.01 chain.psf.02 etc.
+
+    See also write_dcd_header(), write_dcd_snapshot().
+
+    Parameter
+    ---------
+
+    nbeads    : Number of beads per chain in the simulation(s)
+    nchains   : Number of chains in the simulation(s)
+
+"
+%enddef
+%feature("docstring", vis_wrtpsf_str) write_psf;
+
+%feature("autodoc", "write_dcd_header(nbeads,nchains);") write_dcd_header;
+%define vis_wrtdcdhd_str
+"
+    Writes the header of a Charmm-style dcd file to which snapshots
+    of bead coordinates can subsequently be dumped via write_dcd_snapshot.
+    The header is written to chain.dcd, which is overwritten if it 
+    already exists.
+
+    If the simulation consists of multiple boxes/replicas then one file
+    is created for each, i.e. chain.dcd.01 chain.dcd.02 etc.
+
+    See also write_psf(), write_dcd_snapshot().
+
+    Parameter
+    ---------
+
+    nbeads    : Number of beads per chain in the simulation(s)
+    nchains   : Number of chains in the simulation(s)
+
+"
+%enddef
+%feature("docstring", vis_wrtdcdhd_str) write_dcd_header;
+
+%feature("autodoc", "write_dcd_snapshot();") write_dcd_snapshot;
+%define vis_wrtdcdsn_str
+"
+    Appends a snapshot of the current model configuration to the chain.dcd
+    file previously created by a call to write_dcd_header().
+
+    If the simulation consists of multiple boxes/replicas then one file
+    is used for each, i.e. chain.dcd.01 chain.dcd.02 etc.
+
+    The dcd file(s) can be read by the VMD visualisation software 
+    by loading them into a configuration previous read from chain.psf.
+
+    See also write_psf(), write_dcd_header().
+"
+%enddef
+%feature("docstring", vis_wrtdcdsn_str) write_dcd_snapshot;
+
+%feature("autodoc", "io_read_xmol();") io_read_xmol;
+%define io_rdxmol_str
+"
+    Reads an initial configuration for the simulation(s) from
+    chain.xmol in the current working directory. This should be 
+    structured as a standard xyz file, with the 9 components
+    of the matrix of cell vectors listed on the second line.
+
+    The nbeads beads on the first chain should appear sequentially
+    as entries 1-nbeads, followed by the second chain, and so on.
+
+    The data structures inside the alkane module must have been
+    created via alkane_initialise() before calling this function.
+
+    If the simulation consists of multiple boxes/replicas then one file
+    is read for each, i.e. chain.xmol.01 chain.xmol.02 etc.
+"
+%enddef
+%feature("docstring", io_rdxmol_str) io_read_xmol;
 
 /* This will be parsed to generate the wrapper */
 %include "timer.h"
