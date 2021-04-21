@@ -61,7 +61,7 @@ contains
     ! D.Quigley January 2011                                                  !
     !-------------------------------------------------------------------------!
     use alkane, only : nchains,nbeads,sigma,L,model_type,torsion_type,rigid,max_regrow
-    use box,    only : pbc,isotropic,pressure,hmatrix,recip_matrix, &
+    use box,    only : pbc,isotropic,pressure, &
                        box_update_recipmatrix,nboxes,CellA,CellB,CellC, &
                        link_cell_length,bypass_link_cells,use_verlet_list
     use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
