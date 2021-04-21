@@ -64,7 +64,7 @@ contains
       !check v1 and v2 are normalised
 #ifdef DEBUG
       if  ( (abs(sqrt(dot_product(v1,v1)) - 1.0_dp) > epsilon(1.0_dp)) .or. (abs(sqrt(dot_product(v2,v2)) - 1.0_dp) > epsilon(1.0_dp)) ) then
-         write(0,'("Warning in quat_axis_angle_to_quat : axis is not a unit vector")')
+         write(0,'("Warning in quat_get_minimum_arc_q : axis is not a unit vector")')
       end if
 #endif
 
