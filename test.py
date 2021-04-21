@@ -151,7 +151,7 @@ alk.alkane_set_nbeads(nbeads)
 nbeads = alk.alkane_get_nbeads()
 print("Number of beads per chain : ",nbeads)
 
-alk.alkane_init()  # Inconsistent init vs initialise in box
+alk.alkane_initialise()  # Inconsistent init vs initialise in box
 
 # Grow a chain from scratch using CBMC
 ifail = 1
