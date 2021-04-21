@@ -21,7 +21,7 @@ def configuration():
     
     config.add_library('alkane', sources=alkane_src,
 #                       extra_f90_compile_args=['-g','-fbounds-check','-fbacktrace']
-                       extra_f90_compile_args=['-O3']
+#                       extra_f90_compile_args=['-O3']
                        )
 
     config.add_extension('_alkane',
