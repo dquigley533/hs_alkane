@@ -14,7 +14,7 @@ def configuration():
                   'src/random.f90',
                   'src/quaternion.F90',
                   'src/box.f90',
-                  'src/alkane.F90',
+                  'src/alkane.f90',
                   'src/vis_module.f90',
                   'src/mc_dummy.f90',
                   'src/io.f90']
