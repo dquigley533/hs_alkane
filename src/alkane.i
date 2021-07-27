@@ -645,18 +645,13 @@ from recognising the module name....
 %enddef
 %feature("docstring", bx_clc_str) box_construct_link_cells;
 
-%feature("autodoc", "box_destroy_link_cells(ibox)") box_destroy_link_cells;
+%feature("autodoc", "box_destroy_link_cells") box_destroy_link_cells;
 %define bx_dlc_str
 "
     Releases memory used for the link cell data structure.
     
     This should only be required if needing to reinitialise
     the link cell structure for a new simulation. 
-
-    Parameters
-    ----------
-    
-    ibox         : Index (1-based) of the box/replica.
     
 "
 %enddef

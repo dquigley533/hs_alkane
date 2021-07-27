@@ -176,6 +176,8 @@ contains
     deallocate(ncellx,ncelly,ncellz)
     deallocate(lcellx,lcelly,lcellz)
 
+    box_initialised = .false.
+    
     return
 
   end subroutine box_destroy
