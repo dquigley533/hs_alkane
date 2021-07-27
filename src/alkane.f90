@@ -163,12 +163,9 @@ contains
     integer(kind=it),dimension(3) :: ierr = 0
 
 
-    if (allocated(Rchain)) deallocate(Rchain)
-    if (allocated(chain_created)) deallocate(chain_created)
-    if (allocated(list)) deallocate(list)
-    if (allocated(startinlist)) deallocate(startinlist)
-    if (allocated(endinlist)) deallocate(endinlist)
-    
+    ! Make sure all arrays are unallocated.
+    call alkane_destroy()
+
     
     ! Allocate chain position array
     allocate(Rchain(1:3,1:nbeads,1:nchains,1:nboxes),stat=ierr(1))
@@ -214,10 +211,17 @@ contains
     use box, only : use_link_cells
     implicit none
 
-    integer(kind=it),dimension(2) :: ierr = 0
+    integer(kind=it),dimension(8) :: ierr = 0
 
-    deallocate(Rchain,chain_created,list,startinlist,endinlist,stat=ierr(1))
-    if (use_link_cells) deallocate(head_of_cell,linked_list,stat=ierr(2))
+    if (allocated(Rchain)) deallocate(Rchain,stat=ierr(1))
+    if (allocated(chain_created)) deallocate(chain_created,stat=ierr(2))
+    if (allocated(list)) deallocate(list,stat=ierr(3))
+    if (allocated(startinlist)) deallocate(startinlist,stat=ierr(4))
+    if (allocated(endinlist)) deallocate(endinlist,stat=ierr(5))
+    if (allocated(head_of_cell)) deallocate(head_of_cell,stat=ierr(6))
+    if (allocated(linkcell)) deallocate(linkcell,stat=ierr(7))
+    if (allocated(linked_list)) deallocate(linked_list,stat=ierr(8))
+
     if (any(ierr/=0)) stop 'Error releasing memory in alkane module'
 
   end subroutine alkane_destroy

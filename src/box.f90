@@ -117,10 +117,7 @@ contains
     integer(kind=it) :: ibox
 
     if (box_initialised) then
-       deallocate(ncellx,ncelly,ncellz)
-       deallocate(lcellx,lcelly,lcellz)
-       deallocate(hmatrix,recip_matrix)
-       box_initialised = .false.
+       call box_destroy()
     end if
     
     ! Allocate cell vectors and reciprocal lattice
@@ -172,12 +169,16 @@ contains
     !------------------------------------------------------------------------------!
     implicit none
 
-    deallocate(hmatrix,recip_matrix)
-    deallocate(ncellx,ncelly,ncellz)
-    deallocate(lcellx,lcelly,lcellz)
-
+    if (allocated(ncellx)) deallocate(ncellx)
+    if (allocated(ncelly)) deallocate(ncelly)
+    if (allocated(ncellz)) deallocate(ncellz)
+    if (allocated(lcellx)) deallocate(lcellx)
+    if (allocated(lcelly)) deallocate(lcelly)
+    if (allocated(lcellz)) deallocate(lcellz)
+    if (allocated(hmatrix)) deallocate(hmatrix)
+    if (allocated(recip_matrix)) deallocate(recip_matrix)
     box_initialised = .false.
-    
+     
     return
 
   end subroutine box_destroy
@@ -332,7 +333,7 @@ contains
     integer(kind=it) :: ierr
 
     if (use_link_cells) then
-       deallocate(lcneigh,stat=ierr)
+       if (allocated(lcneigh)) deallocate(lcneigh)
     end if
 
   end subroutine box_destroy_link_cells
