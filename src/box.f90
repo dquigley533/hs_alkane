@@ -576,8 +576,10 @@ contains
 
     if (dumll .eq. 0) then
        bypass_link_cells = .false.
+       use_link_cells = .true.
     else
        bypass_link_cells = .true.
+       use_link_cells = .false.
     endif
 
     return
