@@ -1477,11 +1477,11 @@ from recognising the module name....
 %enddef
 %feature("docstring", vis_wrtdcdsn_str) write_dcd_snapshot;
 
-%feature("autodoc", "io_read_xmol();") io_read_xmol;
+%feature("autodoc", "io_read_xmol(filename);") io_read_xmol;
 %define io_rdxmol_str
 "
     Reads an initial configuration for the simulation(s) from
-    chain.xmol in the current working directory. This should be 
+    filename in the current working directory. This should be 
     structured as a standard xyz file, with the 9 components
     of the matrix of cell vectors listed on the second line.
 
@@ -1493,6 +1493,14 @@ from recognising the module name....
 
     If the simulation consists of multiple boxes/replicas then one file
     is read for each, i.e. chain.xmol.01 chain.xmol.02 etc.
+
+    Parameter
+    ---------
+
+    filename   : Filename to read (optional). Uses chain.xmol otherwise.
+ 
+
+
 "
 %enddef
 %feature("docstring", io_rdxmol_str) io_read_xmol;
@@ -1504,4 +1512,5 @@ from recognising the module name....
 %include "box.h"
 %include "alkane.h"
 %include "vis_module.h"
-%include "io.h"
+
+void io_read_xmol(char* filename="chain.xmol");

@@ -40,11 +40,14 @@ module io
   integer(kind=it) :: traj_output_int = 250
 
   logical,save :: io_standalone = .false.
-
+  
   !---------------------------------------------------------------------------
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
 
+  ! Base name of xmol file from which structure is read
+  character(len=30) :: basefilename = "chain.xmol"
+  
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
@@ -162,7 +165,44 @@ contains
 
   end subroutine io_read_input
 
-  subroutine io_read_xmol() bind(c)
+
+  subroutine c_wrap_io_read_xmol(new_basefile) bind(c, name='io_read_xmol')
+    !-------------------------------------------------------------------------!
+    ! Interface to io_read_xmol for use when hs_alkane is compiled as a       !
+    ! library. Overides the default filename to read from.                    !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley August 2021                                                   !
+    !-------------------------------------------------------------------------!
+    implicit none
+    
+    character(kind=c_char), intent(in) :: new_basefile(*)
+    character(len=30) :: oldbase
+    integer :: term, i
+
+    oldbase = basefilename
+
+    basefilename = ""
+    
+    term = 1
+    do i = 1,30
+
+       if (new_basefile(i) /= c_null_char)  then
+          basefilename(i:i) = new_basefile(i)
+       else
+          exit
+       end if
+
+    end do
+    
+    call io_read_xmol()
+    basefilename = oldbase
+
+    
+    return
+    
+  end subroutine c_wrap_io_read_xmol
+  
+  subroutine io_read_xmol()
     !-------------------------------------------------------------------------!
     ! Reads nchains of nbeads each into the array Rchain in alkane module.    !
     ! Expects file chain.xmol to exist in present working directory. If this  !
@@ -181,10 +221,12 @@ contains
     character(2)     :: dumchar
     character(3)     :: boxstring
     character(30)    :: filename
-
+    
+    ! Optional argument used only when called from C/Python
     do ibox = 1,nboxes
 
-       filename = 'chain.xmol'
+       filename = basefilename
+       !write(0,'("Using : ",A30)')filename
        write(boxstring,'(".",I2.2)')ibox
 
        if ( nboxes > 1 ) filename = trim(filename)//boxstring
@@ -195,6 +237,7 @@ contains
           if (io_standalone) then
              stop
           else
+             chain_created(:,:) = .false.
              return
           end if
        end if
