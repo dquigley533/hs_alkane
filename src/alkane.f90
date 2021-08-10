@@ -911,6 +911,7 @@ contains
 
     elseif (new_conf==1) then
        !write(*,'("alkane : Growing new chain from bead", I5)')first_bead
+       ifail = 0
     end if
 
     allocate(wset(first_bead:nbeads),stat=ierr)
@@ -951,7 +952,14 @@ contains
 
           rb_factor = real(alkane_nonbonded_boltz(1,ichain,ibox,Rchain(:,1,ichain,ibox)),kind=ep)
 
-          !write(*,'(I5,3F15.6)')ib,Rchain(:,ib,ichain,ibox)
+          ! If this is the only bead we need to set ifail based on just the above
+          if (rb_factor < epsilon(1.0_ep)) then
+             ifail = 1
+             return
+          end if
+          
+     
+          !write(*,'(I5,4F15.6)')ib,Rchain(:,ib,ichain,ibox),rb_factor
 
        !======================================================!
        ! Second bead                                          !
