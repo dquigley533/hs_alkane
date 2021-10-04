@@ -220,7 +220,7 @@ contains
     integer(kind=it) :: ierr,ichain,ibead,dumint,ibox
     character(2)     :: dumchar
     character(5)     :: boxstring
-    character(30)    :: filename
+    character(60)    :: filename
     
     ! Optional argument used only when called from C/Python
     do ibox = 1,nboxes
