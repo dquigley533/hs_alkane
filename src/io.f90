@@ -219,7 +219,7 @@ contains
 
     integer(kind=it) :: ierr,ichain,ibead,dumint,ibox
     character(2)     :: dumchar
-    character(3)     :: boxstring
+    character(5)     :: boxstring
     character(30)    :: filename
     
     ! Optional argument used only when called from C/Python
@@ -227,7 +227,7 @@ contains
 
        filename = basefilename
        !write(0,'("Using : ",A30)')filename
-       write(boxstring,'(".",I2.2)')ibox
+       write(boxstring,'(".",I4.4)')ibox
 
        if ( nboxes > 1 ) filename = trim(filename)//boxstring
 
