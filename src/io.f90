@@ -176,7 +176,7 @@ contains
     implicit none
     
     character(kind=c_char), intent(in) :: new_basefile(*)
-    character(len=30) :: oldbase
+    character(len=60) :: oldbase
     integer :: term, i
 
     oldbase = basefilename
@@ -184,7 +184,7 @@ contains
     basefilename = ""
     
     term = 1
-    do i = 1,30
+    do i = 1,60
 
        if (new_basefile(i) /= c_null_char)  then
           basefilename(i:i) = new_basefile(i)
