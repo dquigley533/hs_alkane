@@ -46,7 +46,7 @@ module io
   !---------------------------------------------------------------------------!
 
   ! Base name of xmol file from which structure is read
-  character(len=30) :: basefilename = "chain.xmol"
+  character(len=60) :: basefilename = "chain.xmol"
   
 
   !---------------------------------------------------------------------------!
@@ -226,14 +226,14 @@ contains
     do ibox = 1,nboxes
 
        filename = basefilename
-       !write(0,'("Using : ",A30)')filename
+       !write(0,'("Using : ",A60)')filename
        write(boxstring,'(".",I4.4)')ibox
 
        if ( nboxes > 1 ) filename = trim(filename)//boxstring
 
        open(unit=25,file=trim(filename),status='old',iostat=ierr)
        if (ierr/=0) then
-          write(0,'("Error : Could not open local input file : ",A30)')filename
+          write(0,'("Error : Could not open local input file : ",A60)')filename
           if (io_standalone) then
              stop
           else
