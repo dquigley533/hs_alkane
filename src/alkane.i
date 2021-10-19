@@ -84,7 +84,7 @@ from recognising the module name....
 %apply double *OUTPUT {double *dum_dh};
 %apply double *OUTPUT {double *dum_axis};
 %apply double *OUTPUT {double *dum_dv};
-%apply double *OUTPUT {double *L};
+%apply double *OUTPUT {double *dumlength};
 
 
 /* Matrices of cell vectors */
@@ -1506,7 +1506,7 @@ from recognising the module name....
 %enddef
 %feature("docstring", io_rdxmol_str) io_read_xmol;
 
-%feature("autodoc", "alkane_set_bondlength(L);") alkane_set_bondLength;
+%feature("autodoc", "alkane_set_bondlength(L);") alkane_set_bondlength;
 %define alk_stbl_str
 "
 
@@ -1527,7 +1527,7 @@ from recognising the module name....
 
 
 %feature("autodoc", "alkane_get_bondlength();") alkane_get_bondlength;
-%define alk_gtnc_str
+%define alk_gtbl_str
 "
     Returns the bond length currently in use within the simulation.
 

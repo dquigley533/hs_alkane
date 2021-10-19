@@ -56,6 +56,7 @@ module alkane
   public :: alkane_set_nbeads                    ! Manipulate number of beads per chain
 
   public :: alkane_set_bondlength                !Manipulate distance between beads within a chain
+  public :: alkane_get_bondlength                !Query distance between beads within a chain
 
   public :: alkane_get_chain                     ! Query coordinates of a single chain
   public :: alkane_set_chain                     ! Update coordinates of a single chain
@@ -3243,7 +3244,7 @@ contains
    ! D.Quigley August 2011                                                   !
    !-------------------------------------------------------------------------!
    implicit none
-   integer(kind=it),intent(out) :: dumlength
+   real(kind=dp),intent(out) :: dumlength
 
    dumlength = L
 
