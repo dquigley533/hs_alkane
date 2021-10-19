@@ -84,6 +84,7 @@ from recognising the module name....
 %apply double *OUTPUT {double *dum_dh};
 %apply double *OUTPUT {double *dum_axis};
 %apply double *OUTPUT {double *dum_dv};
+%apply double *OUTPUT {double *L};
 
 
 /* Matrices of cell vectors */
@@ -1504,6 +1505,42 @@ from recognising the module name....
 "
 %enddef
 %feature("docstring", io_rdxmol_str) io_read_xmol;
+
+%feature("autodoc", "alkane_set_bondlength(L);") alkane_set_bondLength;
+%define alk_stbl_str
+"
+
+    Sets the distance between adjacent beads in a chain in a simulation.
+    The bond length is expected to be in terms of the diameter of the sphere, such that
+    two beads which are tangentially touching will have a bond length of 1.0. 
+    
+
+    Parameters
+    ----------
+
+    bondlength      : Floating point number to use
+
+
+"
+%enddef
+%feature("docstring", alk_stbl_str) alkane_set_bondlength;
+
+
+%feature("autodoc", "alkane_get_bondlength();") alkane_get_bondlength;
+%define alk_gtnc_str
+"
+    Returns the bond length currently in use within the simulation.
+
+
+    Returns
+    -------
+    
+    L      : Distance between the centres of two adjacent beads in a chain. 
+
+"
+%enddef
+%feature("docstring", alk_gtbl_str) alkane_get_bondlength;
+
 
 /* This will be parsed to generate the wrapper */
 %include "timer.h"
