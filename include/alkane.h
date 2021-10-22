@@ -78,5 +78,5 @@ void alkane_box_resize(double pressure, int ibox, double *boltz_out, int reset);
 
 
 /* Get and distance between spheres */
-void alkane_get_dv_max(double *dumlength);
-void alkane_set_dv_max(double L);
+void alkane_get_bondlength(double *dumlength);
+void alkane_set_bondlength(double L);
