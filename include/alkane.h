@@ -75,3 +75,8 @@ void alkane_box_scale(int ibox, double scaleA, double scaleB, double scaleC);
 
 /* Move Carlo move which changes the size of the box */
 void alkane_box_resize(double pressure, int ibox, double *boltz_out, int reset);
+
+
+/* Get and distance between spheres */
+void alkane_get_bondlength(double *dumlength);
+void alkane_set_bondlength(double L);

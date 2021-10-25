@@ -55,6 +55,9 @@ module alkane
   public :: alkane_get_nbeads                    ! Query number of beads per chain
   public :: alkane_set_nbeads                    ! Manipulate number of beads per chain
 
+  public :: alkane_set_bondlength                !Manipulate distance between beads within a chain
+  public :: alkane_get_bondlength                !Query distance between beads within a chain
+
   public :: alkane_get_chain                     ! Query coordinates of a single chain
   public :: alkane_set_chain                     ! Update coordinates of a single chain
 
@@ -3217,6 +3220,38 @@ contains
     return
 
   end subroutine alkane_change_box
+
+  subroutine alkane_set_bondlength(dumlength) bind(c)
+   !-------------------------------------------------------------------------!
+   ! Sets the length of the bondlength connecting the beads                  !
+   !-------------------------------------------------------------------------!
+   ! O.Adesida October 2021                                                  !
+   !-------------------------------------------------------------------------!
+   implicit none
+   real(kind=dp),value,intent(in) :: dumlength
+
+   L = dumlength
+
+   return
+
+ end subroutine alkane_set_bondlength
+
+ subroutine alkane_get_bondlength(dumlength) bind(c)
+   !-------------------------------------------------------------------------!
+   ! Queries the distance between spheres in a chainin terms of their        !
+   ! diameter.                                                               !
+   !-------------------------------------------------------------------------!
+   ! D.Quigley August 2011                                                   !
+   !-------------------------------------------------------------------------!
+   implicit none
+   real(kind=dp),intent(out) :: dumlength
+
+   dumlength = L
+
+   return
+
+ end subroutine alkane_get_bondlength
+
 
 
 

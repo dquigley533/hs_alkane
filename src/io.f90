@@ -46,7 +46,7 @@ module io
   !---------------------------------------------------------------------------!
 
   ! Base name of xmol file from which structure is read
-  character(len=30) :: basefilename = "chain.xmol"
+  character(len=60) :: basefilename = "chain.xmol"
   
 
   !---------------------------------------------------------------------------!
@@ -176,7 +176,7 @@ contains
     implicit none
     
     character(kind=c_char), intent(in) :: new_basefile(*)
-    character(len=30) :: oldbase
+    character(len=60) :: oldbase
     integer :: term, i
 
     oldbase = basefilename
@@ -184,7 +184,7 @@ contains
     basefilename = ""
     
     term = 1
-    do i = 1,30
+    do i = 1,60
 
        if (new_basefile(i) /= c_null_char)  then
           basefilename(i:i) = new_basefile(i)
@@ -219,21 +219,21 @@ contains
 
     integer(kind=it) :: ierr,ichain,ibead,dumint,ibox
     character(2)     :: dumchar
-    character(3)     :: boxstring
-    character(30)    :: filename
+    character(5)     :: boxstring
+    character(60)    :: filename
     
     ! Optional argument used only when called from C/Python
     do ibox = 1,nboxes
 
        filename = basefilename
-       !write(0,'("Using : ",A30)')filename
-       write(boxstring,'(".",I2.2)')ibox
+       !write(0,'("Using : ",A60)')filename
+       write(boxstring,'(".",I4.4)')ibox
 
        if ( nboxes > 1 ) filename = trim(filename)//boxstring
 
        open(unit=25,file=trim(filename),status='old',iostat=ierr)
        if (ierr/=0) then
-          write(0,'("Error : Could not open local input file : ",A30)')filename
+          write(0,'("Error : Could not open local input file : ",A60)')filename
           if (io_standalone) then
              stop
           else
