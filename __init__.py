@@ -4,3 +4,4 @@
 
 author = 'David Quigley'
 
+from .alkane import *
