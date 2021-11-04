@@ -18,22 +18,25 @@ def configuration():
                   'src/vis_module.f90',
                   'src/mc_dummy.f90',
                   'src/io.f90']
+
+    alkane_inc = ['include/alkane.h',
+                  'include/box.h',
+                  'include/io.h',
+                  'include/quaternion.h',
+                  'include/random.h',
+                  'include/timer.h',
+                  'include/vis_module.h']
     
     config.add_library('alkane', sources=alkane_src,
 #                       extra_f90_compile_args=['-g','-fbounds-check','-fbacktrace']
 #                       extra_f90_compile_args=['-O3']
-                       )
+                      )
 
     config.add_extension('_alkane',
-        sources = ['src/alkane.i',
-                   'include/timer.h',
-                   'include/random.h',
-                   'include/box.h',
-                   'include/quaternion.h',
-                   'include/alkane.h'],
-        libraries = ['alkane'],
+        sources      = ['src/alkane.i'],
+        libraries    = ['alkane'],
         include_dirs = ['./include'],
-        depends = ['src/alkane.i'],
+        depends      = ['src/alkane.i'] + alkane_inc + alkane_src,
     )
 
     config.version = "0.1.1"
@@ -44,7 +47,11 @@ if __name__ == "__main__":
 
     from numpy.distutils.core import setup
 
-    setup(configuration=configuration, zip_safe=True)
+    setup(configuration=configuration,
+          author       = "David Quigley",
+          author_email = "d.quigley@warwick.ac.uk",
+          description  = "Monte Carlo code for hard sphere alkane simulations",
+          url          = "https://github.com/dquigley-warwick/hs_alkane")
 
 
 
