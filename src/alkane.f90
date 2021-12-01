@@ -55,8 +55,11 @@ module alkane
   public :: alkane_get_nbeads                    ! Query number of beads per chain
   public :: alkane_set_nbeads                    ! Manipulate number of beads per chain
 
+
   public :: alkane_set_bondlength                !Manipulate distance between beads within a chain
   public :: alkane_get_bondlength                !Query distance between beads within a chain
+  public :: alkane_set_bondangle                 !Manipulate angle between beads within a chain
+  public :: alkane_get_bondangle                 !Query angle between consecutive beads in a chain
 
   public :: alkane_get_chain                     ! Query coordinates of a single chain
   public :: alkane_set_chain                     ! Update coordinates of a single chain
@@ -82,6 +85,7 @@ module alkane
   public :: mc_dv_max                       ! Maximum volume move
   public :: mc_dh_max                       ! Maximum torsion angle change
   public :: mc_axis_max                     ! Maximum rotaton about long axis
+  public :: bondangle                       ! Angle between beads on a chain
 
 
   !---------------------------------------------------------------------------!
@@ -89,10 +93,11 @@ module alkane
   !---------------------------------------------------------------------------!
 
   ! Model parameters
-  integer(kind=it),save  :: nchains = 35        ! Number of chains per box
-  integer(kind=it),save  :: nbeads  = 4         ! length of alkane chains
-  real(kind=dp),save     :: sigma   = 1.0_dp    ! hard sphere bead diameter
-  real(kind=dp),save     :: L       = 0.4_dp    ! bond length
+  integer(kind=it),save  :: nchains   = 35        ! Number of chains per box
+  integer(kind=it),save  :: nbeads    = 4         ! length of alkane chains
+  real(kind=dp),save     :: sigma     = 1.0_dp    ! hard sphere bead diameter
+  real(kind=dp),save     :: L         = 0.4_dp    ! bond length
+  real(kind=dp),save     :: bondangle = 109.47_dp ! Angle between beads on a chain
 
   !---------------------------------------------------------------!
   !                      Model specification                      !
@@ -1003,8 +1008,8 @@ contains
           do j = jl,ktrial
 
              ! Position of third bead if in x-y plane
-             rtrial(1,j) = L+L*cos(Pi-109.47_dp*Pi/180.0_dp)
-             rtrial(2,j) =   L*sin(Pi-109.47_dp*Pi/180.0_dp)
+             rtrial(1,j) = L+L*cos(Pi-bondangle*Pi/180.0_dp)
+             rtrial(2,j) =   L*sin(Pi-bondangle*Pi/180.0_dp)
              rtrial(3,j) = 0.0_dp
 
              ! Rotate random angle about r12
@@ -1882,7 +1887,7 @@ contains
 
 
     !=================================================!
-    ! Check that bond angles are equal to 109.47 deg  !
+    ! Check that bond angles are equal to set value   !
     !=================================================!
     do ibead=1,nbeads-2
 
@@ -1892,7 +1897,7 @@ contains
        r12(:) = r12(:)/sqrt(dot_product(r12,r12))
        r23(:) = r23(:)/sqrt(dot_product(r23,r23))
 
-       if ( abs(acos(dot_product(r12,r23)) - 109.47_dp*Pi/180.0_dp) > 0.0002_dp ) then
+       if ( abs(acos(dot_product(r12,r23)) - bondangle*Pi/180.0_dp) > 0.0002_dp ) then
           violated = 1
           write(0,'("Found a bond angle of ",F15.6," involving beads ",3I5)') &
                acos(dot_product(r12,r23))*180.0_dp/Pi,ibead,ibead+1,ibead+2
@@ -3241,7 +3246,7 @@ contains
    ! Queries the distance between spheres in a chainin terms of their        !
    ! diameter.                                                               !
    !-------------------------------------------------------------------------!
-   ! D.Quigley August 2011                                                   !
+   ! O.Adesida October 2021                                                  !
    !-------------------------------------------------------------------------!
    implicit none
    real(kind=dp),intent(out) :: dumlength
@@ -3251,6 +3256,38 @@ contains
    return
 
  end subroutine alkane_get_bondlength
+
+
+
+ subroutine alkane_set_bondangle(dumangle) bind(c)
+   !-------------------------------------------------------------------------!
+   ! Sets the angle between spheres in a chain.                              !
+   !-------------------------------------------------------------------------!
+   ! O.Adesida November 2021                                                 !
+   !-------------------------------------------------------------------------!
+   implicit none
+   real(kind=dp),value,intent(in) :: dumangle
+
+   bondangle = dumangle
+
+   return
+end subroutine alkane_set_bondangle
+
+
+ subroutine alkane_get_bondangle(dumangle) bind(c)
+   !-------------------------------------------------------------------------!
+   ! Queries the angle between spheres in a chain.                           !
+   !-------------------------------------------------------------------------!
+   ! O.Adesida November 2021                                                 !
+   !-------------------------------------------------------------------------!
+   implicit none
+   real(kind=dp),intent(out) :: dumangle
+
+   dumangle = bondangle
+
+   return
+
+ end subroutine alkane_get_bondangle
 
 
 
