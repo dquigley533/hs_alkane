@@ -85,6 +85,7 @@ from recognising the module name....
 %apply double *OUTPUT {double *dum_axis};
 %apply double *OUTPUT {double *dum_dv};
 %apply double *OUTPUT {double *dumlength};
+%apply double *OUTPUT {double *dumangle};
 
 
 /* Matrices of cell vectors */
@@ -1540,6 +1541,41 @@ from recognising the module name....
 "
 %enddef
 %feature("docstring", alk_gtbl_str) alkane_get_bondlength;
+
+
+%feature("autodoc", "alkane_set_bondangle(bondangle);") alkane_set_bondangle;
+%define alk_stba_str
+"
+
+    Sets the angle formed by three adjacent beads in a chain in a simulation, in degrees
+. 
+    
+
+    Parameters
+    ----------
+
+    bondangle      : Angle to set between beads in degrees
+
+
+"
+%enddef
+%feature("docstring", alk_stba_str) alkane_set_bondangle;
+
+
+%feature("autodoc", "alkane_get_bondangle();") alkane_get_bondangle;
+%define alk_gtba_str
+"
+    Returns the angle formed by three adjacent beads in a chain in a simulation, in degrees
+
+    Returns
+    -------
+    
+    bondangle      : Angle between the centres of three consecutive beads in a chain. 
+
+"
+%enddef
+%feature("docstring", alk_gtba_str) alkane_get_bondangle;
+
 
 
 /* This will be parsed to generate the wrapper */
