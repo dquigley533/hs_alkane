@@ -335,7 +335,7 @@ contains
        if (ierr/=0) stop 'Error opening final.xmol'
     else
        do ibox = 1,nboxes
-          write(boxstring,'(".",I2.2)')ibox
+          write(boxstring,'(".",I4.4)')ibox
           denfile = trim(outfilename)//boxstring
           open (unit=25+ibox-1,file=trim(denfile),status='replace',iostat=ierr)
           if (ierr/=0) stop 'Error opening xmol files for output coordinates'
