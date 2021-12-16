@@ -344,10 +344,10 @@ contains
 
     do ibox = 1,nboxes
        write(25+ibox-1,*)nbeads*nchains
-       write(25+ibox-1,'("* ",9F20.15)')hmatrix(:,:,ibox)
+       write(25+ibox-1,'(9F20.12)')hmatrix(:,:,ibox)
        do ichain = 1,nchains
           do ibead = 1,nbeads
-             write(25+ibox-1,'("C ",3F20.15)')Rchain(:,ibead,ichain,ibox)
+             write(25+ibox-1,'("C ",3F20.12)')Rchain(:,ibead,ichain,ibox)
           end do
        end do
     end do
