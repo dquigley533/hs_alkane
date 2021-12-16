@@ -200,31 +200,7 @@ program hs_alkane
   !-------------------------------------!
   ! Write final snapshot in xmol format !
   !-------------------------------------!
-  if (nboxes==1) then
-     open(unit=25,file='final.xmol',status='replace',iostat=ierr)
-     if (ierr/=0) stop 'Error opening final.xmol'
-  else
-     do ibox = 1,nboxes
-        write(boxstring,'(".",I2.2)')ibox
-        denfile = 'final.xmol'//boxstring
-        open (unit=25+ibox-1,file=trim(denfile),status='replace',iostat=ierr)
-        if (ierr/=0) stop 'Error opening xmol files for final coordinates'
-     end do
-  end if
-
-  do ibox = 1,nboxes
-     write(25+ibox-1,*)nbeads*nchains
-     write(25+ibox-1,'("* ",9F20.15)')hmatrix(:,:,ibox)
-     do ichain = 1,nchains
-        do ibead = 1,nbeads
-           write(25+ibox-1,'("C ",3F20.15)')Rchain(:,ibead,ichain,ibox)
-        end do
-     end do
-  end do
-
-  do ibox = 1,nboxes
-     close(25+ibox-1) ! close final.xmol
-  end do
+  call io_write_xmol()
 
 
   !-------------------------------------!

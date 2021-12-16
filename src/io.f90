@@ -24,7 +24,8 @@ module io
 
   public :: io_read_input                             ! Read input file
   public :: io_read_xmol                              ! Read initial coords
-
+  public :: io_write_xmol                             ! Write current coords
+  
   !---------------------------------------------------------------------------!
   !                        P u b l i c   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
@@ -47,7 +48,9 @@ module io
 
   ! Base name of xmol file from which structure is read
   character(len=60) :: basefilename = "chain.xmol"
-  
+
+  ! Base name of xmol file to write structure is written
+  character(len=60) :: outfilename = "final.xmol"
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   R o u t i n e s                      !
@@ -264,9 +267,6 @@ contains
        ! Update data structures which depend on cell vectors and positions
        call box_update_recipmatrix(ibox)
 
-
-
-
        ! Construct link cell and linked list data structures
        call box_construct_link_cells(ibox)
        call alkane_construct_linked_lists(ibox)
@@ -275,5 +275,89 @@ contains
     end do ! end loop over boxes
 
   end subroutine io_read_xmol
+
+  subroutine c_wrap_io_write_xmol(new_outfile) bind(c, name='io_write_xmol')
+    !-------------------------------------------------------------------------!
+    ! Interface to io_write_xmol for use when hs_alkane is compiled as a      !
+    ! library. Overides the default filename to write to.                     !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley December 2021                                                 !
+    !-------------------------------------------------------------------------!
+    implicit none
+    
+    character(kind=c_char), intent(in) :: new_outfile(*)
+    character(len=60) :: oldbase
+    integer :: term, i
+
+    oldbase = outfilename
+
+    outfilename = ""
+    
+    term = 1
+    do i = 1,60
+
+       if (new_outfile(i) /= c_null_char)  then
+          outfilename(i:i) = new_outfile(i)
+       else
+          exit
+       end if
+
+    end do
+    
+    call io_write_xmol()
+    outfilename = oldbase
+
+    
+    return
+    
+  end subroutine c_wrap_io_write_xmol
+  
+  subroutine io_write_xmol()
+    !-------------------------------------------------------------------------!
+    ! Writes nchains of nbeads from the array Rchain in alkane module to      !
+    ! file.  If this calculation uses more than one box, then files           !
+    ! final.xmol.xx will be written, where xx = 01,02,03..nboxes.             !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley December 2021                                                 !
+    !-------------------------------------------------------------------------!
+    use alkane, only : Rchain,nchains,nbeads,chain_created, &
+                       alkane_construct_linked_lists
+    use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes, &
+                       box_construct_link_cells
+    implicit none
+
+    integer(kind=it) :: ierr,ichain,ibead,ibox
+    character(5)     :: boxstring
+    character(60)    :: denfile
+    
+    if (nboxes==1) then
+       open(unit=25,file=trim(outfilename),status='replace',iostat=ierr)
+       if (ierr/=0) stop 'Error opening final.xmol'
+    else
+       do ibox = 1,nboxes
+          write(boxstring,'(".",I2.2)')ibox
+          denfile = trim(outfilename)//boxstring
+          open (unit=25+ibox-1,file=trim(denfile),status='replace',iostat=ierr)
+          if (ierr/=0) stop 'Error opening xmol files for output coordinates'
+       end do
+    end if
+
+    do ibox = 1,nboxes
+       write(25+ibox-1,*)nbeads*nchains
+       write(25+ibox-1,'("* ",9F20.15)')hmatrix(:,:,ibox)
+       do ichain = 1,nchains
+          do ibead = 1,nbeads
+             write(25+ibox-1,'("C ",3F20.15)')Rchain(:,ibead,ichain,ibox)
+          end do
+       end do
+    end do
+    
+    do ibox = 1,nboxes
+       close(25+ibox-1) ! close final.xmol
+    end do
+    
+    return
+    
+  end subroutine io_write_xmol
 
 end module io
