@@ -1611,4 +1611,6 @@ from recognising the module name....
 %include "alkane.h"
 %include "vis_module.h"
 
+/* Explicit here rather than included due to optional argument */
 void io_read_xmol(char* filename="chain.xmol");
+void io_write_xmol(char* filename="final.xmol");
