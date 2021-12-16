@@ -1507,6 +1507,31 @@ from recognising the module name....
 %enddef
 %feature("docstring", io_rdxmol_str) io_read_xmol;
 
+%feature("autodoc", "io_write_xmol(filename);") io_write_xmol;
+%define io_wtxmol_str
+"
+    Write current configuration for the simulation(s) to
+    filename in the current working directory. This will be 
+    structured as a standard xyz file, with the 9 components
+    of the matrix of cell vectors listed on the second line.
+
+    The data structures inside the alkane module must have been
+    created via alkane_initialise() and populated with data
+    efore calling this function.
+
+    If the simulation consists of multiple boxes/replicas then one file
+    is written for each, i.e. final.xmol.0001 final.xmol.0002 etc.
+
+    Parameter
+    ---------
+
+    filename   : Filename to read (optional). Uses final.xmol otherwise.
+
+"
+%enddef
+%feature("docstring", io_wtxmol_str) io_write_xmol;
+
+
 %feature("autodoc", "alkane_set_bondlength(L);") alkane_set_bondlength;
 %define alk_stbl_str
 "
