@@ -43,3 +43,6 @@ void box_set_use_verlet_list(int flag);
 
 /* Set flag indicating if periodic rather open boundaries should be used */
 void box_set_pbc(int flag);
+
+/* Query the minimum aspect ratio of a specified simulation box */
+void box_min_aspect_ratio(int ibox, double *dumratio);

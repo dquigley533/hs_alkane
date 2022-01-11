@@ -39,6 +39,8 @@ module box
   public :: box_set_use_verlet_list     ! Set use verlet list
   public :: box_set_pbc                 ! Set the periodic boundary conditions
 
+  public :: box_min_aspect_ratio
+
 
 
   public :: box_cart_to_frac            ! Convert absolute coords to fractional
@@ -643,7 +645,7 @@ contains
     integer(kind=it),value,intent(in) :: ibox
     real(kind=dp),dimension(3,3),intent(in) :: dumhmatrix
 
-    if (ibox > nboxes ) stop 'Error in box_get_cell, ibox > nboxes'
+    if (ibox > nboxes ) stop 'Error in box_set_cell, ibox > nboxes'
 
     hmatrix(:,:,ibox) = dumhmatrix
     
@@ -724,9 +726,9 @@ contains
   end subroutine box_frac_to_cart
 
 
- subroutine box_frac_to_cart_otherbox(hmatrix_loc,in_vector,out_vector) bind(c)
+  subroutine box_frac_to_cart_otherbox(hmatrix_loc,in_vector,out_vector) bind(c)
     !-------------------------------------------------------------------------!
-    ! For the specified hmatrix convert in_vector in box-scaled coords     !
+    ! For the specified hmatrix convert in_vector in box-scaled coords        !
     ! into out_vector in absolute cartesian coords.                           !
     !                                                                         !
     ! Requirements : hmatrix must be valid and current for ibox               !
@@ -754,6 +756,65 @@ contains
     return
 
   end subroutine box_frac_to_cart_otherbox
+
+
+
+
+  function cross_product(a,b)
+      !-------------------------------------------------------------------------!
+      ! Does exactly what is says on the tin.                                   !
+      !-------------------------------------------------------------------------!
+      ! D.Quigley January 2010                                                  !
+      !-------------------------------------------------------------------------!
+      implicit none
+      real(kind=dp),dimension(3),intent(in) :: a,b
+      real(kind=dp),dimension(3) :: cross_product
+
+      cross_product(1) = a(2)*b(3) - a(3)*b(2)
+      cross_product(2) = -(a(1)*b(3)-a(3)*b(1))
+      cross_product(3) = a(1)*b(2)-b(1)*a(2)
+
+  end function cross_product
+
+  subroutine box_min_aspect_ratio(ibox,dumratio) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Returns the shortest distance between two parallel sides of a specified !
+    ! simulation box. Scaled such that it is being compared to a box with     !
+    ! a volume of 1.                                                          !
+    !                                                                         !
+    !-------------------------------------------------------------------------!
+    ! O.Adesida December 2021                                                 !
+    !-------------------------------------------------------------------------!
+    implicit none
+    integer(kind=it),value,intent(in) :: ibox
+    real(kind=dp), intent(out) :: dumratio
+
+
+    real(kind=dp) :: vol,ratio
+    real(kind=dp),dimension(3) :: vnorm_hat
+    real(kind=dp),dimension(3,3) :: cell
+
+    integer(kind=it) :: i
+
+    ratio = huge(it)
+
+
+    cell = hmatrix(:,:,ibox)
+
+    vol = box_compute_volume(ibox)
+
+   
+
+    do i = 1,3
+      vnorm_hat = cross_product(cell(:,(mod(i,3)+1)),cell(:,(mod(i+1,3)+1)))
+      vnorm_hat = vnorm_hat/norm2(vnorm_hat)
+      ratio = min(ratio,abs(dot_product(vnorm_hat,cell(:,i))))
+    end do
+
+    dumratio = ratio/(vol**(1.0/3.0))
+
+
+  end subroutine box_min_aspect_ratio
 
 
 
