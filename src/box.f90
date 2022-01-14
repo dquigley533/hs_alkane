@@ -793,17 +793,11 @@ contains
     real(kind=dp) :: vol,ratio
     real(kind=dp),dimension(3) :: vnorm_hat
     real(kind=dp),dimension(3,3) :: cell
-
     integer(kind=it) :: i
 
     ratio = huge(it)
-
-
     cell = hmatrix(:,:,ibox)
-
     vol = box_compute_volume(ibox)
-
-   
 
     do i = 1,3
       vnorm_hat = cross_product(cell(:,(mod(i,3)+1)),cell(:,(mod(i+1,3)+1)))
@@ -813,10 +807,6 @@ contains
 
     dumratio = ratio/(vol**(1.0/3.0))
 
-
   end subroutine box_min_aspect_ratio
-
-
-
 
 end module box
