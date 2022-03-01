@@ -788,20 +788,13 @@ contains
     implicit none
     integer(kind=it),value,intent(in) :: ibox
     real(kind=dp), intent(out) :: dumratio
-
-
     real(kind=dp) :: vol,ratio
     real(kind=dp),dimension(3) :: vnorm_hat
     real(kind=dp),dimension(3,3) :: cell
     integer(kind=it) :: i
 
-<<<<<<< HEAD
     ratio = huge(dp)
 
-
-=======
-    ratio = huge(it)
->>>>>>> 3c5b750b1f382ce3a1119187269abe099c71d2bf
     cell = hmatrix(:,:,ibox)
     vol = box_compute_volume(ibox)
 
