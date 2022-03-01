@@ -796,7 +796,7 @@ contains
 
     integer(kind=it) :: i
 
-    ratio = huge(it)
+    ratio = huge(dp)
 
 
     cell = hmatrix(:,:,ibox)
@@ -811,7 +811,7 @@ contains
       ratio = min(ratio,abs(dot_product(vnorm_hat,cell(:,i))))
     end do
 
-    dumratio = ratio/(vol**(1.0/3.0))
+    dumratio = ratio/(cbrt(vol))
 
 
   end subroutine box_min_aspect_ratio
