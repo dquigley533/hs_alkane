@@ -13,7 +13,7 @@
 /* N.B. Implementing module docstring using the method described 
 at http://swig.org/Doc1.3/Python.html#Python_nn66 stops distutils
 from recognising the module name.... 
-%module(docstrig=DOCSTRING) alkane
+%module(docstring=DOCSTRING) alkane
 */
 %module alkane
 %{
