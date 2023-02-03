@@ -75,6 +75,7 @@ from recognising the module name....
 %apply int *OUTPUT {int *dum_max_regrow};
 
 
+
 /* doubles */
 %apply double *OUTPUT {double *rbfactor};
 %apply double *OUTPUT {double *boltz_out};
@@ -86,6 +87,7 @@ from recognising the module name....
 %apply double *OUTPUT {double *dum_dv};
 %apply double *OUTPUT {double *dumlength};
 %apply double *OUTPUT {double *dumangle};
+%apply double *OUTPUT {double *dumratio};
 
 
 /* Matrices of cell vectors */
@@ -681,6 +683,30 @@ from recognising the module name....
 "
 %enddef
 %feature("docstring", bx_blc_str) box_set_bypass_link_cells;
+
+
+%feature("autodoc", "box_min_aspect_ratio(ibox)") box_min_aspect_ratio;
+%define bx_mnar_str
+"
+Returns the shortest distance between two parallel faces, scaled such that the cell has a volume of 1.
+Useful for preventing shear or stretch moves from producing 'flat' cells.
+        
+
+    Parameters
+    ----------
+
+    ibox              : Simulation box for which the min_aspect_ratio should be calculated for.
+
+
+
+    Returns
+    -------
+
+    dumratio          : Shortest distance between faces scaled for a cube of volume 1.0.
+    
+"
+%enddef
+%feature("docstring", bx_mnar_str) box_min_aspect_ratio;
 
 %feature("autodoc", "alkane_get_nchains();") alkane_get_nchains;
 %define alk_gtnc_str

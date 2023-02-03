@@ -335,7 +335,7 @@ contains
        if (ierr/=0) stop 'Error opening final.xmol'
     else
        do ibox = 1,nboxes
-          write(boxstring,'(".",I2.2)')ibox
+          write(boxstring,'(".",I4.4)')ibox
           denfile = trim(outfilename)//boxstring
           open (unit=25+ibox-1,file=trim(denfile),status='replace',iostat=ierr)
           if (ierr/=0) stop 'Error opening xmol files for output coordinates'
@@ -344,10 +344,10 @@ contains
 
     do ibox = 1,nboxes
        write(25+ibox-1,*)nbeads*nchains
-       write(25+ibox-1,'("* ",9F20.15)')hmatrix(:,:,ibox)
+       write(25+ibox-1,'(9F20.12)')hmatrix(:,:,ibox)
        do ichain = 1,nchains
           do ibead = 1,nbeads
-             write(25+ibox-1,'("C ",3F20.15)')Rchain(:,ibead,ichain,ibox)
+             write(25+ibox-1,'("C ",3F20.12)')Rchain(:,ibead,ichain,ibox)
           end do
        end do
     end do
