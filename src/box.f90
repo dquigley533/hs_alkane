@@ -804,7 +804,7 @@ contains
       ratio = min(ratio,abs(dot_product(vnorm_hat,cell(:,i))))
     end do
 
-    dumratio = ratio/(cbrt(vol))
+    dumratio = ratio/(vol**(1.0_dp/3.0_dp))
 
   end subroutine box_min_aspect_ratio
 
