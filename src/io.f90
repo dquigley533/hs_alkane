@@ -215,15 +215,17 @@ contains
     ! D.Quigley January 2011                                                  !
     !-------------------------------------------------------------------------!
     use alkane, only : Rchain,nchains,nbeads,chain_created, &
-                       alkane_construct_linked_lists
+                       alkane_construct_linked_lists,L,alkane_update_linked_lists
     use box   , only : box_update_recipmatrix,pbc,hmatrix,recip_matrix,nboxes, &
-                       box_construct_link_cells
+                       box_construct_link_cells,box_minimum_image
     implicit none
 
     integer(kind=it) :: ierr,ichain,ibead,dumint,ibox
     character(2)     :: dumchar
     character(5)     :: boxstring
     character(60)    :: filename
+
+    real(kind=dp),dimension(3)    :: tmpvect,old_pos,new_pos
     
     ! Optional argument used only when called from C/Python
     do ibox = 1,nboxes
@@ -270,8 +272,32 @@ contains
        ! Construct link cell and linked list data structures
        call box_construct_link_cells(ibox)
        call alkane_construct_linked_lists(ibox)
-       
 
+       !--------------------------!
+       ! Enforce correct imaging  !
+       !--------------------------!
+
+       ! Position all beads relative to the first, i.e. if any part of a chain
+       ! has been wrapped around the PBCs but it back in the correct position
+       ! relative to the first bead in the chain. This will result in some beads
+       ! being outside the box, but that's not a problem. All distances computed
+       ! will still be correct.
+       if (nbeads>1) then
+          do ichain = 1,nchains
+          
+             do ibead = 2,nbeads
+                old_pos = Rchain(:,ibead,ichain,ibox)
+                tmpvect = box_minimum_image(Rchain(:,ibead-1,ichain,ibox),old_pos,ibox)
+!                tmpvect = tmpvect/sqrt(dot_product(tmpvect,tmpvect))
+                new_pos = Rchain(:,ibead-1,ichain,ibox) + tmpvect !*L
+                Rchain(:,ibead,ichain,ibox) = new_pos
+                call alkane_update_linked_lists(ibead,ichain,ibox,old_pos,new_pos)
+             end do
+             
+          end do                 
+       end if
+       
+       
     end do ! end loop over boxes
 
   end subroutine io_read_xmol
