@@ -1872,7 +1872,7 @@ contains
     do ibead = 1,nbeads-1
        jbead = ibead+1
        rsep(:) = box_minimum_image( Rchain(:,jbead,ichain,ibox), Rchain(:,ibead,ichain,ibox), ibox )
-       if ( dot_product(rsep,rsep) - L*L > 0.00001_dp ) then
+       if ( abs(dot_product(rsep,rsep) - L*L) > 0.00001_dp ) then
           violated = 1
           write(0,'("Found a bond length of ",E15.6," between beads ",I5," and ",I5)') &
                sqrt(dot_product(rsep,rsep)),ibead,jbead
