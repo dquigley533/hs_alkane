@@ -41,7 +41,7 @@ module mc
   real(kind=dp) :: mc_target_ratio = 0.5_dp     ! Target acceptance ratio
   logical       :: eq_adjust_mc    = .true.     ! Do we adjust MC to reach it
 
-  integer(kind=it) :: eq_mc_cycles  = 10000      ! Equilibration cycles  
+  integer(kind=it) :: eq_mc_cycles  = 10000      ! Equilibration cycles 
   integer(kind=it) :: max_mc_cycles = 500000000  ! How many cycles to perform
 
   integer(kind=it) :: mc_cycle_num = 0             ! Current cycle number
