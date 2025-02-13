@@ -70,7 +70,7 @@ contains
     use box,    only : pbc,isotropic,pressure, &
                        box_update_recipmatrix,nboxes,CellA,CellB,CellC, &
                        link_cell_length,bypass_link_cells,use_verlet_list
-    use mc,     only : max_mc_cycles,eq_adjust_mc,mc_target_ratio
+    use mc,     only : eq_mc_cycles,max_mc_cycles,eq_adjust_mc,mc_target_ratio
     use timer,  only : timer_closetime,timer_qtime
     implicit none
 
@@ -80,7 +80,8 @@ contains
                     use_verlet_list,read_xmol,rigid,isotropic
     namelist/thermal/pressure
     namelist/bookkeeping/file_output_int,traj_output_int,timer_qtime, &
-                        timer_closetime,max_mc_cycles,eq_adjust_mc,mc_target_ratio
+                    timer_closetime,eq_mc_cycles,max_mc_cycles,eq_adjust_mc, &
+                    mc_target_ratio
 
 
 
