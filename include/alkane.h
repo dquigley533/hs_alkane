@@ -10,9 +10,9 @@ void alkane_get_nbeads(int *nbeads);
 void alkane_set_nbeads(int nbeads);
 
 /* Initialise/destroy the alkane module data structures */
-void alkane_initialise();
+void alkane_initialise(void);
 void alkane_construct_linked_lists(int ibox);
-void alkane_destroy();
+void alkane_destroy(void);
 
 /* Grow a chain using CBMC */
 void alkane_grow_chain(int ichain, int ibox, double *rbfactor, int new_conf, int *ifail);

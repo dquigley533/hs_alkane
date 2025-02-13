@@ -6,5 +6,5 @@ void write_psf(int nbeads, int nchains);
 
 /* Write charmm-style dcd files */
 void write_dcd_header(int nbeads, int nchains);
-void write_dcd_snapshot();
+void write_dcd_snapshot(void);
 

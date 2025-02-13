@@ -5,8 +5,8 @@ void box_set_num_boxes(int num_replicas);
 void box_get_num_boxes(int *num_replicas_out);
 
 /* Initialise/destroy the simulation box(es) */
-void box_initialise();
-void box_destroy();
+void box_initialise(void);
+void box_destroy(void);
 
 /* Set/get the matrix of cell vectors */
 void box_set_cell(int ibox, double cell_matrix[3][3]);
@@ -23,7 +23,7 @@ void box_minimum_image(int ibox, double vector1[3], double vector2[3], double ve
 /* Build & destroy link cell data structure */
 void box_set_link_cell_length(double length);
 void box_construct_link_cells(int ibox);
-void box_destroy_link_cells();
+void box_destroy_link_cells(void);
 
 /* Set flag indicating that use of link cells should be bypassed */
 void box_set_bypass_link_cells(int flag);
