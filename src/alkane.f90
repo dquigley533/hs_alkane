@@ -77,6 +77,8 @@ module alkane
   public :: rigid                           ! Are chains rigid?
   public :: sigma                           ! Bead radius
   public :: L                               ! Bond length
+  public :: chainvol                        ! Volume occupied by beads on chain
+  public :: equivD                          ! Diameter of sphere that has occupied volume
   public :: model_type,torsion_type         ! Model specification
   public :: ktrial                          ! No of trial regrowths per bead
   public :: max_regrow                      ! No. beads to regrow in CBMC
@@ -98,7 +100,9 @@ module alkane
   real(kind=dp),save     :: sigma     = 1.0_dp    ! hard sphere bead diameter
   real(kind=dp),save     :: L         = 0.4_dp    ! bond length
   real(kind=dp),save     :: bondangle = 109.47_dp ! Angle between beads on a chain
-
+  real(kind=dp),save     :: chainvol  = 0.0       ! To be calculated on initialisation
+  real(kind=dp),save     :: equivD    = 0.0       ! To be calculated on initialisation
+  
   !---------------------------------------------------------------!
   !                      Model specification                      !
   !---------------------------------------------------------------!
@@ -165,12 +169,14 @@ contains
     !-------------------------------------------------------------------------!
     ! D.Quigley January 2010                                                  !
     !-------------------------------------------------------------------------!
-    use box, only : nboxes
+    use box, only       : nboxes
+    use constants, only : pi
     implicit none
 
     integer(kind=it),dimension(3) :: ierr = 0
 
-
+    real(kind=dp) :: r,h,dimervol,twospherevol
+    
     ! Make sure all arrays are unallocated.
     call alkane_destroy()
 
@@ -205,6 +211,32 @@ contains
     write(*,'("|=======================================|")')
     write(*,*)
 
+    ! Calculate volume occupied by chain and radius of equivalent sphere.
+    if (nbeads==1) then
+       
+       equivD = sigma
+       chainvol = (1.0_dp/6.0_dp)*pi*sigma**3
+
+    else
+
+       ! General case, but only valid for nbeads<2 if L > 0.5*sigma
+
+       ! Calculate volume lost in each bond.
+       h = 0.5*(L+sigma)
+       r = 0.5*sigma
+
+       twospherevol = (1.0_dp/3.0_dp)*pi*sigma**3
+       dimervol = 2.0*pi*(h**2)*(3.0_dp*r-h)/3.0_dp
+
+       chainvol = nbeads*(1.0_dp/6.0_dp)*pi*sigma**3
+       chainvol = chainvol - (nbeads-1)*(twospherevol - dimervol)
+
+       equivD = (chainvol*6.0_dp/pi)**(1.0_dp/3.0_dp)
+       
+    end if
+
+       
+    
     
     return
 

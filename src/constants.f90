@@ -70,4 +70,8 @@ module constants
   real(kind=dp),parameter :: aud_to_kgm3 = 1.120587168E4_dp
   real(kind=dp),parameter :: kgm3_to_aud = 1.0_dp/1.120587168E4_dp
 
+  ! maximum possible hard sphere packing fraction
+  real(kind=dp),parameter :: rho_cp = 0.74048_dp
+
+  
 end module Constants
