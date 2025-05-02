@@ -18,9 +18,22 @@ swig = find_program('swig')
 
 # Need Python headers to compile the wrapper code
 pydep = dependency('python3', version : '>=3.0.0')
-
-
 py = import('python').find_installation(pure: false)
+
+# We'll link using gcc so need to specify some fortran dependencies
+fc = meson.get_compiler('fortran')
+libgfortran_dep = fc.find_library('gfortran', required: true)
+libquadmath_dep = fc.find_library('quadmath', required: true)
+
+# I have issues on MacOS if the Apple-provided clang compiler is used. 
+cc = meson.get_compiler('c')
+if cc.get_id() != fc.get_id()
+  message('Selected C compiler does not have same ID as Fortran compiler.')
+  message('This can cause problems with linking.')
+  message('Set CC and FC environment variables to compatible compilers before building')
+  error()
+endif
+
 
 # NumPy include directory - needed in all submodules
 incdir_numpy = run_command(py,
@@ -59,6 +72,8 @@ py.extension_module(
   install: true,
   include_directories : [incdir, incdir_numpy],
   subdir: 'hs_alkane',
+  dependencies: [libgfortran_dep, libquadmath_dep],
+
 )
 
 # Finally define and install python sources

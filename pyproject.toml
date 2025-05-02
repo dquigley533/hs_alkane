@@ -8,5 +8,5 @@ requires = ['meson-python',
 name = 'hs_alkane'
 dynamic = ["version"]
 dependencies = [
-	     "numpy<2.0.0",
+	     "numpy>=2.0.0",
 ]
