@@ -21,7 +21,7 @@ void alkane_grow_chain(int ichain, int ibox, double *rbfactor, int new_conf, int
 void alkane_get_chain(int ichain, int ibox, int *nbeads_out,int *d_out, double **rchain_ptr);
 
 /* Translation, rotation of a chain */
-void alkane_translate_chain(int ichain, int ibox, double *boltz_out);
+void alkane_translate_chain(int ichain, int ibox, double *boltz_out, double vec_out[3]);
 void alkane_rotate_chain(int ichain, int ibox, double *boltz_out, double quat[4], int bond);
 
 /* Rotate around a torsion angle */

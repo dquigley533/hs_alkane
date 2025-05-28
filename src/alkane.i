@@ -51,6 +51,7 @@ from recognising the module name....
 %apply(double IN_ARRAY1[ANY]) {(double vector[3])};
 %apply(double ARGOUT_ARRAY1[ANY]) {(double vec_out[3])};
 
+
 %apply(double IN_ARRAY1[ANY]) {(double old_pos[3])};
 %apply(double IN_ARRAY1[ANY]) {(double new_pos[3])};
 
@@ -947,7 +948,8 @@ Useful for preventing shear or stretch moves from producing 'flat' cells.
     -------
     
     boltz      :  Probability of accepting the trial move
-
+    dr         :  Vector by which chain is translated 
+							   
 "
 %enddef
 %feature("docstring", alk_trch_str) alkane_translate_chain;

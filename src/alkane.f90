@@ -266,7 +266,7 @@ contains
 
   end subroutine alkane_destroy
 
-  subroutine alkane_translate_chain(ichain,ibox,new_boltz) bind(c)
+  subroutine alkane_translate_chain(ichain,ibox,new_boltz,dr) bind(c)
     !-------------------------------------------------------------------------!
     ! Implements an MC trial move in which the specified chain is translated  !
     ! by a random vector. The new Boltzmann factor after the trial move is    !
@@ -276,10 +276,10 @@ contains
     !-------------------------------------------------------------------------!
     use random, only : random_uniform_random
     implicit none
-    integer(kind=it),value,intent(in) :: ichain,ibox
-    real(kind=dp),intent(out)         :: new_boltz
-    real(kind=dp),dimension(3)        :: dr
-    real(kind=dp)                     :: tboltz
+    integer(kind=it),value,intent(in)      :: ichain,ibox
+    real(kind=dp),intent(out)              :: new_boltz
+    real(kind=dp),dimension(3),intent(out) :: dr
+    real(kind=dp)                          :: tboltz
     integer(kind=it) :: ibead
 
 
