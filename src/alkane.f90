@@ -1663,6 +1663,243 @@ contains
 
   end function alkane_chain_inter_boltz
 
+ function alkane_chain_count_overlaps(ichain,ibox) bind(c)
+    !-------------------------------------------------------------------------!
+    ! Counts the number of hard sphere overlaps between beads on chain ichain !
+    ! and other chains in the box ibox. Needed for computing the overlap      !
+    ! parameter in lattice switching calculations. Essentially the same code  !
+    ! as alkance_chain_inter_boltz but doesn't exit after finding the first   !
+    ! overlap.                                                                !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley June 2025                                                     !
+    !-------------------------------------------------------------------------!
+    use constants, only : invPi
+    use box,       only :  box_minimum_image,use_link_cells, &
+                           lcneigh,hmatrix,recip_matrix, &
+                           use_verlet_list
+    implicit none
+
+    integer(kind=it),intent(in) :: ichain,ibox
+    real(kind=dp),dimension(3)  :: rbead
+    real(kind=dp),dimension(3)  :: rsep !,sbead
+    real(kind=dp),dimension(9)  :: hcache
+
+    integer(kind=it) :: j,jchain,ibead,icell,ix,iy,iz,jbead,jcell,ni,tmpint,ll
+    real(kind=dp) :: sigma_sq
+    real(kind=dp) :: rx,ry,rz
+    real(kind=dp) :: sx,sy,sz
+
+    integer(kind=it) :: overlaps, alkane_chain_count_overlaps
+    logical          :: overlap
+
+    if ( (ichain==0)) then
+       write(0,'("ERROR - called with chain index of 0.")')
+       write(0,'("Chains are indexed from 1 upwards.")')
+    end if
+    
+    sigma_sq = sigma*sigma
+    overlap  = .false.
+
+    iz = 1
+    do ix = 1,3
+       do iy = 1,3
+          hcache(iz) = hmatrix(ix,iy,ibox)
+          iz = iz + 1
+       end do
+    end do
+
+    ! Run over beads in other chains....
+    if (nchains>1) then
+
+       if (use_verlet_list) then
+
+          do ibead = 1,nbeads
+             rbead(:) = Rchain(:,ibead,ichain,ibox)
+
+             !write(0,'("Checking neighbours of bead ",I5," on chain ",I5)')ibead, ichain
+             
+             do ll = startinlist((ichain-1)*nbeads+ibead,ibox),endinlist((ichain-1)*nbeads+ibead,ibox)
+
+                !write(0,'("Bead ",I5," is a neighbour.")')list(ll,ibox)
+                
+                jchain = (list(ll,ibox)-1)/nbeads + 1
+                jbead  = mod(list(ll,ibox)-1,nbeads) + 1 
+
+                ! The compiler needs to inline this, use -ipo on Intel
+                !rsep(:) = box_minimum_image( Rchain(:,jbead,jchain,ibox),rbead(:),ibox )
+
+                rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
+                ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
+                rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
+
+                sx = recip_matrix(1,1,ibox)*rx + &
+                     recip_matrix(2,1,ibox)*ry + &
+                     recip_matrix(3,1,ibox)*rz
+                sy = recip_matrix(1,2,ibox)*rx + &
+                     recip_matrix(2,2,ibox)*ry + &
+                     recip_matrix(3,2,ibox)*rz
+                sz = recip_matrix(1,3,ibox)*rx + &
+                     recip_matrix(2,3,ibox)*ry + &
+                     recip_matrix(3,3,ibox)*rz
+
+                sx = sx*0.5_dp*invPi
+                sy = sy*0.5_dp*invPi
+                sz = sz*0.5_dp*invPi
+
+                ! apply boundary conditions
+                sx = sx - floor(sx+0.5_dp,kind=dp)
+                sy = sy - floor(sy+0.5_dp,kind=dp)
+                sz = sz - floor(sz+0.5_dp,kind=dp)
+
+                ! scale back up
+                rx = hcache(1)*sx + hcache(2)*sy + hcache(3)*sz
+                ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
+                rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
+
+                overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq) )
+
+!                overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+                if ( overlap ) then
+                  !print*,'overlap found in alkane_chain_inter_boltz',ibead,ichain,jbead,jchain
+                  overlaps = overlaps + 1
+                end if
+             end do
+
+          end do
+
+       else if ( use_link_cells ) then
+
+          do ibead = 1,nbeads
+
+             rbead(:) = Rchain(:,ibead,ichain,ibox)
+
+!!$             ! compute fractional coordinates sbead from rbead
+!!$             sbead(1) = recip_matrix(1,1,ibox)*rbead(1) + &
+!!$                        recip_matrix(2,1,ibox)*rbead(2) + &
+!!$                        recip_matrix(3,1,ibox)*rbead(3)
+!!$             sbead(2) = recip_matrix(1,2,ibox)*rbead(1) + &
+!!$                        recip_matrix(2,2,ibox)*rbead(2) + &
+!!$                        recip_matrix(3,2,ibox)*rbead(3)
+!!$             sbead(3) = recip_matrix(1,3,ibox)*rbead(1) + &
+!!$                        recip_matrix(2,3,ibox)*rbead(2) + &
+!!$                        recip_matrix(3,3,ibox)*rbead(3)
+!!$
+!!$             sbead = sbead*0.5_dp*invPi
+!!$
+!!$             ! link cell containing rbead
+!!$             ix = floor(sbead(1)/lcellx(ibox))
+!!$             iy = floor(sbead(2)/lcelly(ibox))
+!!$             iz = floor(sbead(3)/lcellz(ibox))
+!!$
+!!$             ix = modulo(ix,ncellx(ibox)) + 1
+!!$             iy = modulo(iy,ncelly(ibox)) + 1
+!!$             iz = modulo(iz,ncellz(ibox)) + 1
+!!$
+!!$             icell = (iz-1)*ncellx(ibox)*ncelly(ibox) + (iy-1)*ncellx(ibox) + ix
+
+             icell = linkcell(ibead,ichain,ibox)
+             
+             ! loop over link cells
+             do ni = 1,27
+                jcell   = lcneigh(ni,icell,ibox)
+                jbead   = head_of_cell(1,jcell,ibox)
+                jchain  = head_of_cell(2,jcell,ibox)
+                do while ( jchain.ne.LIST_END )
+
+                   !rsep(:) = box_minimum_image(Rchain(:,jbead,jchain),rbead(:))
+                   rx = rbead(1) - Rchain(1,jbead,jchain,ibox)
+                   ry = rbead(2) - Rchain(2,jbead,jchain,ibox)
+                   rz = rbead(3) - Rchain(3,jbead,jchain,ibox)
+
+                   sx = recip_matrix(1,1,ibox)*rx + &
+                        recip_matrix(2,1,ibox)*ry + &
+                        recip_matrix(3,1,ibox)*rz
+                   sy = recip_matrix(1,2,ibox)*rx + &
+                        recip_matrix(2,2,ibox)*ry + &
+                        recip_matrix(3,2,ibox)*rz
+                   sz = recip_matrix(1,3,ibox)*rx + &
+                        recip_matrix(2,3,ibox)*ry + &
+                        recip_matrix(3,3,ibox)*rz
+
+                   sx = sx*0.5_dp*invPi
+                   sy = sy*0.5_dp*invPi
+                   sz = sz*0.5_dp*invPi
+
+                   ! apply boundary conditions
+                   sx = sx - floor(sx+0.5_dp,kind=dp)
+                   sy = sy - floor(sy+0.5_dp,kind=dp)
+                   sz = sz - floor(sz+0.5_dp,kind=dp)
+
+                   ! scale back up
+                   rx = hcache(1)*sx + hcache(2)*sy + hcache(3)*sz
+                   ry = hcache(4)*sx + hcache(5)*sy + hcache(6)*sz
+                   rz = hcache(7)*sx + hcache(8)*sy + hcache(9)*sz
+
+
+                   !overlap = overlap.or.( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
+                   overlap = ( (rx*rx+ry*ry+rz*rz < sigma_sq).and.(ichain/=jchain) )
+                   if ( overlap ) then
+                     overlaps = overlaps + 1
+                   end if
+
+                   tmpint  = linked_list(1,jbead,jchain,ibox)
+                   jchain  = linked_list(2,jbead,jchain,ibox)
+                   jbead   = tmpint
+
+                end do
+                !if ( overlap ) then
+                !   alkane_chain_inter_boltz = 0.0_dp
+                !   return
+                !end if
+             end do
+
+          end do
+
+       else
+
+          if ( ichain > 1 ) then
+             do ibead = 1,nbeads
+                rbead(:) = Rchain(:,ibead,ichain,ibox)
+                do jchain = 1,ichain-1
+                   do j = 1,nbeads
+                      ! The compiler needs to inline this, use -ipo on Intel
+                      rsep(:) = box_minimum_image( Rchain(:,j,jchain,ibox),rbead(:), ibox )
+                      overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+                   end do
+                   if ( overlap ) then
+                     overlaps = overlaps + 1
+                   end if
+                end do
+             end do
+          end if
+
+          if ( ichain < nchains ) then
+             do ibead = 1,nbeads
+                rbead(:) = Rchain(:,ibead,ichain,ibox)
+                do jchain = ichain + 1,nchains
+                   do j = 1,nbeads
+                      ! The compiler needs to inline this, use -ipo on Intel
+                      rsep(:) = box_minimum_image( Rchain(:,j,jchain,ibox),rbead(:),ibox )
+                      overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+                   end do
+                   if ( overlap ) then
+                      overlaps = overlaps + 1
+                   end if
+                end do
+             end do
+          end if
+
+       end if
+
+    end if
+
+    alkane_chain_count_overlaps = overlaps
+
+    return
+
+  end function alkane_chain_count_overlaps
+
+
   function alkane_random_dihedral() bind(c)
     !-------------------------------------------------------------------------!
     ! Generates a random dihedral potential to the Boltzmann distribution     !

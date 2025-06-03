@@ -30,7 +30,7 @@ void alkane_bond_rotate(int ichain, int ibox, double *boltz_out, int *ia, double
 /* Check if any chain overlaps with some over chain (for consistency checking) */
 void alkane_check_chain_overlap(int ibox, int *overlap);
 
-/* Check that a chain has the correct internal geometry (for constency checking) */
+/* Check that a chain has the correct internal geometry (for consistency checking) */
 void alkane_check_chain_geometry(int ichain, int ibox, int *violated);
 
 /* Update linked lists - for use after accepting any move which changes bead positions */
@@ -83,3 +83,6 @@ void alkane_set_bondlength(double L);
 
 void alkane_get_bondangle(double *dumangle);
 void alkane_set_bondangle(double bondangle);
+
+/* Count overlaps involving ichain */
+int alkane_chain_count_overlaps(int ichain, int ibox);

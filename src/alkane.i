@@ -1629,6 +1629,26 @@ Useful for preventing shear or stretch moves from producing 'flat' cells.
 %enddef
 %feature("docstring", alk_gtba_str) alkane_get_bondangle;
 
+%feature("autodoc", "alkane_chain_count_overlaps();") alkane_chain_count_overlaps;
+%define alk_chco_str
+"
+    Returns the angle formed by three adjacent beads in a chain in a simulation, in degrees
+
+    Parameters
+    ----------
+
+    ichain       : chain index (1 based) to count overlaps for
+    ibox         : simulation replica (1 based) in which to count
+
+
+    Returns
+    -------
+    
+    overlaps      : Number overlaps between beads on chain ichain and other chains
+
+"
+%enddef
+%feature("docstring", alk_chco_str) alkane_chain_count_overlaps;
 
 
 /* This will be parsed to generate the wrapper */
