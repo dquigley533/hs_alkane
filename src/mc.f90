@@ -98,6 +98,7 @@ contains
     real(kind=dp) :: volP                          ! Vol move prob
 
     real(kind=dp),dimension(4) :: dummy_quat       ! Dummy quarternion
+    real(kind=dp),dimension(3) :: dummy_dr         ! Dummy displacement returned from alkane module
 
     integer(kind=it) :: overlap                    ! Check on overlaps
     integer(kind=it) :: violated                   ! Check on geometry
@@ -290,7 +291,7 @@ contains
 
           ! Translate entire chain by a random vector.
           ! new_boltz is the new Boltzmann factor
-          call alkane_translate_chain(ichain,ibox,new_boltz)
+          call alkane_translate_chain(ichain,ibox,new_boltz,dummy_dr)
 
           ! Accept or reject this trial move
           xi = random_uniform_random()
