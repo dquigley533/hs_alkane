@@ -17,7 +17,7 @@ libdir     = $(prefix)/lib
 # Default compiler and flags
 F90       = gfortran
 LD        = gfortran
-FFLAGS    = -O3 -fPIC
+FFLAGS    = -O3 -fPIC -g 
 INCLUDE   = 
 LIBS      = 
 
@@ -32,7 +32,8 @@ LIBOBJ = constants.o timer.o random.o quaternion.o box.o alkane.o vis_module.o m
 # Main build target - builds the main executable
 hs_alkane : $(OBJECTS)
 
-	$(LD) -o $(bindir)/hs_alkane $(OBJECTS) $(FFLAGS) $(LIBS) 
+	$(LD) -o hs_alkane $(OBJECTS) $(FFLAGS) $(LIBS) 
+	cp hs_alkane $(bindir)/hs_alkane
 
 # Library - should make clean && make if building this after the stand-alone f90 code
 library: $(LIBOBJ)
@@ -42,6 +43,18 @@ library: $(LIBOBJ)
 library-query: library
 	nm $(libdir)/libalkane.so | grep -v '__' | grep T
 
+# Runs the single chain example
+singlechain: hs_alkane
+	$(bindir)/hs_alkane ../examples/singlechain.input
+
+# Runs the solid butane example
+solid_butane: hs_alkane 
+	ln -s ../examples/chain.xmol .
+	$(bindir)/hs_alkane ../examples/solid_butane.input
+
+# Runs the liquid butane example
+liquid_butane: hs_alkane
+	$(bindir)/hs_alkane ../examples/liquid_butane.input
 
 .PRECIOUS: %.o
 .PHONY:  clean
