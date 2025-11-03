@@ -34,12 +34,15 @@ module mc
   public :: eq_mc_cycles
   public :: max_mc_cycles
   public :: mc_cycle_num
+  public :: eq_adjust_int
+  public :: mc_report_movestats
 
   !---------------------------------------------------------------------------!
   !                      P r i v a t e   V a r i a b l e s                    !
   !---------------------------------------------------------------------------!
   real(kind=dp) :: mc_target_ratio = 0.5_dp     ! Target acceptance ratio
   logical       :: eq_adjust_mc    = .true.     ! Do we adjust MC to reach it
+  integer       :: eq_adjust_int   = 100        ! Interval at which to adjust
 
   integer(kind=it) :: eq_mc_cycles  = 10000      ! Equilibration cycles 
   integer(kind=it) :: max_mc_cycles = 500000000  ! How many cycles to perform
@@ -376,7 +379,7 @@ contains
     ! eq_adjust_mc is true. Should only be used to select moves params   !
     ! for subsequent simulations with fixed values.                      !
     !--------------------------------------------------------------------!
-    if ( (mod(mc_cycle_num,eq_mc_cycles)==0).and.eq_adjust_mc ) then
+    if ( (mod(mc_cycle_num,eq_adjust_int)==0).and.eq_adjust_mc.and.(mc_cycle_num < eq_mc_cycles) ) then
 
        write(*,'("!=======================================!")')
        write(*,'("! Checking move acceptance ratios...    !")')
@@ -386,20 +389,25 @@ contains
        acrat  = real(mc_accepted_cbmc)/real(mc_attempted_cbmc)
        ktrial = max(5,int(real(ktrial,kind=dp)*mc_target_ratio/acrat))
        ktrial = min(10,ktrial)
-       if (mc_accepted_cbmc == 0) ktrial = 10
 
-       write(*,'("! Configurational bias moves   : ",I2" %   ",I5)')nint(acrat*100.0_dp),mc_attempted_cbmc
+       
+       !if (mc_accepted_cbmc == 0) ktrial = 10
+ 
+       !write(*,'("! Configurational bias moves   : ",I2" %   ",I5)')nint(acrat*100.0_dp),mc_attempted_cbmc
        !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
        !     mc_accepted_cbmc,mc_attempted_cbmc
 
-       acrat = real(mc_accepted_dih)/real(mc_attempted_dih)
-       mc_dh_max = max(0.001,mc_dh_max*acrat/mc_target_ratio)
-       mc_dh_max = min(mc_dh_max,Pi)
+       if (nbeads > 3) then
 
-       write(*,'("! Dihedral angle moves         : ",I2," %   ")')nint(acrat*100.0_dp)
-       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
-       !     mc_accepted_dih,mc_attempted_dih
+         acrat = real(mc_accepted_dih)/real(mc_attempted_dih)
+         mc_dh_max = max(0.001,mc_dh_max*acrat/mc_target_ratio)
+         mc_dh_max = min(mc_dh_max,Pi)
 
+         write(*,'("! Dihedral angle moves         : ",I2," %   ")')nint(acrat*100.0_dp)
+         !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+         !     mc_accepted_dih,mc_attempted_dih
+
+       end if
 
        if (nchains > 1) then
 
@@ -545,5 +553,66 @@ contains
 
   end subroutine mc_initialise
 
+  subroutine mc_report_movestats()
+    !-------------------------------------------------------------------------!
+    ! Reports statistics on MC move attempts and acceptances since last reset !
+    !-------------------------------------------------------------------------!
+    ! D.Quigley November 2025                                                 !
+    !-------------------------------------------------------------------------!
+    use alkane, only : nbeads,nchains
+    use box   , only : pbc
+    use constants, only : dp
+    implicit none
+
+    integer(kind=it) :: ktrial
+    real(kind=dp) :: acrat
+
+
+   write(*,'("!=======================================!")')
+   write(*,'("! Current move acceptance ratios...     !")')
+   write(*,'("!                                       !")')
+
+   acrat  = real(mc_accepted_cbmc)/real(mc_attempted_cbmc)
+       
+   !if (mc_accepted_cbmc == 0) ktrial = 10
+ 
+   !write(*,'("! Configurational bias moves   : ",I2" %   ",I5)')nint(acrat*100.0_dp),mc_attempted_cbmc
+   !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+   !     mc_accepted_cbmc,mc_attempted_cbmc
+
+   if (nbeads < 3) then
+      acrat = real(mc_accepted_dih)/real(mc_attempted_dih)   
+      write(*,'("! Dihedral angle moves         : ",I2," %   ")')nint(acrat*100.0_dp)
+      !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+      !     mc_accepted_dih,mc_attempted_dih
+   end if
+
+   if (nchains > 1) then
+
+      acrat = real(mc_accepted_trans)/real(mc_attempted_trans)
+      write(*,'("! Molecule translation moves   : ",I2," %   ")')nint(acrat*100.0_dp)
+      !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+      !     mc_accepted_trans,mc_attempted_trans
+
+
+      acrat = real(mc_accepted_rot)/real(mc_attempted_rot)
+      write(*,'("! Molecule rotation moves      : ",I2," %   ")')nint(acrat*100.0_dp)
+      !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+      !     mc_accepted_rot,mc_attempted_rot
+
+
+   end if
+
+   if (pbc) then
+
+      acrat = real(mc_accepted_box)/real(mc_attempted_box)
+      write(*,'("! Box moves                    : ",I2," %   ")')nint(acrat*100.0_dp)
+      !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
+      !     mc_accepted_box,mc_attempted_box
+
+   end if   
+
+
+  end subroutine mc_report_movestats
 
 end module mc

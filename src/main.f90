@@ -153,7 +153,8 @@ program hs_alkane
      ! Write density to density.dat every file_output_int
      do ibox = 1,nboxes
         if ((mod(mc_cycle_num,file_output_int)==0).and.pbc) then
-           write(25+ibox-1,'(I10,F15.6)')mc_cycle_num,real(nchains,kind=dp)*(sigma**3)/box_compute_volume(ibox)
+           !write(25+ibox-1,'(I10,F15.6)')mc_cycle_num,real(nchains,kind=dp)*(sigma**3)/box_compute_volume(ibox)
+            write(25+ibox-1,'(I10,F15.6)')mc_cycle_num,real(nchains,kind=dp)*chainvol/box_compute_volume(ibox)
         end if
      end do
 
@@ -164,8 +165,8 @@ program hs_alkane
 
         write(*,*)
         write(*,'("!=======================================!")')
-        write(*,'("! MC cycles per second : ",F10.4, "     !")') &
-             real(1000,kind=ep)/(real(t2-t1,kind=ep)/real(rate,kind=ep))
+        write(*,'("! MC moves per second : ",F13.0, "    !")') &
+             real(1000,kind=ep)*nchains*nbeads*nboxes/(real(t2-t1,kind=ep)/real(rate,kind=ep))
         write(*,'("!=======================================!")')
         write(*,*)
 
@@ -202,6 +203,10 @@ program hs_alkane
   !-------------------------------------!
   call io_write_xmol()
 
+  !-------------------------------------!
+  ! Write final move statistics         !
+  !-------------------------------------!
+  call mc_report_movestats()
 
   !-------------------------------------!
   ! Release memory                      !
