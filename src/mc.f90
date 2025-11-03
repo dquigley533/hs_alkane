@@ -580,7 +580,7 @@ contains
    !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
    !     mc_accepted_cbmc,mc_attempted_cbmc
 
-   if (nbeads < 3) then
+   if (nbeads > 3) then
       acrat = real(mc_accepted_dih)/real(mc_attempted_dih)   
       write(*,'("! Dihedral angle moves         : ",I2," %   ")')nint(acrat*100.0_dp)
       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
@@ -612,6 +612,7 @@ contains
 
    end if   
 
+   write(*,'("!=======================================!")')
 
   end subroutine mc_report_movestats
 
