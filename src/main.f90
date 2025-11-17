@@ -165,7 +165,7 @@ program hs_alkane
 
         write(*,*)
         write(*,'("!=======================================!")')
-        write(*,'("! MC moves per second : ",F13.0, "    !")') &
+        write(*,'("! MC moves per second : ",F13.0, "   !")') &
              real(1000,kind=ep)*nchains*nbeads*nboxes/(real(t2-t1,kind=ep)/real(rate,kind=ep))
         write(*,'("!=======================================!")')
         write(*,*)
