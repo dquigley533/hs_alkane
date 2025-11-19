@@ -582,7 +582,7 @@ contains
 
    if (nbeads > 3) then
       acrat = real(mc_accepted_dih)/real(mc_attempted_dih)   
-      write(*,'("! Dihedral angle moves         : ",F3.1," % !")')acrat*100.0_dp
+      write(*,'("! Dihedral angle moves         : ",F4.1," % !")')acrat*100.0_dp
       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
       !     mc_accepted_dih,mc_attempted_dih
    end if
@@ -590,13 +590,13 @@ contains
    if (nchains > 1) then
 
       acrat = real(mc_accepted_trans)/real(mc_attempted_trans)
-      write(*,'("! Molecule translation moves   : ",F3.1," % !")')acrat*100.0_dp
+      write(*,'("! Molecule translation moves   : ",F4.1," % !")')acrat*100.0_dp
       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
       !     mc_accepted_trans,mc_attempted_trans
 
 
       acrat = real(mc_accepted_rot)/real(mc_attempted_rot)
-      write(*,'("! Molecule rotation moves      : ",F3.1," % !")')acrat*100.0_dp
+      write(*,'("! Molecule rotation moves      : ",F4.1," % !")')acrat*100.0_dp
       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
       !     mc_accepted_rot,mc_attempted_rot
 
@@ -606,7 +606,7 @@ contains
    if (pbc) then
 
       acrat = real(mc_accepted_box)/real(mc_attempted_box)
-      write(*,'("! Box moves                    : ",F3.1," % !")')acrat*100.0_dp
+      write(*,'("! Box moves                    : ",F4.1," % !")')acrat*100.0_dp
       !write(*,'("! Number of moves (accepted)/(attempted) : ",I8,"/",I8)') &
       !     mc_accepted_box,mc_attempted_box
 
