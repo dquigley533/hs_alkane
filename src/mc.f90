@@ -13,7 +13,7 @@
 module mc
 
   use iso_c_binding
-  use constants, only : dp,it
+  use constants, only : dp,it,lt
   implicit none
 
   private                ! Everything private
@@ -47,18 +47,18 @@ module mc
   integer(kind=it) :: eq_mc_cycles  = 10000      ! Equilibration cycles 
   integer(kind=it) :: max_mc_cycles = 500000000  ! How many cycles to perform
 
-  integer(kind=it) :: mc_cycle_num = 0             ! Current cycle number
-  integer(kind=it) :: last_move    = 0             ! Most recent move type
+  integer(kind=it) :: mc_cycle_num = 0           ! Current cycle number
+  integer(kind=it) :: last_move    = 0           ! Most recent move type
 
   integer(kind=it),parameter :: nmove_types = 5 ! Number of move types
   character(11),dimension(nmove_types) :: name  ! Move names
 
   ! Move attempt/accept counters
-  integer(kind=it) :: mc_accepted_trans = 0, mc_attempted_trans = 0
-  integer(kind=it) :: mc_accepted_rot   = 0, mc_attempted_rot   = 0
-  integer(kind=it) :: mc_accepted_dih   = 0, mc_attempted_dih   = 0
-  integer(kind=it) :: mc_accepted_box   = 0, mc_attempted_box   = 0
-  integer(kind=it) :: mc_accepted_cbmc  = 0, mc_attempted_cbmc  = 0
+  integer(kind=lt) :: mc_accepted_trans = 0, mc_attempted_trans = 0
+  integer(kind=lt) :: mc_accepted_rot   = 0, mc_attempted_rot   = 0
+  integer(kind=lt) :: mc_accepted_dih   = 0, mc_attempted_dih   = 0
+  integer(kind=lt) :: mc_accepted_box   = 0, mc_attempted_box   = 0
+  integer(kind=lt) :: mc_accepted_cbmc  = 0, mc_attempted_cbmc  = 0
 
   ! Backup chain used to restore configuration after failed MC moves
   real(kind=dp),allocatable,dimension(:,:) :: backup_chain
