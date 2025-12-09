@@ -406,12 +406,12 @@ contains
 
     ! Bomb out if system is too small for link cells
     if ( (ncellx(ibox)<4).or.(ncelly(ibox)<4).or.(ncellz(ibox)<4) ) then
-       write(0,'("system too small for link cells of this size",3I5)')ncellx(ibox),ncelly(ibox),ncellz(ibox)
+       write(0,'("system too small for link cells of this length",3I5)')ncellx(ibox),ncelly(ibox),ncellz(ibox)
        write(*,*)"hmatrix", hmatrix
        write(*,*)"dot prods",Lx,Ly,Lz,"link cell length",link_cell_length
        use_link_cells = .false.
        !stop
-       return
+       !return ! Don't return - we might have other boxes to initialise
     end if
 
     ! Decide if we need to reallcoate the neighbour arrays and hence rebuild them for all boxes
