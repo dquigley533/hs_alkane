@@ -24,7 +24,8 @@ module constants
   integer,parameter    :: dp = c_double
   integer,parameter    :: ep = c_double
   integer,parameter    :: it = c_int
-
+  integer,parameter    :: lt = c_long_long
+  
   !-------------------------------------------------------------------------!
   ! Fundamental constants                                                   !
   !-------------------------------------------------------------------------!
