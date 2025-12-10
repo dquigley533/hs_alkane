@@ -20,6 +20,9 @@ void alkane_grow_chain(int ichain, int ibox, double *rbfactor, int new_conf, int
 /* Get a chain */
 void alkane_get_chain(int ichain, int ibox, int *nbeads_out,int *d_out, double **rchain_ptr);
 
+/* Set a chain */
+void alkane_set_chain(int ichain, int ibox, int nbeads, double *r_in);
+
 /* Translation, rotation of a chain */
 void alkane_translate_chain(int ichain, int ibox, double *boltz_out, double vec_out[3]);
 void alkane_rotate_chain(int ichain, int ibox, double *boltz_out, double quat[4], int bond);
@@ -85,4 +88,4 @@ void alkane_get_bondangle(double *dumangle);
 void alkane_set_bondangle(double bondangle);
 
 /* Count overlaps involving ichain */
-int alkane_chain_count_overlaps(int ichain, int ibox);
+void alkane_chain_count_overlaps(int ichain, int ibox, int *overlaps);
