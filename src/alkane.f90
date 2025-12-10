@@ -219,7 +219,7 @@ contains
 
     else
 
-       ! General case, but only valid for nbeads<2 if L > 0.5*sigma
+       ! General case, but only valid for nbeads>2 if L > 0.5*sigma
 
        ! Calculate volume lost in each bond.
        h = 0.5*(L+sigma)
@@ -1456,6 +1456,8 @@ contains
        write(0,'("ERROR - called with chain index of 0.")')
        write(0,'("Chains are indexed from 1 upwards.")')
     end if
+
+    !write(0,'("Checking intermolecular overlaps for chain ",I5)')ichain
     
     sigma_sq = sigma*sigma
     overlap  = .false.
@@ -1663,7 +1665,7 @@ contains
 
   end function alkane_chain_inter_boltz
 
- function alkane_chain_count_overlaps(ichain,ibox) bind(c)
+ subroutine alkane_chain_count_overlaps(ichain,ibox,overlaps) bind(c)
     !-------------------------------------------------------------------------!
     ! Counts the number of hard sphere overlaps between beads on chain ichain !
     ! and other chains in the box ibox. Needed for computing the overlap      !
@@ -1679,7 +1681,7 @@ contains
                            use_verlet_list
     implicit none
 
-    integer(kind=it),intent(in) :: ichain,ibox
+    integer(kind=it),value,intent(in) :: ichain,ibox
     real(kind=dp),dimension(3)  :: rbead
     real(kind=dp),dimension(3)  :: rsep !,sbead
     real(kind=dp),dimension(9)  :: hcache
@@ -1689,16 +1691,20 @@ contains
     real(kind=dp) :: rx,ry,rz
     real(kind=dp) :: sx,sy,sz
 
-    integer(kind=it) :: overlaps, alkane_chain_count_overlaps
+    integer(kind=it), intent(out) :: overlaps
     logical          :: overlap
 
     if ( (ichain==0)) then
        write(0,'("ERROR - called with chain index of 0.")')
        write(0,'("Chains are indexed from 1 upwards.")')
     end if
-    
+
+    !write(0,'("Counting intermolecular overlaps for chain ",I5, "in box ",I5)')ichain,ibox
+    !return
+
     sigma_sq = sigma*sigma
     overlap  = .false.
+    overlaps = 0
 
     iz = 1
     do ix = 1,3
@@ -1857,6 +1863,8 @@ contains
 
        else
 
+         !write(0,'("Counting overlaps without Verlet or link cells - inefficient!")')
+
           if ( ichain > 1 ) then
              do ibead = 1,nbeads
                 rbead(:) = Rchain(:,ibead,ichain,ibox)
@@ -1864,11 +1872,16 @@ contains
                    do j = 1,nbeads
                       ! The compiler needs to inline this, use -ipo on Intel
                       rsep(:) = box_minimum_image( Rchain(:,j,jchain,ibox),rbead(:), ibox )
-                      overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
-                   end do
-                   if ( overlap ) then
-                     overlaps = overlaps + 1
-                   end if
+                      overlap = (dot_product(rsep,rsep) < sigma_sq)
+                      if ( overlap ) then
+                         overlaps = overlaps + 1
+                         !write(0,'("Overlap found between chain ",I5," bead ",I5," and chain ",I5," bead ",I5)') &
+                         !     ichain, ibead, jchain, j
+                         !write(0,'("  Distance : ",F15.6)')sqrt(dot_product(rsep,rsep))
+                         !write(0,'("Positions: R1 = ",3F15.6)')Rchain(:,ibead,ichain,ibox)
+                         !write(0,'("           R2 = ",3F15.6)')Rchain(:,j,jchain,ibox)
+                      end if
+                  end do
                 end do
              end do
           end if
@@ -1880,11 +1893,16 @@ contains
                    do j = 1,nbeads
                       ! The compiler needs to inline this, use -ipo on Intel
                       rsep(:) = box_minimum_image( Rchain(:,j,jchain,ibox),rbead(:),ibox )
-                      overlap = overlap.or.(dot_product(rsep,rsep) < sigma_sq)
+                      overlap = (dot_product(rsep,rsep) < sigma_sq)
+                      if ( overlap ) then
+                         overlaps = overlaps + 1
+                         !write(0,'("Overlap found between chain ",I5," bead ",I5," and chain ",I5," bead ",I5)') &
+                         !     ichain, ibead, jchain, j
+                         !write(0,'("  Distance : ",F15.6)')sqrt(dot_product(rsep,rsep))
+                         !write(0,'("Positions: R1 = ",3F15.6)')Rchain(:,ibead,ichain,ibox)
+                         !write(0,'("           R2 = ",3F15.6)')Rchain(:,j,jchain,ibox)
+                      end if
                    end do
-                   if ( overlap ) then
-                      overlaps = overlaps + 1
-                   end if
                 end do
              end do
           end if
@@ -1893,11 +1911,9 @@ contains
 
     end if
 
-    alkane_chain_count_overlaps = overlaps
-
     return
 
-  end function alkane_chain_count_overlaps
+  end subroutine alkane_chain_count_overlaps
 
 
   function alkane_random_dihedral() bind(c)
@@ -3347,22 +3363,22 @@ contains
   end subroutine alkane_set_nbeads
 
 
-  subroutine alkane_set_chain(ichain,ibox,r) bind(c)
+  subroutine alkane_set_chain(ichain,ibox,r_in) bind(c)
     !-------------------------------------------------------------------------!
     ! Overwrites the coordinates of a single chain in box ibox.               !
     !-------------------------------------------------------------------------!
     ! D.Quigley August 2011                                                   !
     !-------------------------------------------------------------------------!
     implicit none
-    integer(kind=it),intent(in) :: ichain,ibox
-    real(kind=dp),dimension(1:3,1:nbeads),intent(in) :: r
+    integer(kind=it),value,intent(in) :: ichain,ibox
+    real(kind=dp),dimension(1:3,1:nbeads),intent(in) :: r_in
 
     if ( (ichain==0)) then
        write(0,'("ERROR - called with chain index of 0.")')
        write(0,'("Chains are indexed from 1 upwards.")')
     end if
     
-    Rchain(:,:,ichain,ibox) = r(:,:)
+    Rchain(:,:,ichain,ibox) = r_in(:,:)
 
     return
 
@@ -3557,8 +3573,5 @@ end subroutine alkane_set_bondangle
    return
 
  end subroutine alkane_get_bondangle
-
-
-
 
 end module alkane
