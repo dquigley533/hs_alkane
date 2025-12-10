@@ -74,6 +74,7 @@ from recognising the module name....
 %apply int *OUTPUT {int *violated};
 %apply int *OUTPUT {int *dum_ktrial};
 %apply int *OUTPUT {int *dum_max_regrow};
+%apply int *OUTPUT {int *overlaps};
 
 
 
