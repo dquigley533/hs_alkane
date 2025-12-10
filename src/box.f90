@@ -269,7 +269,7 @@ contains
     use constants, only : invPi
     implicit none
     real(kind=dp),dimension(3),intent(in) :: r1,r2
-    integer(kind=it),value,intent(in) :: ibox
+    integer(kind=it),intent(in) :: ibox
     real(kind=dp),dimension(3)        :: box_minimum_image
     real(kind=dp),dimension(3)        :: dr
     real(kind=dp) :: sx,sy,sz
